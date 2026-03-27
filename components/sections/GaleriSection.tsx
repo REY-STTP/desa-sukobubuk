@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Images, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { Galeri } from '@prisma/client'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,11 +19,7 @@ const placeholderGradients = [
   'linear-gradient(135deg, #f472b6 0%, #db2777 100%)',
 ]
 
-function GaleriMedia({
-  item,
-  index,
-  className = 'w-full h-full object-cover',
-}: {
+function GaleriMedia({ item, index, className = 'w-full h-full object-cover' }: {
   item: Galeri
   index: number
   className?: string
@@ -36,7 +32,7 @@ function GaleriMedia({
       <img
         src={item.foto!}
         alt={item.judul}
-        className={`${className} pointer-events-none select-none`}
+        className={`${className} pointer-events-none`}
         draggable={false}
       />
     )
@@ -48,9 +44,7 @@ function GaleriMedia({
       style={{ background: gradient }}
     >
       <Images className="w-12 h-12 text-white/40" />
-      <p className="text-white/60 text-sm font-medium px-6 text-center line-clamp-2">
-        {item.judul}
-      </p>
+      <p className="text-white/60 text-sm font-medium px-6 text-center line-clamp-2">{item.judul}</p>
     </div>
   )
 }
@@ -59,51 +53,38 @@ function getSlideProps(offset: number) {
   const abs = Math.abs(offset)
   const dir = Math.sign(offset)
 
-  if (abs === 0)
-    return {
-      x: '0%',
-      scale: 1,
-      opacity: 1,
-      zIndex: 30,
-      rotateY: 0,
-      brightness: 1,
-      blur: 0,
-      saturate: 1,
-    }
-
-  if (abs === 1)
-    return {
-      x: `${dir * 58}%`,
-      scale: 0.82,
-      opacity: 0.95,
-      zIndex: 20,
-      rotateY: dir * 18,
-      brightness: 0.75,
-      blur: 2,
-      saturate: 0.85,
-    }
-
-  if (abs === 2)
-    return {
-      x: `${dir * 76}%`,
-      scale: 0.65,
-      opacity: 0.5,
-      zIndex: 10,
-      rotateY: dir * 28,
-      brightness: 0.5,
-      blur: 4,
-      saturate: 0.7,
-    }
-
-  return { opacity: 0, zIndex: 0 }
+  if (abs === 0) return {
+    x: '0%', scale: 1, opacity: 1,
+    zIndex: 30, rotateY: 0, brightness: 1,
+    pointerEvents: 'auto' as const,
+  }
+  if (abs === 1) return {
+    x: `${dir * 58}%`, scale: 0.78, opacity: 0.9,
+    zIndex: 20, rotateY: dir * 20, brightness: 0.7,
+    pointerEvents: 'none' as const,
+  }
+  if (abs === 2) return {
+    x: `${dir * 76}%`, scale: 0.62, opacity: 0.5,
+    zIndex: 10, rotateY: dir * 32, brightness: 0.5,
+    pointerEvents: 'none' as const,
+  }
+  return { opacity: 0, zIndex: 0, pointerEvents: 'none' as const }
 }
 
 export default function GaleriSection({ galeri }: Props) {
   const [current, setCurrent] = useState(0)
   const [lightbox, setLightbox] = useState<number | null>(null)
   const [dragStartX, setDragStartX] = useState<number | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
 
   const total = galeri.length
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   function go(idx: number) {
     setCurrent((idx + total) % total)
@@ -122,30 +103,24 @@ export default function GaleriSection({ galeri }: Props) {
     setDragStartX(null)
   }
 
-  const offsets = [-2, -1, 0, 1, 2]
+  const offsets = isMobile ? [0] : [-2, -1, 0, 1, 2]
 
   return (
     <section className="section-padding bg-white">
       <div className="container-custom">
-
-        {/* HEADER */}
-        <ScrollReveal direction="none" className="text-center mb-12">
+        <ScrollReveal direction="none" className="text-center mb-10 md:mb-14">
           <div className="flex items-center justify-center gap-2 text-primary-600 font-semibold text-sm mb-3">
             <Images className="w-4 h-4" />
             Galeri Foto
           </div>
-          <h2 className="section-title">
-            Momen <span className="text-primary-600 italic">Berharga</span>
-          </h2>
-          <p className="section-subtitle max-w-lg mx-auto">
-            Abadikan setiap momen berharga kegiatan dan kehidupan desa.
-          </p>
+          <h2 className="section-title">Momen <span className="text-primary-600 italic">Berharga</span></h2>
+          <p className="section-subtitle max-w-lg mx-auto">Abadikan setiap momen berharga kegiatan dan kehidupan desa.</p>
         </ScrollReveal>
 
-        {/* CAROUSEL */}
-        <div className="relative" style={{ perspective: '1200px' }}>
+        {/* Carousel */}
+        <div className="relative" style={{ perspective: '1000px' }}>
           <div
-            className="relative h-64 md:h-80 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
+            className="relative h-60 md:h-80 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
           >
@@ -158,110 +133,81 @@ export default function GaleriSection({ galeri }: Props) {
                 <motion.div
                   key={idx + '-' + offset}
                   animate={{
-                    x: p.x,
-                    scale: p.scale,
-                    opacity: p.opacity,
-                    rotateY: p.rotateY,
+                    x: p.x ?? '0%',
+                    scale: p.scale ?? 1,
+                    opacity: p.opacity ?? 0,
+                    rotateY: p.rotateY ?? 0,
                   }}
                   style={{
                     position: 'absolute',
-                    width: '56%',
-                    maxWidth: '520px',
+                    width: isMobile ? '90%' : '54%',
+                    maxWidth: '500px',
                     zIndex: p.zIndex,
                     transformStyle: 'preserve-3d',
-                    filter: `
-                      brightness(${p.brightness})
-                      blur(${p.blur}px)
-                      saturate(${p.saturate})
-                    `,
+                    pointerEvents: p.pointerEvents,
+                    filter: `brightness(${p.brightness ?? 1})`,
                     cursor: isActive ? 'pointer' : 'default',
                   }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 120,
-                    damping: 18,
-                  }}
+                  transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
                   onClick={() => isActive && setLightbox(idx)}
                 >
-                  <div className="flex flex-col items-center">
+                  <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '16/9' }}>
+                    <GaleriMedia item={galeri[idx]} index={idx} />
 
-                    {/* IMAGE */}
-                    <div
-                      className="relative rounded-2xl overflow-hidden shadow-2xl w-full group"
-                      style={{ aspectRatio: '16/9' }}
-                    >
-                      <GaleriMedia item={galeri[idx]} index={idx} />
-
-                      {/* HOVER GLOW */}
-                      {isActive && (
-                        <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition duration-300" />
-                      )}
-
-                      {/* DESKTOP OVERLAY */}
-                      {isActive && (
-                        <div className="hidden md:flex absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent items-end p-5">
-                          <p className="text-white font-bold text-lg drop-shadow-lg">
-                            {galeri[idx].judul}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* MOBILE TITLE (FIX HEIGHT) */}
                     {isActive && (
-                      <div className="md:hidden mt-3 w-full flex justify-center px-2">
-                        <div className="h-[44px] flex items-center justify-center">
-                          <p className="text-gray-800 font-semibold text-sm text-center line-clamp-2 leading-tight">
-                            {galeri[idx].judul}
-                          </p>
-                        </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4 md:p-5 pointer-events-none">
+                        <p className="text-white font-bold text-sm md:text-lg leading-snug drop-shadow">
+                          {galeri[idx].judul}
+                        </p>
                       </div>
                     )}
-
                   </div>
                 </motion.div>
               )
             })}
           </div>
 
-          {/* ARROWS (GLASS STYLE) */}
+          {/* Arrows */}
           <button
             onClick={() => go(current - 1)}
-            className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full 
-            bg-green-400/80 backdrop-blur-md text-white 
-            hover:bg-green-600/90 hover:scale-110 
-            transition flex items-center justify-center shadow-xl"
+            className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
           <button
             onClick={() => go(current + 1)}
-            className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full 
-            bg-green-400/80 backdrop-blur-md text-white 
-            hover:bg-green-600/90 hover:scale-110 
-            transition flex items-center justify-center shadow-xl"
+            className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Dots */}
+        <div className="flex justify-center gap-2 mt-6">
+          {galeri.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => go(i)}
+              className={`rounded-full transition-all duration-300 ${
+                i === current
+                  ? 'w-6 h-2 bg-primary-500'
+                  : 'w-2 h-2 bg-gray-300'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* LIGHTBOX */}
+      {/* Lightbox */}
       <AnimatePresence>
         {lightbox !== null && (
           <motion.div
-            className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
             onClick={() => setLightbox(null)}
           >
             <motion.div
-              className="relative max-w-5xl w-full"
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
+              className="relative max-w-4xl w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <GaleriMedia
@@ -272,9 +218,9 @@ export default function GaleriSection({ galeri }: Props) {
 
               <button
                 onClick={() => setLightbox(null)}
-                className="absolute top-3 right-3 bg-white/20 backdrop-blur-md rounded-full p-2"
+                className="absolute top-3 right-3 bg-white/20 rounded-full p-2"
               >
-                <X className="text-white w-5 h-5" />
+                <X className="text-white" />
               </button>
             </motion.div>
           </motion.div>
