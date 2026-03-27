@@ -51,15 +51,14 @@ export default function HeroClient({
     <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
       {/* Video Background */}
       <video
+        src="https://res.cloudinary.com/dtsnhei95/video/upload/f_auto,q_auto/v1774572204/hero-bg_ccrlcv.mp4"
         autoPlay
         muted
         loop
         playsInline
+        poster="https://res.cloudinary.com/dtsnhei95/video/upload/so_1/v1774572204/hero-bg_ccrlcv.jpg"
         className="absolute inset-0 w-full h-full object-cover z-0"
-      >
-        <source src="/videos/hero-bg.mp4" type="video/mp4" />
-        <source src="/videos/hero-bg.webm" type="video/webm" />
-      </video>
+      />
 
       {/* Overlay gelap + hijau agar teks tetap terbaca */}
       <div className="absolute inset-0 z-10 bg-gradient-to-br from-primary-950/80 via-primary-900/70 to-sage-800/60" />
