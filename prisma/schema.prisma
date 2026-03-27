@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                Int                @id @default(autoincrement())
+  name              String
+  email             String             @unique
+  password          String
+  role              String             @default("admin")
+  created_at        DateTime           @default(now())
+  berita            Berita[]
+  password_resets   PasswordReset[]
+
+  @@map("users")
+}
+
+model PasswordReset {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  token      String   @unique
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+model UMKM {
+  id          Int       @id @default(autoincrement())
+  nama_usaha  String
+  slug        String    @unique
+  pemilik     String
+  kategori    String
+  deskripsi   String
+  alamat      String
+  whatsapp    String
+  logo        String?
+  is_featured Boolean   @default(false)
+  created_at  DateTime  @default(now())
+  produk      Produk[]
+
+  @@map("umkm")
+}
+
+model Produk {
+  id           Int      @id @default(autoincrement())
+  umkm_id      Int
+  nama_produk  String
+  slug         String   @unique
+  deskripsi    String
+  harga        Decimal  @db.Decimal(12, 2)
+  foto         String?
+  is_available Boolean  @default(true)
+  created_at   DateTime @default(now())
+  umkm         UMKM     @relation(fields: [umkm_id], references: [id], onDelete: Cascade)
+
+  @@map("produk")
+}
+
+model Berita {
+  id         Int      @id @default(autoincrement())
+  judul      String
+  slug       String   @unique
+  konten     String
+  thumbnail  String?
+  author_id  Int
+  created_at DateTime @default(now())
+  author     User     @relation(fields: [author_id], references: [id])
+
+  @@map("berita")
+}
+
+model Galeri {
+  id         Int      @id @default(autoincrement())
+  judul      String
+  foto       String
+  created_at DateTime @default(now())
+
+  @@map("galeri")
+}
+
+model Pesan {
+  id         Int      @id @default(autoincrement())
+  nama       String
+  email      String
+  isi_pesan  String
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@map("pesan")
+}
+
+model ProfilDesa {
+  id                  Int      @id @default(autoincrement())
+  // Identitas Desa
+  nama_desa           String   @default("Desa Sukobubuk")
+  logo_url            String?  // path ke file logo, null = pakai inisial
+  nama_kecamatan      String   @default("Kecamatan Margorejo")
+  nama_kabupaten      String   @default("Kabupaten Pati")
+  nama_provinsi       String   @default("Jawa Tengah")
+  kode_pos            String   @default("59163")
+  // Kontak
+  alamat_kantor       String   @default("Jl. Raya Sukobubuk, Desa Sukobubuk")
+  telepon             String   @default("(0295) 123456")
+  email               String   @default("admin.desa.sukobubuk@gmail.com")
+  whatsapp            String   @default("6281328733023")
+  // Jam pelayanan
+  jam_pelayanan     String   @default("08.00 – 12.00")
+  // Google Maps
+  maps_embed_url      String   @default("")
+  maps_link           String   @default("")
+  // Sejarah
+  sejarah_konten      String   @default("") @db.Text
+  // Visi & Misi
+  visi                String   @default("") @db.Text
+  misi                String   @default("") @db.Text  // JSON array string
+  periode_visi_misi   String   @default("2022–2028")
+  // Statistik desa
+  jumlah_penduduk     Int      @default(3500)
+  tahun_berdiri       String   @default("1900")
+  // Struktur organisasi (JSON)
+  struktur_organisasi String   @default("") @db.Text
+  updated_at          DateTime @updatedAt
+
+  @@map("profil_desa")
+}
+
+model PejabatDesa {
+  id       Int    @id @default(autoincrement())
+  jabatan  String
+  nama     String
+  urutan   Int    @default(0)
+  kategori String @default("kepala") // kepala | sekretaris | kasi | kaur | kadus
+  foto_url String?
+
+  @@map("pejabat_desa")
+}
