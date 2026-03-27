@@ -48,7 +48,7 @@ export default function HeroClient({
   }[]
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
+    <section className="relative min-h-screen flex items-start md:items-center overflow-hidden pt-20 md:pt-20">
       {/* Video Background */}
       <video
         src="https://res.cloudinary.com/dtsnhei95/video/upload/f_auto,q_auto/v1774572204/hero-bg_ccrlcv.mp4"
