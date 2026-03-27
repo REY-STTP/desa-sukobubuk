@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import PageTransition from '@/components/animations/PageTransition'
 import LoadingScreen from '@/components/animations/LoadingScreen'
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -22,9 +21,7 @@ export default async function PublicLayout({ children }: { children: React.React
         namaKabupaten={profil?.nama_kabupaten ?? 'Kab. Pati'}
       />
       <Navbar />
-      <PageTransition>
-        <main>{children}</main>
-      </PageTransition>
+      <main>{children}</main>
       <Footer />
     </>
   )

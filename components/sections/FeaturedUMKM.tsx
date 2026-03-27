@@ -21,28 +21,30 @@ export default function FeaturedUMKM({ umkm }: Props) {
   return (
     <section className="section-padding bg-white">
       <div className="container-custom">
-        <ScrollReveal className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
-          <div>
+        <ScrollReveal className="mb-8 md:mb-12">
+          {/* Header: title & subtitle */}
+          <div className="mb-4">
             <div className="flex items-center gap-2 text-primary-600 font-semibold text-sm mb-3">
               <Store className="w-4 h-4" />
               UMKM Unggulan
             </div>
             <h2 className="section-title">Produk Lokal <span className="text-primary-600 italic">Terbaik</span></h2>
-            <p className="section-subtitle max-w-lg">Temukan berbagai produk unggulan dari pengusaha lokal Desa Sukobubuk yang berkualitas tinggi.</p>
+            <p className="section-subtitle max-w-lg">Temukan berbagai produk unggulan dari pengusaha lokal yang berkualitas tinggi.</p>
           </div>
-          <Link href="/umkm" className="btn-outline flex-shrink-0">
+          {/* CTA button — full width on mobile, auto on desktop */}
+          <Link href="/umkm" className="btn-outline w-full justify-center md:w-auto md:inline-flex">
             Lihat Semua UMKM
             <ArrowRight className="w-4 h-4" />
           </Link>
         </ScrollReveal>
 
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-6" staggerDelay={0.12}>
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6" staggerDelay={0.12}>
           {umkm.map((item) => (
             <StaggerItem key={item.id}>
               <HoverCard>
-                <Link href={`/umkm/${item.slug}`} className="card group block">
+                <Link href={`/umkm/${item.slug}`} className="card group block h-full">
                   {/* Logo / Cover */}
-                  <div className="h-48 bg-gradient-to-br from-primary-100 to-sage-100 relative overflow-hidden">
+                  <div className="h-44 sm:h-48 bg-gradient-to-br from-primary-100 to-sage-100 relative overflow-hidden">
                     {item.logo ? (
                       <Image
                         src={item.logo}
@@ -68,19 +70,19 @@ export default function FeaturedUMKM({ umkm }: Props) {
                     )}
                   </div>
 
-                  <div className="p-5">
-                    <h3 className="font-display font-bold text-lg text-gray-900 group-hover:text-primary-700 transition-colors">
+                  <div className="p-4 md:p-5">
+                    <h3 className="font-display font-bold text-base md:text-lg text-gray-900 group-hover:text-primary-700 transition-colors leading-snug">
                       {item.nama_usaha}
                     </h3>
                     <p className="text-sm text-gray-500 mt-1 mb-2">Pemilik: {item.pemilik}</p>
                     <p className="text-sm text-gray-600 line-clamp-2">{item.deskripsi}</p>
 
-                    <div className="flex items-center gap-1.5 mt-4 text-xs text-gray-400">
-                      <MapPin className="w-3 h-3" />
+                    <div className="flex items-center gap-1.5 mt-3 md:mt-4 text-xs text-gray-400">
+                      <MapPin className="w-3 h-3 shrink-0" />
                       <span className="truncate">{item.alamat}</span>
                     </div>
 
-                    <div className="mt-4 flex items-center gap-2 text-primary-600 font-semibold text-sm group-hover:gap-3 transition-all">
+                    <div className="mt-3 md:mt-4 flex items-center gap-2 text-primary-600 font-semibold text-sm group-hover:gap-3 transition-all">
                       Lihat Detail
                       <ArrowRight className="w-4 h-4" />
                     </div>

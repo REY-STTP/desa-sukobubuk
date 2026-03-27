@@ -77,13 +77,6 @@ export default function HeroClient({
 
       <div className="container-custom relative z-20 py-20">
         <div className="max-w-3xl">
-          {/* Badge lokasi */}
-          <motion.div {...fadeUp(0.1)}
-            className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 rounded-full px-4 py-2 text-sm font-medium mb-8">
-            <MapPin className="w-4 h-4 text-primary-400" />
-            Kec. {namaKecamatan} · Kab. {namaKabupaten} · {namaProvinsi} · {kodePos}
-          </motion.div>
-
           {/* Title */}
           <motion.h1 {...fadeUp(0.25)} className="font-display text-5xl md:text-7xl font-bold text-white leading-tight mb-6">
             {namaDesa.toLowerCase().startsWith('desa ') ? (
@@ -124,8 +117,8 @@ export default function HeroClient({
           transition={{ delay: 0.8, duration: 0.6 }}
           className="absolute bottom-0 left-0 right-0 z-20 bg-black/20 backdrop-blur-sm border-t border-white/10"
         >
-          <div className="container-custom py-5">
-            <div className="flex flex-wrap gap-8 items-center">
+          <div className="container-custom py-4 md:py-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4 md:flex md:flex-wrap md:gap-8 md:items-center">
               {stats.map((item, i) => (
                 <motion.div
                   key={item.label}
@@ -134,9 +127,9 @@ export default function HeroClient({
                   transition={{ delay: 0.9 + i * 0.1, duration: 0.4 }}
                   className="flex items-center gap-3"
                 >
-                  <div className="w-1 h-8 bg-primary-500 rounded-full" />
-                  <div>
-                    <p className="text-white font-bold text-lg leading-none">
+                  <div className="w-1 h-8 bg-primary-500 rounded-full shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-white font-bold text-base md:text-lg leading-none truncate">
                       <AnimatedCounter
                         value={item.value}
                         prefix={item.prefix}
@@ -144,7 +137,7 @@ export default function HeroClient({
                         format={item.format ?? true}
                       />
                     </p>
-                    <p className="text-white/60 text-xs">{item.label}</p>
+                    <p className="text-white/60 text-xs truncate">{item.label}</p>
                   </div>
                 </motion.div>
               ))}
