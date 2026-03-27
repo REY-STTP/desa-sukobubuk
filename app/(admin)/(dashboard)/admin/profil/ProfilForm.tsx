@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, CheckCircle, AlertCircle, Building2, Phone, BookOpen, Target, MapPin } from 'lucide-react'
+import { Loader2, CheckCircle, AlertCircle, Building2, Phone, BookOpen, Target } from 'lucide-react'
+import TiptapEditor from '@/components/admin/TiptapEditor'
 
 const TABS = [
   { id: 'identitas', label: 'Identitas Desa', icon: Building2 },
@@ -149,20 +150,14 @@ export default function ProfilForm({ initialData }: { initialData: any }) {
         {tab === 'sejarah' && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Konten Sejarah</label>
-            <textarea
+            <TiptapEditor
               value={form.sejarah_konten}
-              onChange={e => set('sejarah_konten', e.target.value)}
-              className="input-field min-h-[350px] resize-y font-mono text-sm"
-              placeholder="Tulis sejarah desa... Mendukung HTML: <p>, <strong>, <em>, <ul>, dll."
+              onChange={(html) => set('sejarah_konten', html)}
+              placeholder="Tulis sejarah desa di sini..."
             />
-            <p className="text-xs text-gray-400 mt-1">Mendukung HTML dasar: &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;</p>
-            {form.sejarah_konten && (
-              <div className="mt-4">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Preview:</p>
-                <div className="prose-content border border-gray-200 rounded-xl p-4 bg-gray-50 max-h-60 overflow-y-auto text-sm"
-                  dangerouslySetInnerHTML={{ __html: form.sejarah_konten }} />
-              </div>
-            )}
+            <p className="text-xs text-gray-400 mt-1">
+              Gunakan toolbar di atas untuk memformat teks — bold, italic, heading, list, dan lainnya.
+            </p>
           </div>
         )}
 
