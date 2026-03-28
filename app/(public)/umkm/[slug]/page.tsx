@@ -1,4 +1,3 @@
-import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -6,6 +5,7 @@ import Image from 'next/image'
 import { Store, MapPin, Phone, Package, ArrowLeft, ArrowRight, Star, ExternalLink } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import PageWrapper from '@/components/animations/PageWrapper'
+import { getUMKMDetail } from '@/lib/cache'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -13,16 +13,13 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const umkm = await prisma.uMKM.findUnique({ where: { slug } })
+  const umkm = await getUMKMDetail(slug)
   return { title: umkm?.nama_usaha ?? 'UMKM' }
 }
 
 export default async function UMKMDetailPage({ params }: Props) {
   const { slug } = await params
-  const umkm = await prisma.uMKM.findUnique({
-    where: { slug },
-    include: { produk: { where: { is_available: true }, orderBy: { created_at: 'asc' } } },
-  })
+  const umkm = await getUMKMDetail(slug)
 
   if (!umkm) notFound()
 
@@ -38,7 +35,6 @@ export default async function UMKMDetailPage({ params }: Props) {
               Kembali ke Daftar UMKM
             </Link>
             <div className="flex items-start gap-6">
-              {/* Logo UMKM */}
               <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/10 backdrop-blur flex-shrink-0">
                 {umkm.logo ? (
                   <Image src={umkm.logo} alt={umkm.nama_usaha} width={80} height={80} className="w-full h-full object-cover" unoptimized />
@@ -51,7 +47,11 @@ export default async function UMKMDetailPage({ params }: Props) {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <span className="badge bg-primary-500 text-white">{umkm.kategori}</span>
-                  {umkm.is_featured && <span className="badge bg-yellow-400 text-yellow-900 flex items-center gap-1"><Star className="w-3 h-3" />Unggulan</span>}
+                  {umkm.is_featured && (
+                    <span className="badge bg-yellow-400 text-yellow-900 flex items-center gap-1">
+                      <Star className="w-3 h-3" /> Unggulan
+                    </span>
+                  )}
                 </div>
                 <h1 className="font-display text-3xl md:text-4xl font-bold">{umkm.nama_usaha}</h1>
                 <p className="text-primary-200 mt-1">Pemilik: {umkm.pemilik}</p>
@@ -62,14 +62,12 @@ export default async function UMKMDetailPage({ params }: Props) {
 
         <div className="container-custom py-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
               <div className="card p-6">
                 <h2 className="font-display font-bold text-xl text-gray-900 mb-4">Tentang Usaha</h2>
                 <p className="text-gray-700 leading-relaxed">{umkm.deskripsi}</p>
               </div>
 
-              {/* Products */}
               <div>
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="font-display font-bold text-xl text-gray-900">
@@ -113,7 +111,6 @@ export default async function UMKMDetailPage({ params }: Props) {
               </div>
             </div>
 
-            {/* Sidebar */}
             <aside className="space-y-4">
               <div className="card p-6 space-y-4">
                 <h3 className="font-display font-bold text-lg text-gray-900">Informasi Kontak</h3>

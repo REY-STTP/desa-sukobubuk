@@ -1,4 +1,3 @@
-import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Calendar, User, ArrowLeft, Newspaper } from 'lucide-react'
@@ -6,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { formatDate } from '@/lib/utils'
 import PageWrapper from '@/components/animations/PageWrapper'
+import { getBeritaDetail } from '@/lib/cache'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -13,25 +13,15 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const berita = await prisma.berita.findUnique({ where: { slug } })
+  const { berita } = await getBeritaDetail(slug)
   return { title: berita?.judul ?? 'Berita' }
 }
 
 export default async function BeritaDetailPage({ params }: Props) {
   const { slug } = await params
-  const berita = await prisma.berita.findUnique({
-    where: { slug },
-    include: { author: { select: { name: true } } },
-  })
+  const { berita, lainnya } = await getBeritaDetail(slug)
 
   if (!berita) notFound()
-
-  const lainnya = await prisma.berita.findMany({
-    where: { slug: { not: slug } },
-    take: 3,
-    orderBy: { created_at: 'desc' },
-    include: { author: { select: { name: true } } },
-  })
 
   return (
     <PageWrapper>
@@ -60,7 +50,6 @@ export default async function BeritaDetailPage({ params }: Props) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 max-w-6xl mx-auto">
             {/* Article */}
             <article className="lg:col-span-2">
-              {/* Thumbnail */}
               <div className="relative h-64 md:h-80 rounded-2xl overflow-hidden mb-8 bg-gradient-to-br from-primary-600 to-sage-700">
                 {berita.thumbnail ? (
                   <Image

@@ -1,16 +1,10 @@
-import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import LoadingScreen from '@/components/animations/LoadingScreen'
+import { getProfilDesa } from '@/lib/cache'
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
-  const profil = await prisma.profilDesa.findFirst({
-    select: {
-      nama_desa: true,
-      nama_kecamatan: true,
-      nama_kabupaten: true,
-    },
-  })
+  const profil = await getProfilDesa()
 
   return (
     <>

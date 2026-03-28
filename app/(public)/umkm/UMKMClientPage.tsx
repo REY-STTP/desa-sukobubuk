@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
-import { Store, Search, Filter, MapPin, ArrowRight, Package, Star } from 'lucide-react'
+import { Store, Search, Filter, MapPin, ArrowRight, Package, Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PageWrapper from '@/components/animations/PageWrapper'
+import { PUBLIC_PAGE_SIZE } from '@/lib/cache'
 
 interface UMKM {
   id: number
@@ -25,6 +26,9 @@ interface UMKM {
 interface Props {
   umkm: UMKM[]
   kategoriList: string[]
+  page: number
+  total: number
+  totalPages: number
 }
 
 const kategoriColors: Record<string, string> = {
@@ -34,10 +38,11 @@ const kategoriColors: Record<string, string> = {
   'Pertanian': 'bg-primary-100 text-primary-700',
 }
 
-export default function UMKMClientPage({ umkm, kategoriList }: Props) {
+export default function UMKMClientPage({ umkm, kategoriList, page, total, totalPages }: Props) {
   const [search, setSearch] = useState('')
   const [kategori, setKategori] = useState('Semua')
 
+  // Filter hanya berlaku untuk data di halaman saat ini
   const filtered = umkm.filter((item) => {
     const matchSearch =
       item.nama_usaha.toLowerCase().includes(search.toLowerCase()) ||
@@ -46,6 +51,8 @@ export default function UMKMClientPage({ umkm, kategoriList }: Props) {
     const matchKategori = kategori === 'Semua' || item.kategori === kategori
     return matchSearch && matchKategori
   })
+
+  const buildHref = (p: number) => (p === 1 ? '/umkm' : `/umkm?page=${p}`)
 
   return (
     <PageWrapper>
@@ -95,8 +102,12 @@ export default function UMKMClientPage({ umkm, kategoriList }: Props) {
 
           <p className="text-sm text-gray-500 mb-6">
             Menampilkan <span className="font-semibold text-gray-900">{filtered.length}</span> UMKM
-            {kategori !== 'Semua' && <span> dalam kategori <span className="font-semibold text-primary-700">{kategori}</span></span>}
-            {search && <span> untuk pencarian &quot;<span className="font-semibold">{search}</span>&quot;</span>}
+            {kategori !== 'Semua' && (
+              <span> dalam kategori <span className="font-semibold text-primary-700">{kategori}</span></span>
+            )}
+            {search && (
+              <span> untuk pencarian &quot;<span className="font-semibold">{search}</span>&quot;</span>
+            )}
           </p>
 
           {filtered.length === 0 ? (
@@ -109,7 +120,6 @@ export default function UMKMClientPage({ umkm, kategoriList }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map((item) => (
                 <Link key={item.id} href={`/umkm/${item.slug}`} className="card group hover:-translate-y-1 transition-transform duration-300">
-                  {/* Logo / Cover */}
                   <div className="h-48 bg-gradient-to-br from-primary-100 to-sage-100 relative overflow-hidden">
                     {item.logo ? (
                       <Image
@@ -160,6 +170,44 @@ export default function UMKMClientPage({ umkm, kategoriList }: Props) {
                   </div>
                 </Link>
               ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-12 pt-6 border-t border-gray-100">
+              <p className="text-sm text-gray-500">
+                Menampilkan{' '}
+                <span className="font-semibold text-gray-900">
+                  {(page - 1) * PUBLIC_PAGE_SIZE + 1}–{Math.min(page * PUBLIC_PAGE_SIZE, total)}
+                </span>{' '}
+                dari <span className="font-semibold text-gray-900">{total}</span> UMKM
+              </p>
+              <div className="flex items-center gap-1">
+                {page > 1 && (
+                  <Link href={buildHref(page - 1)} className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <ChevronLeft className="w-4 h-4 text-gray-600" />
+                  </Link>
+                )}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <Link
+                    key={p}
+                    href={buildHref(p)}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${
+                      p === page
+                        ? 'bg-primary-600 text-white'
+                        : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {p}
+                  </Link>
+                ))}
+                {page < totalPages && (
+                  <Link href={buildHref(page + 1)} className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <ChevronRight className="w-4 h-4 text-gray-600" />
+                  </Link>
+                )}
+              </div>
             </div>
           )}
         </div>

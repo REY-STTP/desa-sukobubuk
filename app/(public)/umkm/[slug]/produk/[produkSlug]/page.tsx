@@ -1,4 +1,3 @@
-import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -6,6 +5,7 @@ import Image from 'next/image'
 import { Package, ArrowLeft, Store, ExternalLink, Tag, CheckCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import PageWrapper from '@/components/animations/PageWrapper'
+import { getProdukDetail, getProdukLain } from '@/lib/cache'
 
 interface Props {
   params: Promise<{ slug: string; produkSlug: string }>
@@ -13,24 +13,18 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { produkSlug } = await params
-  const produk = await prisma.produk.findUnique({ where: { slug: produkSlug } })
+  const produk = await getProdukDetail(produkSlug)
   return { title: produk?.nama_produk ?? 'Produk' }
 }
 
 export default async function ProdukDetailPage({ params }: Props) {
   const { slug, produkSlug } = await params
 
-  const produk = await prisma.produk.findUnique({
-    where: { slug: produkSlug },
-    include: { umkm: true },
-  })
+  const produk = await getProdukDetail(produkSlug)
 
   if (!produk || produk.umkm.slug !== slug) notFound()
 
-  const produkLain = await prisma.produk.findMany({
-    where: { umkm_id: produk.umkm_id, slug: { not: produkSlug }, is_available: true },
-    take: 3,
-  })
+  const produkLain = await getProdukLain(produk.umkm_id, produkSlug)
 
   const waMessage = `Halo ${produk.umkm.nama_usaha}, saya tertarik dengan produk *${produk.nama_produk}* seharga ${formatCurrency(produk.harga.toString())}. Apakah masih tersedia?`
   const waLink = `https://wa.me/${produk.umkm.whatsapp}?text=${encodeURIComponent(waMessage)}`
@@ -52,7 +46,6 @@ export default async function ProdukDetailPage({ params }: Props) {
 
         <div className="container-custom py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-5xl mx-auto">
-            {/* Product Image */}
             <div>
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
                 {produk.foto ? (
@@ -71,7 +64,6 @@ export default async function ProdukDetailPage({ params }: Props) {
               </div>
             </div>
 
-            {/* Product Info */}
             <div className="space-y-6">
               <div>
                 <Link href={`/umkm/${slug}`} className="inline-flex items-center gap-1.5 text-sm text-primary-600 font-semibold mb-3 hover:text-primary-700">
@@ -129,7 +121,6 @@ export default async function ProdukDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Other products */}
           {produkLain.length > 0 && (
             <div className="max-w-5xl mx-auto mt-16">
               <h2 className="font-display font-bold text-xl text-gray-900 mb-6">
