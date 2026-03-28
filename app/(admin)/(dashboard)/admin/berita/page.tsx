@@ -1,24 +1,29 @@
-import { prisma } from '@/lib/prisma'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Plus, Newspaper, Pencil } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import DeleteButton from '@/components/admin/DeleteButton'
+import Pagination from '@/components/admin/Pagination'
+import { getBeritaPage } from '@/lib/cache'
 
 export const metadata: Metadata = { title: 'Kelola Berita' }
 
-export default async function AdminBeritaPage() {
-  const berita = await prisma.berita.findMany({
-    orderBy: { created_at: 'desc' },
-    include: { author: { select: { name: true } } },
-  })
+interface Props {
+  searchParams: Promise<{ page?: string }>
+}
+
+export default async function AdminBeritaPage({ searchParams }: Props) {
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, parseInt(pageParam ?? '1') || 1)
+
+  const { data: berita, total, totalPages } = await getBeritaPage(page)
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">Kelola Berita</h1>
-          <p className="text-gray-500 text-sm mt-1">{berita.length} artikel terpublish</p>
+          <p className="text-gray-500 text-sm mt-1">{total} artikel terpublish</p>
         </div>
         <Link href="/admin/berita/tambah" className="btn-primary">
           <Plus className="w-4 h-4" /> Tulis Berita
@@ -32,46 +37,49 @@ export default async function AdminBeritaPage() {
             <p>Belum ada berita</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Judul</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Penulis</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanggal</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {berita.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-                          <Newspaper className="w-4 h-4 text-amber-600" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900 text-sm line-clamp-1">{item.judul}</p>
-                          <p className="text-xs text-gray-400">{item.slug}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{item.author.name}</td>
-                    <td className="px-5 py-4 text-xs text-gray-400">{formatDate(item.created_at)}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link href={`/admin/berita/${item.id}/edit`}
-                          className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">
-                          <Pencil className="w-3.5 h-3.5 text-blue-600" />
-                        </Link>
-                        <DeleteButton id={item.id} type="berita" nama={item.judul} />
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Judul</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Penulis</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanggal</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {berita.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                            <Newspaper className="w-4 h-4 text-amber-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm line-clamp-1">{item.judul}</p>
+                            <p className="text-xs text-gray-400">{item.slug}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-sm text-gray-600">{item.author.name}</td>
+                      <td className="px-5 py-4 text-xs text-gray-400">{formatDate(item.created_at)}</td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link href={`/admin/berita/${item.id}/edit`}
+                            className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">
+                            <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                          </Link>
+                          <DeleteButton id={item.id} type="berita" nama={item.judul} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/berita" />
+          </>
         )}
       </div>
     </div>

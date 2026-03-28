@@ -1,11 +1,22 @@
 import type { Metadata } from 'next'
+import dynamic from 'next/dynamic'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import PengaturanForm from './PengaturanForm'
 import { prisma } from '@/lib/prisma'
-import { Settings } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Pengaturan Akun' }
+
+// Lazy load form — hanya dibutuhkan saat user scroll ke bawah atau berinteraksi
+const PengaturanForm = dynamic(() => import('./PengaturanForm'), {
+  loading: () => (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse space-y-4">
+      <div className="h-5 w-40 bg-gray-100 rounded" />
+      <div className="h-10 bg-gray-50 rounded-xl" />
+      <div className="h-10 bg-gray-50 rounded-xl" />
+      <div className="h-10 bg-gray-50 rounded-xl w-32 ml-auto" />
+    </div>
+  ),
+})
 
 export default async function PengaturanPage() {
   const session = await getServerSession(authOptions)
@@ -39,7 +50,11 @@ export default async function PengaturanPage() {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="bg-gray-50 rounded-xl p-3">
             <p className="text-xs text-gray-400 mb-1">Bergabung sejak</p>
-            <p className="font-semibold text-gray-700">{user?.created_at ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(user.created_at) : '-'}</p>
+            <p className="font-semibold text-gray-700">
+              {user?.created_at
+                ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(user.created_at)
+                : '-'}
+            </p>
           </div>
           <div className="bg-gray-50 rounded-xl p-3">
             <p className="text-xs text-gray-400 mb-1">Role</p>
@@ -48,7 +63,7 @@ export default async function PengaturanPage() {
         </div>
       </div>
 
-      {/* Form pengaturan */}
+      {/* Form pengaturan — lazy loaded */}
       <PengaturanForm user={user!} />
     </div>
   )

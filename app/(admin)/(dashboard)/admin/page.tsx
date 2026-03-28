@@ -1,21 +1,7 @@
-import { prisma } from '@/lib/prisma'
 import { Store, Package, Newspaper, Images, MessageSquare, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-
-async function getDashboardStats() {
-  const [totalUMKM, totalProduk, totalBerita, totalGaleri, totalPesan, pesanBelumDibaca, pesanTerbaru] =
-    await Promise.all([
-      prisma.uMKM.count(),
-      prisma.produk.count(),
-      prisma.berita.count(),
-      prisma.galeri.count(),
-      prisma.pesan.count(),
-      prisma.pesan.count({ where: { is_read: false } }),
-      prisma.pesan.findMany({ take: 5, orderBy: { created_at: 'desc' } }),
-    ])
-  return { totalUMKM, totalProduk, totalBerita, totalGaleri, totalPesan, pesanBelumDibaca, pesanTerbaru }
-}
+import { getDashboardStats } from '@/lib/cache'
 
 export default async function AdminDashboardPage() {
   const stats = await getDashboardStats()
