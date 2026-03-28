@@ -1,22 +1,25 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { MessageSquare, Mail, MailOpen } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import TandaiDibacaButton from './TandaiDibacaButton'
 import DeleteButton from '@/components/admin/DeleteButton'
 import Pagination from '@/components/admin/Pagination'
+import SearchInput from '@/components/admin/SearchInput'
 import { getPesanPage } from '@/lib/cache'
 
 export const metadata: Metadata = { title: 'Pesan Masuk' }
 
 interface Props {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; q?: string }>
 }
 
 export default async function AdminPesanPage({ searchParams }: Props) {
-  const { page: pageParam } = await searchParams
+  const { page: pageParam, q } = await searchParams
   const page = Math.max(1, parseInt(pageParam ?? '1') || 1)
+  const search = q?.trim() ?? ''
 
-  const { data: pesan, total, belumDibaca, totalPages } = await getPesanPage(page)
+  const { data: pesan, total, belumDibaca, totalPages } = await getPesanPage(page, search)
 
   return (
     <div className="space-y-6">
@@ -24,17 +27,32 @@ export default async function AdminPesanPage({ searchParams }: Props) {
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">Pesan Masuk</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {total} pesan total
-            {belumDibaca > 0 && <span className="ml-2 badge bg-primary-100 text-primary-700">{belumDibaca} belum dibaca</span>}
+            {search ? `${total} hasil untuk "${search}"` : (
+              <>
+                {total} pesan total
+                {belumDibaca > 0 && <span className="ml-2 badge bg-primary-100 text-primary-700">{belumDibaca} belum dibaca</span>}
+              </>
+            )}
           </p>
         </div>
       </div>
+
+      {/* Search Bar */}
+      <SearchInput
+        placeholder="Cari nama pengirim, email, atau isi pesan..."
+        defaultValue={search}
+      />
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {pesan.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>Belum ada pesan masuk</p>
+            <p>{search ? `Tidak ada pesan yang cocok dengan "${search}"` : 'Belum ada pesan masuk'}</p>
+            {search && (
+              <Link href="/admin/pesan" className="mt-3 inline-block text-sm text-primary-600 hover:underline">
+                Hapus pencarian
+              </Link>
+            )}
           </div>
         ) : (
           <>
@@ -48,7 +66,6 @@ export default async function AdminPesanPage({ searchParams }: Props) {
                         : <Mail className="w-4 h-4 text-primary-600" />
                       }
                     </div>
-
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-4 mb-1">
                         <div className="flex items-center gap-2">
@@ -60,7 +77,6 @@ export default async function AdminPesanPage({ searchParams }: Props) {
                       <p className="text-xs text-gray-500 mb-2">{item.email}</p>
                       <p className="text-sm text-gray-700 leading-relaxed">{item.isi_pesan}</p>
                     </div>
-
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {!item.is_read && <TandaiDibacaButton id={item.id} />}
                       <DeleteButton id={item.id} type="pesan" nama={`pesan dari ${item.nama}`} />
@@ -69,7 +85,7 @@ export default async function AdminPesanPage({ searchParams }: Props) {
                 </div>
               ))}
             </div>
-            <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/pesan" />
+            <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/pesan" searchQuery={search} />
           </>
         )}
       </div>
