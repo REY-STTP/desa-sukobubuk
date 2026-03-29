@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { slugify } from '@/lib/utils'
-import ImageUpload from './ImageUpload'
+import ImageCropUpload from './ImageCropUpload'
 
 interface ProdukFormData {
   nama_produk: string
@@ -103,7 +103,7 @@ export default function ProdukForm({ initialData, mode, umkmList }: Props) {
         <textarea value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} className="input-field min-h-[120px] resize-none" placeholder="Deskripsi produk..." />
       </div>
 
-      <ImageUpload
+      <ImageCropUpload
         value={form.foto}
         onChange={(url) => setForm({ ...form, foto: url })}
         folder="produk"

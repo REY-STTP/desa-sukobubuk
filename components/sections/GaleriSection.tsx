@@ -105,6 +105,9 @@ export default function GaleriSection({ galeri }: Props) {
 
   const offsets = isMobile ? [0] : [-2, -1, 0, 1, 2]
 
+  // Ukuran slot aktif — lebih kecil dari versi 16:9 agar 1:1 tidak makan terlalu banyak tinggi
+  const SLOT = isMobile ? 'min(84vw, 380px)' : 'min(36vw, 360px)'
+
   return (
     <section className="section-padding bg-white">
       <div className="container-custom">
@@ -119,8 +122,10 @@ export default function GaleriSection({ galeri }: Props) {
 
         {/* Carousel */}
         <div className="relative" style={{ perspective: '1000px' }}>
+          {/* Tinggi container = lebar slot aktif (1:1) */}
           <div
-            className="relative h-60 md:h-80 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
+            className="relative flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
+            style={{ height: SLOT }}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
           >
@@ -140,8 +145,7 @@ export default function GaleriSection({ galeri }: Props) {
                   }}
                   style={{
                     position: 'absolute',
-                    width: isMobile ? '90%' : '54%',
-                    maxWidth: '500px',
+                    width: SLOT,
                     zIndex: p.zIndex,
                     transformStyle: 'preserve-3d',
                     pointerEvents: p.pointerEvents,
@@ -151,12 +155,13 @@ export default function GaleriSection({ galeri }: Props) {
                   transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
                   onClick={() => isActive && setLightbox(idx)}
                 >
-                  <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '16/9' }}>
+                  {/* ← Satu-satunya perubahan dari versi asli: 1/1 menggantikan 16/9 */}
+                  <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '1 / 1' }}>
                     <GaleriMedia item={galeri[idx]} index={idx} />
 
                     {isActive && (
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4 md:p-5 pointer-events-none">
-                        <p className="text-white font-bold text-sm md:text-lg leading-snug drop-shadow">
+                        <p className="text-white font-bold text-sm md:text-base leading-snug drop-shadow line-clamp-2">
                           {galeri[idx].judul}
                         </p>
                       </div>
@@ -199,29 +204,69 @@ export default function GaleriSection({ galeri }: Props) {
         </div>
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox — juga 1:1 */}
       <AnimatePresence>
         {lightbox !== null && (
           <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
             onClick={() => setLightbox(null)}
           >
             <motion.div
-              className="relative max-w-4xl w-full"
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="relative w-full max-w-md"
               onClick={(e) => e.stopPropagation()}
             >
-              <GaleriMedia
-                item={galeri[lightbox]}
-                index={lightbox}
-                className="w-full object-contain rounded-xl"
-              />
+              {/* Kontainer 1:1 */}
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '1 / 1' }}>
+                <GaleriMedia
+                  item={galeri[lightbox]}
+                  index={lightbox}
+                  className="w-full h-full object-cover"
+                />
+                {/* Caption */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-transparent to-transparent px-5 pb-5 pt-10 pointer-events-none">
+                  <p className="text-white font-semibold text-sm md:text-base leading-snug">
+                    {galeri[lightbox].judul}
+                  </p>
+                </div>
+              </div>
 
+              {/* Navigasi lightbox */}
+              {total > 1 && (
+                <>
+                  <button
+                    onClick={() => setLightbox(i => (i !== null ? (i - 1 + total) % total : null))}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition shadow-lg"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setLightbox(i => (i !== null ? (i + 1) % total : null))}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition shadow-lg"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+
+              {/* Tombol tutup */}
               <button
                 onClick={() => setLightbox(null)}
-                className="absolute top-3 right-3 bg-white/20 rounded-full p-2"
+                className="absolute top-3 right-3 bg-white/20 hover:bg-white/30 rounded-full p-1.5 transition"
               >
-                <X className="text-white" />
+                <X className="text-white w-4 h-4" />
               </button>
+
+              {/* Counter */}
+              <p className="text-center text-white/50 text-xs mt-3">
+                {lightbox + 1} / {total}
+              </p>
             </motion.div>
           </motion.div>
         )}

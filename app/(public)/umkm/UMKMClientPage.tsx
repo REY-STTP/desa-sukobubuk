@@ -120,13 +120,13 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map((item) => (
                 <Link key={item.id} href={`/umkm/${item.slug}`} className="card group hover:-translate-y-1 transition-transform duration-300">
-                  <div className="h-48 bg-gradient-to-br from-primary-100 to-sage-100 relative overflow-hidden">
+                  <div className="aspect-square bg-gradient-to-br from-primary-100 to-sage-100 relative overflow-hidden">
                     {item.logo ? (
                       <Image
                         src={item.logo}
                         alt={item.nama_usaha}
                         fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="object-contain p-4"
                         unoptimized
                       />
                     ) : (

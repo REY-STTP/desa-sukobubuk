@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { slugify } from '@/lib/utils'
-import ImageUpload from './ImageUpload'
+import ImageCropUpload from './ImageCropUpload'
 import TiptapEditor from './TiptapEditor'
 
 interface BeritaFormData {
@@ -77,7 +77,7 @@ export default function BeritaForm({ initialData, mode }: Props) {
         <p className="text-xs text-gray-400 mt-1">Otomatis dari judul berita</p>
       </div>
 
-      <ImageUpload
+      <ImageCropUpload
         value={form.thumbnail}
         onChange={(url) => setForm({ ...form, thumbnail: url })}
         folder="berita"

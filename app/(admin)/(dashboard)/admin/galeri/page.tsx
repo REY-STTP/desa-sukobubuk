@@ -64,7 +64,8 @@ export default async function AdminGaleriPage({ searchParams }: Props) {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
             {galeri.map((item) => (
               <div key={item.id} className="bg-gray-50 rounded-2xl overflow-hidden group">
-                <div className="aspect-square bg-gray-100 relative">
+                {/* Thumbnail 1:1 */}
+                <div className="aspect-square bg-gray-100 relative overflow-hidden">
                   {item.foto ? (
                     <img
                       src={item.foto}

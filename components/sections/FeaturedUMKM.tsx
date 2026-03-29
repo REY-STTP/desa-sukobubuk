@@ -44,13 +44,13 @@ export default function FeaturedUMKM({ umkm }: Props) {
               <HoverCard>
                 <Link href={`/umkm/${item.slug}`} className="card group block h-full">
                   {/* Logo / Cover */}
-                  <div className="h-44 sm:h-48 bg-gradient-to-br from-primary-100 to-sage-100 relative overflow-hidden">
+                  <div className="aspect-square bg-gradient-to-br from-primary-100 to-sage-100 relative overflow-hidden">
                     {item.logo ? (
                       <Image
                         src={item.logo}
                         alt={item.nama_usaha}
                         fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
                         unoptimized
                       />
                     ) : (
@@ -58,11 +58,13 @@ export default function FeaturedUMKM({ umkm }: Props) {
                         <Store className="w-16 h-16 text-primary-300 group-hover:scale-110 transition-transform duration-500" />
                       </div>
                     )}
+
                     <div className="absolute top-3 left-3">
                       <span className={`badge ${kategoriColors[item.kategori] || 'bg-gray-100 text-gray-600'}`}>
                         {item.kategori}
                       </span>
                     </div>
+
                     {item.is_featured && (
                       <div className="absolute top-3 right-3">
                         <span className="badge bg-yellow-400 text-yellow-900">⭐ Unggulan</span>

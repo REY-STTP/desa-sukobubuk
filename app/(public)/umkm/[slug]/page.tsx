@@ -85,9 +85,15 @@ export default async function UMKMDetailPage({ params }: Props) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {umkm.produk.map((produk) => (
                       <Link key={produk.id} href={`/umkm/${umkm.slug}/produk/${produk.slug}`} className="card group hover:-translate-y-1 transition-transform duration-300">
-                        <div className="relative h-40 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                        <div className="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                           {produk.foto ? (
-                            <Image src={produk.foto} alt={produk.nama_produk} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
+                            <Image
+                              src={produk.foto}
+                              alt={produk.nama_produk}
+                              fill
+                              className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+                              unoptimized
+                            />
                           ) : (
                             <div className="absolute inset-0 flex items-center justify-center">
                               <Package className="w-12 h-12 text-gray-300" />

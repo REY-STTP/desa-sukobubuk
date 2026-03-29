@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { slugify } from '@/lib/utils'
-import ImageUpload from './ImageUpload'
+import ImageCropUpload from './ImageCropUpload'
 
 interface UMKMFormData {
   nama_usaha: string
@@ -113,7 +113,7 @@ export default function UMKMForm({ initialData, mode }: Props) {
         <textarea value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} className="input-field min-h-[120px] resize-none" placeholder="Ceritakan tentang usaha ini..." />
       </div>
 
-      <ImageUpload
+      <ImageCropUpload
         value={form.logo}
         onChange={(url) => setForm({ ...form, logo: url })}
         folder="umkm"

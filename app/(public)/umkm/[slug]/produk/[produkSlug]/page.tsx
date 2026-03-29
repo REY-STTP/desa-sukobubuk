@@ -129,9 +129,15 @@ export default async function ProdukDetailPage({ params }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {produkLain.map((item) => (
                   <Link key={item.id} href={`/umkm/${slug}/produk/${item.slug}`} className="card group hover:-translate-y-1 transition-transform duration-300">
-                    <div className="relative h-36 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                    <div className="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                       {item.foto ? (
-                        <Image src={item.foto} alt={item.nama_produk} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized />
+                        <Image
+                          src={item.foto}
+                          alt={item.nama_produk}
+                          fill
+                          className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+                          unoptimized
+                        />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <Package className="w-10 h-10 text-gray-300" />
