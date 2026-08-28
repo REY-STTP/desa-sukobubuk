@@ -93,7 +93,12 @@ export default async function AdminGaleriPage({ searchParams }: Props) {
                       {formatDate(item.created_at)}
                     </div>
                     <div className="mt-2.5">
-                      <DeleteButton id={item.id} type="galeri" nama={item.judul} />
+                      <DeleteButton
+                        id={item.id}
+                        type="galeri"
+                        nama={item.judul}
+                        variant="block"
+                      />
                     </div>
                   </div>
                 </div>

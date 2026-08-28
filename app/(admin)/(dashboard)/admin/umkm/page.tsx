@@ -109,16 +109,19 @@ export default async function AdminUMKMPage({ searchParams }: Props) {
                     {formatDate(item.created_at)}
                   </span>
                 </div>
-                <div className="mt-3 flex items-center gap-2">
+                <div className="mt-3 flex items-stretch gap-2">
                   <Button asChild variant="outline" size="sm" className="flex-1">
                     <Link href={`/admin/umkm/${item.id}/edit`}>
                       <Pencil className="size-3.5" data-icon="inline-start" />
                       Edit
                     </Link>
                   </Button>
-                  <div className="flex-1">
-                    <DeleteButton id={item.id} type="umkm" nama={item.nama_usaha} />
-                  </div>
+                  <DeleteButton
+                    id={item.id}
+                    type="umkm"
+                    nama={item.nama_usaha}
+                    variant="block"
+                  />
                 </div>
               </div>
             ))}

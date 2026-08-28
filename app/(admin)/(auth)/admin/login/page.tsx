@@ -16,7 +16,7 @@ export default async function LoginPage() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      {/* Left: Brand panel (sage-800, dark) */}
+      {/* Left: Brand panel (sage-800, dark) — desktop only */}
       <aside className="relative hidden overflow-hidden bg-sage-800 text-stone-100 lg:flex lg:flex-col lg:justify-between">
         {/* Decorative grain + topo */}
         <div
@@ -101,10 +101,10 @@ export default async function LoginPage() {
       </aside>
 
       {/* Right: Form panel (stone-50) */}
-      <main className="flex flex-col bg-stone-50 p-6 sm:p-10 lg:items-center lg:justify-center">
-        <div className="flex w-full max-w-sm flex-1 flex-col lg:flex-none">
-          {/* Mobile-only brand — di paling atas layar */}
-          <div className="flex items-center gap-3 lg:hidden">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-stone-50 p-6 sm:p-10 lg:min-h-0">
+        <div className="flex w-full max-w-sm flex-col">
+          {/* Mobile-only brand — di atas card form */}
+          <div className="mb-8 flex items-center justify-center gap-3 lg:hidden">
             <div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-sage-100 ring-1 ring-sage-200">
               <Image
                 src="/images/logo-desa.png"
@@ -123,22 +123,20 @@ export default async function LoginPage() {
             </div>
           </div>
 
-          <div className="flex flex-1 flex-col justify-center lg:flex-none lg:justify-start">
-            <div className="mb-6 mt-10 lg:mt-0">
-              <h1 className="font-display text-2xl font-medium text-stone-800">
-                Selamat Datang
-              </h1>
-              <p className="mt-1 text-sm text-stone-500">
-                Masuk ke panel administrasi desa
-              </p>
-            </div>
-
-            <LoginForm />
-
-            <p className="mt-8 text-center text-xs text-stone-400">
-              © {new Date().getFullYear()} Pemerintah {namaDesa}
+          <div className="mb-6">
+            <h1 className="font-display text-2xl font-medium text-stone-800">
+              Selamat Datang
+            </h1>
+            <p className="mt-1 text-sm text-stone-500">
+              Masuk ke panel administrasi desa
             </p>
           </div>
+
+          <LoginForm />
+
+          <p className="mt-8 text-center text-xs text-stone-400">
+            © {new Date().getFullYear()} Pemerintah {namaDesa}
+          </p>
         </div>
       </main>
     </div>

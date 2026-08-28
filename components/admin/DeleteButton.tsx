@@ -3,15 +3,25 @@
 import { useState } from 'react'
 import { Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
 interface Props {
   id: number
   type: 'umkm' | 'produk' | 'berita' | 'galeri' | 'pesan'
   nama: string
+  /**
+   * Tampilan trigger button:
+   *  - 'icon' (default): button icon-only, cocok untuk desktop table / inline action.
+   *  - 'full'         : button dengan icon + label "Hapus", cocok untuk mobile card.
+   *  - 'compact'      : button dengan icon + label, lebih ringkas (untuk galeri).
+   *  - 'block'        : button full-width dengan icon + label, untuk layout stack.
+   */
+  variant?: 'icon' | 'full' | 'compact' | 'block'
+  className?: string
 }
 
-export default function DeleteButton({ id, type, nama }: Props) {
+export default function DeleteButton({ id, type, nama, variant = 'icon', className }: Props) {
   const router = useRouter()
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -38,18 +48,90 @@ export default function DeleteButton({ id, type, nama }: Props) {
     }
   }
 
-  return (
-    <>
-      <div className="relative inline-flex">
+  // Render trigger sesuai variant
+  const renderTrigger = () => {
+    if (variant === 'icon') {
+      return (
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => setShowConfirm(true)}
           aria-label={`Hapus ${nama}`}
-          className="text-stone-400 hover:bg-ember-50 hover:text-ember-600"
+          className={cn('text-stone-400 hover:bg-ember-50 hover:text-ember-600', className)}
         >
           <Trash2 className="size-3.5" />
         </Button>
+      )
+    }
+
+    if (variant === 'block') {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowConfirm(true)}
+          aria-label={`Hapus ${nama}`}
+          className={cn(
+            'w-full border-ember-200 text-ember-700 hover:bg-ember-50 hover:border-ember-300 hover:text-ember-800',
+            className
+          )}
+        >
+          <Trash2 className="size-3.5" data-icon="inline-start" />
+          Hapus
+        </Button>
+      )
+    }
+
+    if (variant === 'compact') {
+      return (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setShowConfirm(true)}
+          aria-label={`Hapus ${nama}`}
+          className={cn(
+            'size-8 text-stone-500 hover:bg-ember-50 hover:text-ember-600',
+            className
+          )}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      )
+    }
+
+    // 'full' — label + icon, proporsional dengan Edit button di mobile card
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShowConfirm(true)}
+        aria-label={`Hapus ${nama}`}
+        className={cn(
+          'w-full border-ember-200 text-ember-700 hover:bg-ember-50 hover:border-ember-300 hover:text-ember-800',
+          className
+        )}
+      >
+        <Trash2 className="size-3.5" data-icon="inline-start" />
+        Hapus
+      </Button>
+    )
+  }
+
+  return (
+    <>
+      {/*
+        Wrapper: untuk 'icon' / 'compact' (default) — inline-flex, tidak makan
+        ruang lebih. Untuk 'block' (mobile card) — flex-1 supaya share space
+        dengan Edit button di sebelahnya (jangan pakai w-full di wrapper,
+        karena akan konflik dengan flex-1 sibling di parent).
+      */}
+      <div
+        className={cn(
+          'relative',
+          variant === 'block' ? 'flex-1' : 'inline-flex'
+        )}
+      >
+        {renderTrigger()}
 
         {/* Inline feedback — muncul sebagai mini alert di pojok button */}
         {feedback && (

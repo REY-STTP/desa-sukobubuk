@@ -117,11 +117,15 @@ export default async function AdminPesanPage({ searchParams }: Props) {
                     {item.isi_pesan}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 sm:flex-col sm:items-end">
+                <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end">
                   {!item.is_read && (
                     <TandaiDibacaButton id={item.id} />
                   )}
-                  <DeleteButton id={item.id} type="pesan" nama={`pesan dari ${item.nama}`} />
+                  <DeleteButton
+                    id={item.id}
+                    type="pesan"
+                    nama={`pesan dari ${item.nama}`}
+                  />
                 </div>
               </li>
             ))}

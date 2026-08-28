@@ -104,16 +104,19 @@ export default async function AdminProdukPage({ searchParams }: Props) {
                     {item.umkm.kategori}
                   </UTag>
                 </div>
-                <div className="mt-3 flex items-center gap-2">
+                <div className="mt-3 flex items-stretch gap-2">
                   <Button asChild variant="outline" size="sm" className="flex-1">
                     <Link href={`/admin/produk/${item.id}/edit`}>
                       <Pencil className="size-3.5" data-icon="inline-start" />
                       Edit
                     </Link>
                   </Button>
-                  <div className="flex-1">
-                    <DeleteButton id={item.id} type="produk" nama={item.nama_produk} />
-                  </div>
+                  <DeleteButton
+                    id={item.id}
+                    type="produk"
+                    nama={item.nama_produk}
+                    variant="block"
+                  />
                 </div>
               </div>
             ))}

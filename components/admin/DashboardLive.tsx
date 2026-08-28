@@ -101,88 +101,156 @@ export default function DashboardLive({ initialStats }: { initialStats: Stats })
 
   return (
     <>
-      {/* Live indicator */}
-      <div className="flex items-center justify-end gap-2 text-[11px]">
-        <span className={cn('size-2 rounded-full transition-colors', live ? 'bg-emerald-500 animate-pulse' : 'bg-stone-300')} />
-        <span className={cn('transition-colors', live ? 'text-emerald-700 font-medium' : 'text-stone-400')}>
-          {live ? 'Diperbarui' : 'Live — sinkron otomatis'}
+      {/* Header bar: live indicator + greeting context */}
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <span className="text-stone-400">
+          {stats.totalPesan > 0
+            ? `${stats.pesanBelumDibaca} pesan belum dibaca`
+            : 'Tidak ada pesan masuk'}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className={cn('size-1.5 rounded-full transition-colors', live ? 'bg-emerald-500 animate-pulse' : 'bg-stone-300')} />
+          <span className={cn('transition-colors', live ? 'text-emerald-700 font-medium' : 'text-stone-400')}>
+            {live ? 'Diperbarui' : 'Live'}
+          </span>
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 lg:grid-cols-6">
-        {cards.map((card, i) => (
-          <Link key={card.label} href={card.href} className="group transition-transform hover:-translate-y-0.5">
+      {/*
+        Stats grid — 6 cards, balanced di setiap breakpoint:
+        - mobile  : 2 kolom  (3 baris × 2)
+        - sm+     : 3 kolom  (2 baris × 3)
+        - md+     : 3 kolom  (sama, padding lebih lega)
+        - lg+     : 6 kolom  (1 baris, paling padat)
+      */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+        {cards.map((card) => (
+          <Link
+            key={card.label}
+            href={card.href}
+            className="group block transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-2xl"
+          >
             <StatTile
               icon={card.icon}
               tone={card.tone}
               variant="default"
-              size={i === 0 ? 'lg' : 'md'}
-              className={cn('h-full flex-col items-start', card.highlight && 'ring-1 ring-ember-300 bg-ember-50/40')}
+              size="md"
+              className={cn(
+                'h-full flex-col items-start',
+                card.highlight && 'ring-1 ring-ember-300 bg-ember-50/40'
+              )}
             >
-              <StatNumber className={cn(i === 0 ? 'text-4xl' : 'text-2xl')}>
+              <StatNumber className="text-2xl sm:text-3xl">
                 {card.value.toLocaleString('id-ID')}
               </StatNumber>
-              <StatLabel className="text-sm font-medium text-stone-700">{card.label}</StatLabel>
+              <StatLabel className="text-xs font-medium text-stone-700 sm:text-sm">
+                {card.label}
+              </StatLabel>
               {card.highlight && (
-                <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-ember-700">Butuh perhatian</span>
+                <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-ember-700">
+                  Butuh perhatian
+                </span>
               )}
             </StatTile>
           </Link>
         ))}
       </div>
 
+      {/*
+        Bottom row: Pesan Terbaru (lebih lebar) + Aksi Cepat (lebih sempit)
+        - mobile  : stack vertikal
+        - lg+     : 2:1 ratio horizontal
+      */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
-        <div className="surface-elevated lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
-            <div>
-              <h2 className="font-display text-base font-medium text-stone-800">Pesan Masuk Terbaru</h2>
-              <p className="text-xs text-stone-500">{stats.pesanTerbaru.length} pesan terakhir</p>
+        <section className="surface-elevated lg:col-span-2">
+          <header className="flex items-center justify-between gap-3 border-b border-stone-100 px-4 py-3.5 sm:px-5 sm:py-4">
+            <div className="min-w-0">
+              <h2 className="font-display text-base font-medium text-stone-800">
+                Pesan Masuk Terbaru
+              </h2>
+              <p className="mt-0.5 text-xs text-stone-500">
+                {stats.pesanTerbaru.length} pesan terakhir
+              </p>
             </div>
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm" className="shrink-0">
               <Link href="/admin/pesan">
                 Lihat semua
                 <ArrowRight className="size-3.5" data-icon="inline-end" />
               </Link>
             </Button>
-          </div>
+          </header>
 
           {stats.pesanTerbaru.length === 0 ? (
             <div className="p-6">
-              <EmptyState icon={<MailOpen className="size-5" />} title="Belum ada pesan" description="Pesan dari halaman kontak akan muncul di sini." size="sm" />
+              <EmptyState
+                icon={<MailOpen className="size-5" />}
+                title="Belum ada pesan"
+                description="Pesan dari halaman kontak akan muncul di sini."
+                size="sm"
+              />
             </div>
           ) : (
             <ul className="divide-y divide-stone-100">
               {stats.pesanTerbaru.map((pesan) => (
-                <li key={pesan.id} className="flex items-start gap-3 px-5 py-3.5 transition-colors hover:bg-stone-50">
-                  <div aria-hidden className={cn('mt-1.5 size-2 shrink-0 rounded-full', pesan.is_read ? 'bg-stone-300' : 'bg-sage-500')} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="truncate text-sm font-semibold text-stone-800">{pesan.nama}</p>
-                      <p className="shrink-0 text-[11px] text-stone-400">{formatDate(new Date(pesan.created_at))}</p>
+                <li key={pesan.id}>
+                  <Link
+                    href="/admin/pesan"
+                    className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-stone-50 sm:px-5 sm:py-3.5"
+                  >
+                    <div
+                      aria-hidden
+                      className={cn(
+                        'mt-1.5 size-2 shrink-0 rounded-full',
+                        pesan.is_read ? 'bg-stone-300' : 'bg-sage-500'
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="truncate text-sm font-semibold text-stone-800 group-hover:text-sage-800">
+                          {pesan.nama}
+                        </p>
+                        <p className="shrink-0 text-[11px] text-stone-400">
+                          {formatDate(new Date(pesan.created_at))}
+                        </p>
+                      </div>
+                      <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-stone-600">
+                        {pesan.isi_pesan}
+                      </p>
                     </div>
-                    <p className="mt-0.5 line-clamp-2 text-xs text-stone-600">{pesan.isi_pesan}</p>
-                  </div>
+                    <ArrowRight className="mt-1.5 size-3.5 shrink-0 self-start text-stone-300 transition-colors group-hover:text-sage-600" />
+                  </Link>
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </section>
 
-        <div className="surface-elevated">
-          <div className="border-b border-stone-100 px-5 py-4">
-            <h2 className="font-display text-base font-medium text-stone-800">Aksi Cepat</h2>
-            <p className="text-xs text-stone-500">Tambah konten baru</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 p-4">
+        <section className="surface-elevated">
+          <header className="flex items-center justify-between gap-3 border-b border-stone-100 px-4 py-3.5 sm:px-5 sm:py-4">
+            <div className="min-w-0">
+              <h2 className="font-display text-base font-medium text-stone-800">
+                Aksi Cepat
+              </h2>
+              <p className="mt-0.5 text-xs text-stone-500">Tambah konten baru</p>
+            </div>
+            <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-sage-100 text-sage-700 sm:hidden">
+              <Plus className="size-3.5" />
+            </span>
+          </header>
+          <div className="grid grid-cols-2 gap-2 p-3 sm:gap-2.5 sm:p-4">
             {quickActions.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col items-start gap-2 rounded-xl border border-stone-200 p-3 transition-all hover:border-sage-300 hover:bg-stone-50"
+                className={cn(
+                  'group flex flex-col items-start gap-2 rounded-xl border border-stone-200 p-3',
+                  'transition-all hover:-translate-y-0.5 hover:border-sage-300 hover:bg-sage-50/50 hover:shadow-elevated-1',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500/40'
+                )}
               >
                 <span
                   className={cn(
-                    'grid size-9 shrink-0 place-items-center rounded-xl',
+                    'grid size-9 shrink-0 place-items-center rounded-xl transition-transform group-hover:scale-105',
                     item.tone === 'sage' && 'bg-sage-100 text-sage-700',
                     item.tone === 'ember' && 'bg-ember-100 text-ember-700',
                     item.tone === 'stone' && 'bg-stone-200 text-stone-700',
@@ -191,14 +259,17 @@ export default function DashboardLive({ initialStats }: { initialStats: Stats })
                 >
                   {item.icon}
                 </span>
-                <span className="flex items-center gap-1 text-xs font-medium text-stone-700">
-                  {item.label}
-                  <Plus className="size-3 opacity-60" data-icon="inline-end" />
+                <span className="flex w-full items-center justify-between gap-1 text-xs font-medium text-stone-700">
+                  <span className="truncate">{item.label}</span>
+                  <Plus
+                    className="size-3 shrink-0 opacity-50 transition-opacity group-hover:opacity-100"
+                    data-icon="inline-end"
+                  />
                 </span>
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       </div>
     </>
   )

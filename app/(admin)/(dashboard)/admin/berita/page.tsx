@@ -94,16 +94,19 @@ export default async function AdminBeritaPage({ searchParams }: Props) {
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center gap-2">
+                <div className="mt-3 flex items-stretch gap-2">
                   <Button asChild variant="outline" size="sm" className="flex-1">
                     <Link href={`/admin/berita/${item.id}/edit`}>
                       <Pencil className="size-3.5" data-icon="inline-start" />
                       Edit
                     </Link>
                   </Button>
-                  <div className="flex-1">
-                    <DeleteButton id={item.id} type="berita" nama={item.judul} />
-                  </div>
+                  <DeleteButton
+                    id={item.id}
+                    type="berita"
+                    nama={item.judul}
+                    variant="block"
+                  />
                 </div>
               </div>
             ))}
