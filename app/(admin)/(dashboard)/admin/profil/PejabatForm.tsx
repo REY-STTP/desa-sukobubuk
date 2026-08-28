@@ -8,6 +8,9 @@ import {
   ChevronDown, ChevronUp, Camera, UserCircle2, Save, GripVertical,
   Crop, Check, X, RotateCcw,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -176,20 +179,20 @@ function CropModal({ src, onConfirm, onCancel }: CropModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onCancel}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
           <div>
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Crop className="w-4 h-4 text-primary-500" /> Crop Foto Pejabat
+            <h3 className="font-semibold text-stone-800 flex items-center gap-2">
+              <Crop className="size-4 text-primary-500" /> Crop Foto Pejabat
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">Output: 512 × 512 px (1:1) · WebP</p>
+            <p className="text-xs text-stone-500 mt-0.5">Output: 512 × 512 px (1:1) · WebP</p>
           </div>
-          <button onClick={onCancel} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4 text-gray-500" /></button>
+          <button onClick={onCancel} className="p-1.5 hover:bg-stone-100 rounded-lg"><X className="size-4 text-stone-500" /></button>
         </div>
 
         {/* Image area */}
         <div
           ref={containerRef}
-          className="relative bg-gray-900 select-none overflow-hidden flex items-center justify-center"
+          className="relative bg-sage-900 select-none overflow-hidden flex items-center justify-center"
           style={{ height: 360 }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -224,14 +227,14 @@ function CropModal({ src, onConfirm, onCancel }: CropModalProps) {
               >
                 {/* Corner handles */}
                 {(['tl','tr','bl'] as const).map(c => (
-                  <div key={c} className={`absolute w-3 h-3 bg-white border-2 border-gray-500 rounded-sm
+                  <div key={c} className={`absolute size-3 bg-white border-2 border-stone-400 rounded-sm
                     ${c === 'tl' ? 'top-0 left-0 -translate-x-1/2 -translate-y-1/2' :
                       c === 'tr' ? 'top-0 right-0 translate-x-1/2 -translate-y-1/2' :
                                    'bottom-0 left-0 -translate-x-1/2 translate-y-1/2'}`} />
                 ))}
                 {/* Resize handle (br) */}
                 <div
-                  className="absolute bottom-0 right-0 w-4 h-4 bg-white border-2 border-gray-500 rounded-sm cursor-se-resize translate-x-1/2 translate-y-1/2"
+                  className="absolute bottom-0 right-0 size-4 bg-white border-2 border-stone-400 rounded-sm cursor-se-resize translate-x-1/2 translate-y-1/2"
                   onMouseDown={e => { e.stopPropagation(); onMouseDown(e, 'resize') }}
                 />
               </div>
@@ -240,23 +243,23 @@ function CropModal({ src, onConfirm, onCancel }: CropModalProps) {
 
           {!isLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-white" />
+              <Loader2 className="size-8 animate-spin text-white" />
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-4 bg-gray-50 border-t border-gray-100">
-          <button onClick={initBox} className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors">
+        <div className="flex items-center justify-between px-5 py-4 bg-stone-50 border-t border-stone-200">
+          <button onClick={initBox} className="flex items-center gap-1.5 text-sm text-stone-600 hover:text-stone-800 transition-colors">
             <RotateCcw className="w-3.5 h-3.5" /> Reset
           </button>
-          <p className="text-xs text-gray-400 italic">Lingkaran = tampilan di web</p>
+          <p className="text-xs text-stone-400 italic">Lingkaran = tampilan di web</p>
           <div className="flex gap-2">
-            <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">Batal</button>
+            <button onClick={onCancel} className="px-4 py-2 text-sm text-stone-600 hover:bg-stone-200 rounded-lg transition-colors">Batal</button>
             <button
               onClick={handleConfirm}
               disabled={!isLoaded || processing}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-sage-500 hover:bg-sage-700 text-white rounded-lg disabled:opacity-60 transition-colors"
             >
               {processing
                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Memproses...</>
@@ -366,21 +369,28 @@ export default function PejabatForm({ initialData }: Props) {
         <CropModal src={cropState.src} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-5">
+      <div className="surface-elevated p-5 md:p-6">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary-600" />
-            <h2 className="font-semibold text-gray-900">Struktur Organisasi</h2>
-            <span className="text-xs text-gray-400 ml-1">Pejabat &amp; perangkat desa</span>
+            <Users className="size-5 text-sage-600" data-icon="inline-start" />
+            <h2 className="font-display text-base font-medium text-stone-800">Struktur Organisasi</h2>
+            <span className="hidden text-xs text-stone-400 sm:inline">Pejabat &amp; perangkat desa</span>
           </div>
-          <button onClick={addRow} disabled={saving} className="flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50">
-            <Plus className="w-4 h-4" /> Tambah
-          </button>
+          <Button variant="ghost" size="sm" onClick={addRow} disabled={saving}>
+            <Plus className="size-4" data-icon="inline-start" />
+            Tambah
+          </Button>
         </div>
 
         {alert && (
-          <div className={`flex items-center gap-2.5 rounded-xl p-3.5 text-sm mb-4 ${alert.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
-            {alert.type === 'success' ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+          <div
+            className={`flex items-center gap-2.5 rounded-xl p-3.5 text-sm ${alert.type === 'success' ? 'border border-sage-200 bg-sage-50 text-sage-800' : 'border border-ember-300 bg-ember-50 text-ember-800'}`}
+          >
+            {alert.type === 'success' ? (
+              <CheckCircle className="size-4 shrink-0 text-sage-600" />
+            ) : (
+              <AlertCircle className="size-4 shrink-0 text-ember-600" />
+            )}
             {alert.msg}
           </div>
         )}
@@ -397,17 +407,24 @@ export default function PejabatForm({ initialData }: Props) {
             />
           ))}
           {list.length === 0 && (
-            <div className="text-center py-10 text-gray-400 text-sm">
+            <div className="py-10 text-center text-sm text-stone-500">
               Belum ada pejabat.{' '}
-              <button onClick={addRow} className="text-primary-600 underline">Tambah sekarang</button>
+              <button onClick={addRow} className="text-sage-700 underline hover:text-sage-800">
+                Tambah sekarang
+              </button>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end mt-6 pt-4 border-t border-gray-100">
-          <button onClick={handleSave} disabled={saving || list.length === 0} className="btn-primary gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</> : <><Save className="w-4 h-4" /> Simpan Struktur</>}
-          </button>
+        <div className="mt-6 flex justify-end border-t border-stone-200 pt-4">
+          <Button onClick={handleSave} disabled={saving || list.length === 0}>
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
+            ) : (
+              <Save className="size-4" data-icon="inline-start" />
+            )}
+            {saving ? 'Menyimpan...' : 'Simpan Struktur'}
+          </Button>
         </div>
       </div>
     </>
@@ -429,62 +446,65 @@ function PejabatRow({ pejabat, idx, total, saving, onChange, onFotoChange, onRem
   const preview  = pejabat._fotoPreview ?? pejabat.foto_url ?? null
 
   return (
-    <div className="flex gap-3 items-start p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
+    <div className="flex gap-3 items-start p-4 rounded-xl border border-stone-200 bg-stone-50/50 hover:bg-stone-50 transition-colors">
       {/* Urutan */}
       <div className="flex flex-col items-center gap-0.5 pt-1 flex-shrink-0">
-        <button onClick={() => onMove(-1)} disabled={idx === 0 || saving} className="text-gray-300 hover:text-gray-500 disabled:opacity-20 disabled:cursor-not-allowed" title="Naikkan"><ChevronUp className="w-4 h-4" /></button>
-        <GripVertical className="w-4 h-4 text-gray-200" />
-        <button onClick={() => onMove(1)} disabled={idx === total - 1 || saving} className="text-gray-300 hover:text-gray-500 disabled:opacity-20 disabled:cursor-not-allowed" title="Turunkan"><ChevronDown className="w-4 h-4" /></button>
+        <button onClick={() => onMove(-1)} disabled={idx === 0 || saving} className="text-stone-400 hover:text-stone-500 disabled:opacity-20 disabled:cursor-not-allowed" title="Naikkan"><ChevronUp className="size-4" /></button>
+        <GripVertical className="size-4 text-stone-300" />
+        <button onClick={() => onMove(1)} disabled={idx === total - 1 || saving} className="text-stone-400 hover:text-stone-500 disabled:opacity-20 disabled:cursor-not-allowed" title="Turunkan"><ChevronDown className="size-4" /></button>
       </div>
 
       {/* Foto */}
       <div className="flex-shrink-0 flex flex-col items-center gap-1">
         <div
           onClick={() => !saving && inputRef.current?.click()}
-          className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-200 hover:border-primary-400 cursor-pointer group transition-colors flex items-center justify-center"
+          className="relative size-16 rounded-xl overflow-hidden bg-stone-100 border-2 border-dashed border-stone-200 hover:border-primary-400 cursor-pointer group transition-colors flex items-center justify-center"
           title="Klik untuk pilih & crop foto"
         >
           {pejabat._uploading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-primary-500" />
+            <Loader2 className="size-5 animate-spin text-primary-500" />
           ) : preview ? (
             <>
               <Image src={preview} alt={pejabat.nama || 'Foto pejabat'} fill className="object-cover" unoptimized />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
-                <Crop className="w-4 h-4 text-white" />
+                <Crop className="size-4 text-white" />
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center gap-0.5 text-gray-300 group-hover:text-primary-400 transition-colors">
-              <UserCircle2 className="w-7 h-7" />
-              <Camera className="w-3 h-3" />
+            <div className="flex flex-col items-center gap-0.5 text-stone-400 group-hover:text-primary-400 transition-colors">
+              <UserCircle2 className="size-7" />
+              <Camera className="size-3" />
             </div>
           )}
         </div>
         <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => e.target.files?.[0] && onFotoChange(e.target.files[0])} />
-        <p className="text-[10px] text-gray-400">Foto</p>
+        <p className="text-[10px] text-stone-400">Foto</p>
       </div>
 
       {/* Fields */}
       <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2.5 min-w-0">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Nama</label>
-          <input type="text" value={pejabat.nama} onChange={e => onChange({ nama: e.target.value })} placeholder="Budi Santoso" className="input-field text-sm" disabled={saving} />
+          <label className="block text-xs font-semibold text-stone-500 mb-1">Nama</label>
+          <Input type="text" value={pejabat.nama} onChange={e => onChange({ nama: e.target.value })} placeholder="Budi Santoso" className=" text-sm" disabled={saving}  />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Jabatan</label>
-          <input type="text" value={pejabat.jabatan} onChange={e => onChange({ jabatan: e.target.value })} placeholder="Kepala Desa" className="input-field text-sm" disabled={saving} />
+          <label className="block text-xs font-semibold text-stone-500 mb-1">Jabatan</label>
+          <Input type="text" value={pejabat.jabatan} onChange={e => onChange({ jabatan: e.target.value })} placeholder="Kepala Desa" className=" text-sm" disabled={saving}  />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Kategori</label>
-          <select value={pejabat.kategori} onChange={e => onChange({ kategori: e.target.value })} className="input-field text-sm" disabled={saving}>
-            {KATEGORI_OPTIONS.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}
-          </select>
+          <label className="block text-xs font-semibold text-stone-500 mb-1">Kategori</label>
+          <Select value={pejabat.kategori} onValueChange={(val) => onChange({ kategori: val })}  disabled={saving}>
+  <SelectTrigger className="text-sm"><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
+  <SelectContent>
+    {KATEGORI_OPTIONS.map(k => <SelectItem key={k.value} value={k.value}>{k.label}</SelectItem>)}
+  </SelectContent>
+</Select>
         </div>
       </div>
 
       {/* Hapus */}
-      <button onClick={onRemove} disabled={saving} className="flex-shrink-0 text-gray-300 hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed mt-1" title="Hapus">
-        <Trash2 className="w-4 h-4" />
+      <button onClick={onRemove} disabled={saving} className="flex-shrink-0 text-stone-400 hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed mt-1" title="Hapus">
+        <Trash2 className="size-4" />
       </button>
     </div>
   )

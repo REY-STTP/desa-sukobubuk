@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Upload, Loader2, CheckCircle, AlertCircle, ImagePlus, Crop, Check, X, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 // ─── Output size galeri ───────────────────────────────────────────────────────
 const OUT_W = 800
@@ -147,20 +149,20 @@ function CropModal({ src, onConfirm, onCancel }: CropModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onCancel}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
           <div>
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Crop className="w-4 h-4 text-primary-500" /> Crop Foto Galeri
+            <h3 className="font-semibold text-stone-800 flex items-center gap-2">
+              <Crop className="size-4 text-primary-500" /> Crop Foto Galeri
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">Output: 800 × 800 px (1:1) · WebP</p>
+            <p className="text-xs text-stone-500 mt-0.5">Output: 800 × 800 px (1:1) · WebP</p>
           </div>
-          <button onClick={onCancel} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4 text-gray-500" /></button>
+          <button onClick={onCancel} className="p-1.5 hover:bg-stone-100 rounded-lg"><X className="size-4 text-stone-500" /></button>
         </div>
 
         {/* Image area */}
         <div
           ref={containerRef}
-          className="relative bg-gray-900 select-none overflow-hidden flex items-center justify-center"
+          className="relative bg-sage-900 select-none overflow-hidden flex items-center justify-center"
           style={{ height: 380 }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -204,14 +206,14 @@ function CropModal({ src, onConfirm, onCancel }: CropModalProps) {
               >
                 {/* Corner handles */}
                 {(['tl','tr','bl'] as const).map(c => (
-                  <div key={c} className={`absolute w-3 h-3 bg-white border-2 border-gray-500 rounded-sm pointer-events-none
+                  <div key={c} className={`absolute size-3 bg-white border-2 border-stone-400 rounded-sm pointer-events-none
                     ${c === 'tl' ? 'top-0 left-0 -translate-x-1/2 -translate-y-1/2' :
                       c === 'tr' ? 'top-0 right-0 translate-x-1/2 -translate-y-1/2' :
                                    'bottom-0 left-0 -translate-x-1/2 translate-y-1/2'}`} />
                 ))}
                 {/* Resize handle (br) */}
                 <div
-                  className="absolute bottom-0 right-0 w-4 h-4 bg-white border-2 border-gray-500 rounded-sm cursor-se-resize translate-x-1/2 translate-y-1/2"
+                  className="absolute bottom-0 right-0 size-4 bg-white border-2 border-stone-400 rounded-sm cursor-se-resize translate-x-1/2 translate-y-1/2"
                   onMouseDown={e => { e.stopPropagation(); onMouseDown(e, 'resize') }}
                 />
               </div>
@@ -220,23 +222,23 @@ function CropModal({ src, onConfirm, onCancel }: CropModalProps) {
 
           {!isLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-white" />
+              <Loader2 className="size-8 animate-spin text-white" />
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-4 bg-gray-50 border-t border-gray-100">
-          <button onClick={initBox} className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors">
+        <div className="flex items-center justify-between px-5 py-4 bg-stone-50 border-t border-stone-200">
+          <button onClick={initBox} className="flex items-center gap-1.5 text-sm text-stone-600 hover:text-stone-800 transition-colors">
             <RotateCcw className="w-3.5 h-3.5" /> Reset
           </button>
-          <p className="text-xs text-gray-400 italic">Kotak = area yang akan di-crop (1:1)</p>
+          <p className="text-xs text-stone-400 italic">Kotak = area yang akan di-crop (1:1)</p>
           <div className="flex gap-2">
-            <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">Batal</button>
+            <button onClick={onCancel} className="px-4 py-2 text-sm text-stone-600 hover:bg-stone-200 rounded-lg transition-colors">Batal</button>
             <button
               onClick={handleConfirm}
               disabled={!isLoaded || processing}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-sage-500 hover:bg-sage-700 text-white rounded-lg disabled:opacity-60 transition-colors"
             >
               {processing
                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Memproses...</>
@@ -300,6 +302,7 @@ export default function GaleriUploadForm() {
       if (preview) URL.revokeObjectURL(preview)
       setPreview(null)
       if (inputRef.current) inputRef.current.value = ''
+      window.dispatchEvent(new CustomEvent('admin:mutated'))
       router.refresh()
     } catch (e: any) {
       setAlert({ type: 'error', msg: e.message })
@@ -311,15 +314,15 @@ export default function GaleriUploadForm() {
     <>
       {cropSrc && <CropModal src={cropSrc} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />}
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="font-semibold text-gray-900 mb-1">Upload Foto Baru</h2>
-        <p className="text-xs text-gray-400 mb-4 flex items-center gap-1">
-          <Crop className="w-3 h-3" /> Foto akan di-crop ke ukuran 800 × 800 px (1:1) secara otomatis
+      <div className="bg-white rounded-2xl border border-stone-200 p-6">
+        <h2 className="font-semibold text-stone-800 mb-1">Upload Foto Baru</h2>
+        <p className="text-xs text-stone-400 mb-4 flex items-center gap-1">
+          <Crop className="size-3" /> Foto akan di-crop ke ukuran 800 × 800 px (1:1) secara otomatis
         </p>
 
         {alert && (
-          <div className={`flex items-center gap-2.5 rounded-xl p-3.5 text-sm mb-4 ${alert.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
-            {alert.type === 'success' ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+          <div className={`flex items-center gap-2.5 rounded-xl p-3.5 text-sm mb-4 ${alert.type === 'success' ? 'bg-sage-50 border border-sage-200 text-sage-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+            {alert.type === 'success' ? <CheckCircle className="size-4 flex-shrink-0" /> : <AlertCircle className="size-4 flex-shrink-0" />}
             {alert.msg}
           </div>
         )}
@@ -327,16 +330,16 @@ export default function GaleriUploadForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Preview area — 1:1 */}
           <label className="cursor-pointer">
-            <div className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-colors ${preview ? 'border-transparent' : 'border-gray-200 hover:border-primary-400 bg-gray-50'}`}>
+            <div className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-colors ${preview ? 'border-transparent' : 'border-stone-200 hover:border-primary-400 bg-stone-50'}`}>
               {preview ? (
                 <img src={preview} alt="Preview" className="w-full h-full object-cover rounded-xl" />
               ) : (
                 <>
-                  <ImagePlus className="w-10 h-10 text-gray-300 mb-2" />
-                  <p className="text-sm text-gray-400">Klik untuk pilih foto</p>
-                  <p className="text-xs text-gray-300 mt-1">JPG, PNG, WEBP maks. 10MB</p>
+                  <ImagePlus className="size-10 text-stone-400 mb-2" />
+                  <p className="text-sm text-stone-400">Klik untuk pilih foto</p>
+                  <p className="text-xs text-stone-400 mt-1">JPG, PNG, WEBP maks. 10MB</p>
                   <span className="mt-2 text-xs text-primary-500 font-medium flex items-center gap-1">
-                    <Crop className="w-3 h-3" /> Editor crop 1:1 akan terbuka
+                    <Crop className="size-3" /> Editor crop 1:1 akan terbuka
                   </span>
                 </>
               )}
@@ -347,15 +350,15 @@ export default function GaleriUploadForm() {
           {/* Form fields */}
           <div className="space-y-4 flex flex-col justify-between">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Judul Foto</label>
-              <input
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Judul Foto</label>
+              <Input
                 type="text" value={judul} onChange={e => setJudul(e.target.value)}
                 placeholder="Contoh: Acara HUT Kemerdekaan RI"
-                className="input-field" disabled={loading}
-              />
+                className="" disabled={loading}
+               />
               {croppedBlob && (
-                <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Foto sudah di-crop (1:1) — siap upload
+                <p className="text-xs text-sage-600 mt-1.5 flex items-center gap-1">
+                  <Check className="size-3" /> Foto sudah di-crop (1:1) — siap upload
                 </p>
               )}
             </div>
@@ -365,17 +368,17 @@ export default function GaleriUploadForm() {
                 <button
                   type="button"
                   onClick={() => { if (preview) URL.revokeObjectURL(preview); setPreview(null); setCroppedBlob(null); if (inputRef.current) inputRef.current.value = '' }}
-                  className="w-full flex items-center justify-center gap-1.5 text-sm text-gray-500 hover:text-red-500 py-2 border border-gray-200 hover:border-red-200 rounded-lg transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 text-sm text-stone-500 hover:text-red-500 py-2 border border-stone-200 hover:border-red-200 rounded-lg transition-colors"
                 >
                   <X className="w-3.5 h-3.5" /> Ganti Foto
                 </button>
               )}
-              <button
+              <Button
                 onClick={handleSubmit} disabled={loading}
-                className="btn-primary w-full justify-center py-3 disabled:opacity-60 disabled:cursor-not-allowed"
+                className=" w-full justify-center py-3 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Mengupload...</> : <><Upload className="w-4 h-4" /> Upload Foto</>}
-              </button>
+                {loading ? <><Loader2 className="size-4 animate-spin" data-icon="inline-start" /> Mengupload...</> : <><Upload className="size-4" data-icon="inline-start" /> Upload Foto</>}
+              </Button>
             </div>
           </div>
         </div>

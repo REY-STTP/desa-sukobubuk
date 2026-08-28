@@ -2,9 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Loader2, CheckCircle, AlertCircle, Save, ArrowLeft, Store, Link2, User, Phone, MapPin, Tag, Sparkles } from 'lucide-react'
 import { slugify } from '@/lib/utils'
 import ImageCropUpload from './ImageCropUpload'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FormField, FormSection, FormActions } from '@/components/admin/FormField'
+import { cn } from '@/lib/utils'
 
 interface UMKMFormData {
   nama_usaha: string
@@ -40,14 +48,25 @@ export default function UMKMForm({ initialData, mode }: Props) {
   })
   const [loading, setLoading] = useState(false)
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const handleNama = (val: string) => setForm({ ...form, nama_usaha: val, slug: slugify(val) })
+  const handleNama = (val: string) => {
+    setForm({ ...form, nama_usaha: val, slug: slugify(val) })
+    if (errors.nama_usaha) setErrors((p) => ({ ...p, nama_usaha: '' }))
+  }
 
   const handleSubmit = async () => {
-    if (!form.nama_usaha || !form.pemilik || !form.deskripsi || !form.alamat || !form.whatsapp) {
-      setAlert({ type: 'error', msg: 'Semua field wajib diisi' })
-      return
-    }
+    const e: Record<string, string> = {}
+    if (!form.nama_usaha.trim()) e.nama_usaha = 'Nama usaha wajib diisi'
+    if (!form.pemilik.trim()) e.pemilik = 'Nama pemilik wajib diisi'
+    if (!form.kategori) e.kategori = 'Kategori wajib dipilih'
+    if (!form.deskripsi.trim()) e.deskripsi = 'Deskripsi wajib diisi'
+    if (!form.alamat.trim()) e.alamat = 'Alamat wajib diisi'
+    if (!form.whatsapp.trim()) e.whatsapp = 'No. WhatsApp wajib diisi'
+    else if (!/^62\d{8,}$/.test(form.whatsapp.trim())) e.whatsapp = 'Format 628xxx (tanpa + atau 0)'
+    setErrors(e)
+    if (Object.keys(e).length > 0) return
+
     setLoading(true)
     setAlert(null)
     try {
@@ -60,8 +79,9 @@ export default function UMKMForm({ initialData, mode }: Props) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan data')
-      setAlert({ type: 'success', msg: mode === 'edit' ? 'UMKM berhasil diperbarui!' : 'UMKM berhasil ditambahkan!' })
-      setTimeout(() => router.push('/admin/umkm'), 1000)
+      window.dispatchEvent(new CustomEvent('admin:mutated'))
+      setAlert({ type: 'success', msg: mode === 'edit' ? 'UMKM berhasil diperbarui.' : 'UMKM berhasil ditambahkan.' })
+      setTimeout(() => router.push('/admin/umkm'), 900)
     } catch (e: any) {
       setAlert({ type: 'error', msg: e.message })
     }
@@ -69,71 +89,178 @@ export default function UMKMForm({ initialData, mode }: Props) {
   }
 
   return (
-    <div className="space-y-5">
-      {alert && (
-        <div className={`flex items-center gap-2.5 rounded-xl p-3.5 text-sm ${alert.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
-          {alert.type === 'success' ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
-          {alert.msg}
-        </div>
-      )}
+    <div className="surface-elevated p-5 md:p-6">
+      <div className="flex flex-col gap-5">
+        {alert && (
+          <div
+            role="status"
+            className={cn(
+              'flex items-center gap-2.5 rounded-xl p-3.5 text-sm',
+              alert.type === 'success'
+                ? 'border border-sage-200 bg-sage-50 text-sage-800'
+                : 'border border-ember-300 bg-ember-50 text-ember-800'
+            )}
+          >
+            {alert.type === 'success' ? (
+              <CheckCircle className="size-4 shrink-0 text-sage-600" />
+            ) : (
+              <AlertCircle className="size-4 shrink-0 text-ember-600" />
+            )}
+            {alert.msg}
+          </div>
+        )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nama Usaha <span className="text-red-500">*</span></label>
-          <input type="text" value={form.nama_usaha} onChange={(e) => handleNama(e.target.value)} className="input-field" placeholder="Batik Sukobubuk" />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Slug (URL)</label>
-          <input type="text" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} className="input-field bg-gray-50" />
-          <p className="text-xs text-gray-400 mt-1">Otomatis dari nama usaha</p>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nama Pemilik <span className="text-red-500">*</span></label>
-          <input type="text" value={form.pemilik} onChange={(e) => setForm({ ...form, pemilik: e.target.value })} className="input-field" placeholder="Ibu Sari Dewi" />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Kategori <span className="text-red-500">*</span></label>
-          <select value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value })} className="input-field">
-            {KATEGORI.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">No. WhatsApp <span className="text-red-500">*</span></label>
-          <input type="text" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} className="input-field" placeholder="628123456789" />
-          <p className="text-xs text-gray-400 mt-1">Format: 628xxx (tanpa + atau 0)</p>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Alamat <span className="text-red-500">*</span></label>
-          <input type="text" value={form.alamat} onChange={(e) => setForm({ ...form, alamat: e.target.value })} className="input-field" placeholder="Jl. Merdeka No. 12" />
-        </div>
-      </div>
+        <FormSection title="Identitas Usaha" description="Nama dan kategori usaha.">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField label="Nama Usaha" required error={errors.nama_usaha} icon={<Store className="size-4" />}>
+              <Input
+                type="text"
+                value={form.nama_usaha}
+                onChange={(e) => handleNama(e.target.value)}
+                placeholder="Batik Sukobubuk"
+                disabled={loading}
+              />
+            </FormField>
+            <FormField label="Slug (URL)" hint="Otomatis dari nama usaha" icon={<Link2 className="size-4" />}>
+              <Input
+                type="text"
+                value={form.slug}
+                onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                placeholder="batik-sukobubuk"
+                disabled={loading}
+                className="bg-stone-50 font-mono text-xs"
+              />
+            </FormField>
+            <FormField label="Nama Pemilik" required error={errors.pemilik} icon={<User className="size-4" />}>
+              <Input
+                type="text"
+                value={form.pemilik}
+                onChange={(e) => {
+                  setForm({ ...form, pemilik: e.target.value })
+                  if (errors.pemilik) setErrors((p) => ({ ...p, pemilik: '' }))
+                }}
+                placeholder="Ibu Sari Dewi"
+                disabled={loading}
+              />
+            </FormField>
+            <FormField label="Kategori" required error={errors.kategori} icon={<Tag className="size-4" />}>
+              <Select
+                value={form.kategori}
+                onValueChange={(val) => {
+                  setForm({ ...form, kategori: val })
+                  if (errors.kategori) setErrors((p) => ({ ...p, kategori: '' }))
+                }}
+                disabled={loading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pilih kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  {KATEGORI.map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {k}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+        </FormSection>
 
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Deskripsi <span className="text-red-500">*</span></label>
-        <textarea value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} className="input-field min-h-[120px] resize-none" placeholder="Ceritakan tentang usaha ini..." />
-      </div>
+        <FormSection title="Kontak & Lokasi">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField
+              label="No. WhatsApp"
+              required
+              error={errors.whatsapp}
+              hint="Format: 628xxx (tanpa + atau 0)"
+              icon={<Phone className="size-4" />}
+            >
+              <Input
+                type="text"
+                value={form.whatsapp}
+                onChange={(e) => {
+                  setForm({ ...form, whatsapp: e.target.value })
+                  if (errors.whatsapp) setErrors((p) => ({ ...p, whatsapp: '' }))
+                }}
+                placeholder="628123456789"
+                disabled={loading}
+              />
+            </FormField>
+            <FormField label="Alamat" required error={errors.alamat} icon={<MapPin className="size-4" />}>
+              <Input
+                type="text"
+                value={form.alamat}
+                onChange={(e) => {
+                  setForm({ ...form, alamat: e.target.value })
+                  if (errors.alamat) setErrors((p) => ({ ...p, alamat: '' }))
+                }}
+                placeholder="Jl. Merdeka No. 12"
+                disabled={loading}
+              />
+            </FormField>
+          </div>
+        </FormSection>
 
-      <ImageCropUpload
-        value={form.logo}
-        onChange={(url) => setForm({ ...form, logo: url })}
-        folder="umkm"
-        label="Logo / Foto UMKM"
-        aspect="square"
-      />
+        <FormSection title="Deskripsi & Media">
+          <FormField label="Deskripsi" required error={errors.deskripsi}>
+            <Textarea
+              value={form.deskripsi}
+              onChange={(e) => {
+                setForm({ ...form, deskripsi: e.target.value })
+                if (errors.deskripsi) setErrors((p) => ({ ...p, deskripsi: '' }))
+              }}
+              placeholder="Ceritakan tentang usaha ini..."
+              disabled={loading}
+              className="min-h-[100px] resize-none"
+            />
+          </FormField>
 
-      <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-        <input type="checkbox" id="is_featured" checked={form.is_featured} onChange={(e) => setForm({ ...form, is_featured: e.target.checked })} className="w-4 h-4 accent-primary-600" />
-        <label htmlFor="is_featured" className="text-sm font-medium text-gray-700 cursor-pointer">
-          Tampilkan sebagai UMKM Unggulan di halaman utama
-        </label>
-      </div>
+          <ImageCropUpload
+            value={form.logo}
+            onChange={(url) => setForm({ ...form, logo: url })}
+            folder="umkm"
+            label="Logo / Foto UMKM"
+            aspect="square"
+          />
 
-      <div className="flex gap-3 pt-2">
-        <button onClick={() => router.back()} className="btn-outline px-6">Batal</button>
-        <button onClick={handleSubmit} disabled={loading} className="btn-primary px-6 disabled:opacity-60 disabled:cursor-not-allowed">
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</> : mode === 'edit' ? 'Simpan Perubahan' : 'Tambah UMKM'}
-        </button>
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-ember-200 bg-ember-50 p-4">
+            <Checkbox
+              id="is_featured"
+              checked={form.is_featured}
+              onCheckedChange={(v) => setForm({ ...form, is_featured: Boolean(v) })}
+              disabled={loading}
+              className="mt-0.5"
+            />
+            <span className="flex flex-col gap-0.5">
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-800">
+                <Sparkles className="size-3.5 text-ember-600" />
+                Tampilkan sebagai UMKM Unggulan
+              </span>
+              <span className="text-xs text-stone-500">
+                UMKM unggulan ditampilkan di beranda dan halaman utama.
+              </span>
+            </span>
+          </label>
+        </FormSection>
+
+        <FormActions>
+          <Button variant="outline" onClick={() => router.back()} disabled={loading}>
+            <ArrowLeft className="size-4" data-icon="inline-start" />
+            Batal
+          </Button>
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
+            ) : (
+              <Save className="size-4" data-icon="inline-start" />
+            )}
+            {loading ? 'Menyimpan...' : mode === 'edit' ? 'Simpan Perubahan' : 'Tambah UMKM'}
+          </Button>
+        </FormActions>
       </div>
     </div>
   )
 }
+
+

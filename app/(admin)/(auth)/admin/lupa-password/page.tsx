@@ -16,7 +16,7 @@ export default function LupaPasswordPage() {
 
       <div className="relative w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-primary-900/50 overflow-hidden">
+          <div className="size-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-primary-900/50 overflow-hidden">
             <Image
               src="/images/logo-desa.png"
               alt="Logo Desa"
@@ -30,12 +30,12 @@ export default function LupaPasswordPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl shadow-black/30 p-8">
-          <Link href="/admin/login" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-5 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
+          <Link href="/admin/login" className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-700 mb-5 transition-colors">
+            <ArrowLeft className="size-4" />
             Kembali ke Login
           </Link>
-          <h2 className="font-display text-xl font-bold text-gray-900 mb-1">Lupa Password</h2>
-          <p className="text-gray-500 text-sm mb-6">
+          <h2 className="font-display text-xl font-bold text-stone-800 mb-1">Lupa Password</h2>
+          <p className="text-stone-500 text-sm mb-6">
             Masukkan email Anda dan kami akan mengirimkan link untuk mereset password.
           </p>
           <LupaPasswordForm />

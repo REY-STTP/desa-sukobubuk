@@ -1,0 +1,35 @@
+# Desa Sukobubuk
+
+> Website resmi Pemerintah Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah, Indonesia. Kode Pos 59163.
+
+Website ini adalah portal informasi desa: profil, sejarah, visi-misi, struktur organisasi, berita, direktori UMKM, galeri foto, dan formulir kontak.
+
+## Pages
+
+- [Beranda](https://desa-sukobubuk.id/): Hero, statistik desa, UMKM unggulan, berita terbaru, galeri, CTA.
+- [Profil — Sejarah](https://desa-sukobubuk.id/profil/sejarah): Asal-usul dan timeline sejarah Desa Sukobubuk.
+- [Profil — Visi & Misi](https://desa-sukobubuk.id/profil/visi-misi): Visi dan Misi Pemerintah Desa Sukobubuk.
+- [Profil — Struktur Organisasi](https://desa-sukobubuk.id/profil/struktur-organisasi): Pejabat dan perangkat desa.
+- [Berita](https://desa-sukobubuk.id/berita): Daftar berita dan pengumuman terbaru.
+- [UMKM](https://desa-sukobubuk.id/umkm): Direktori UMKM desa dengan filter kategori.
+- [Kontak](https://desa-sukobubuk.id/kontak): Formulir kontak dan info kantor desa.
+
+## Key facts
+
+- **Nama resmi**: Desa Sukobubuk
+- **Kecamatan**: Margorejo
+- **Kabupaten**: Pati
+- **Provinsi**: Jawa Tengah
+- **Kode Pos**: 59163
+- **Alamat kantor**: Jl. Raya Sukobubuk, Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah 59163
+
+## Contact
+
+- **Email**: admin.desa.sukobubuk@gmail.com
+- **Instagram**: https://instagram.com/kkn.sttpsukobubuk
+- **TikTok**: https://tiktok.com/@kknsttp.sukobubuk
+
+## Optional
+
+- [Sitemap XML](https://desa-sukobubuk.id/sitemap.xml)
+- [RSS feed (planned)](https://desa-sukobubuk.id/feed.xml)

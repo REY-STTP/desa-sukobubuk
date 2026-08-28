@@ -29,26 +29,26 @@ export default function Pagination({ page, totalPages, total, basePath, searchQu
   const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i)
 
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
-      <p className="text-xs text-gray-400">{total} data total</p>
+    <div className="flex items-center justify-between border-t border-stone-200 px-5 py-3">
+      <p className="text-xs text-stone-400">{total} data total</p>
       <div className="flex items-center gap-1">
         {page > 1 && (
-          <Link href={buildHref(prev)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
-            <ChevronLeft className="w-4 h-4 text-gray-500" />
+          <Link href={buildHref(prev)} className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-stone-100">
+            <ChevronLeft className="size-4 text-stone-500" />
           </Link>
         )}
         {start > 1 && (
           <>
-            <Link href={buildHref(1)} className="w-7 h-7 rounded-lg text-xs flex items-center justify-center hover:bg-gray-100 text-gray-600 transition-colors">1</Link>
-            {start > 2 && <span className="text-gray-400 text-xs px-1">…</span>}
+            <Link href={buildHref(1)} className="grid size-7 place-items-center rounded-lg text-xs transition-colors hover:bg-stone-100 text-stone-600">1</Link>
+            {start > 2 && <span className="px-1 text-xs text-stone-400">…</span>}
           </>
         )}
         {pages.map((p) => (
           <Link
             key={p}
             href={buildHref(p)}
-            className={`w-7 h-7 rounded-lg text-xs flex items-center justify-center transition-colors ${
-              p === page ? 'bg-primary-600 text-white font-semibold' : 'hover:bg-gray-100 text-gray-600'
+            className={`grid size-7 place-items-center rounded-lg text-xs transition-colors ${
+              p === page ? 'bg-sage-600 font-semibold text-white' : 'text-stone-600 hover:bg-stone-100'
             }`}
           >
             {p}
@@ -56,13 +56,13 @@ export default function Pagination({ page, totalPages, total, basePath, searchQu
         ))}
         {end < totalPages && (
           <>
-            {end < totalPages - 1 && <span className="text-gray-400 text-xs px-1">…</span>}
-            <Link href={buildHref(totalPages)} className="w-7 h-7 rounded-lg text-xs flex items-center justify-center hover:bg-gray-100 text-gray-600 transition-colors">{totalPages}</Link>
+            {end < totalPages - 1 && <span className="px-1 text-xs text-stone-400">…</span>}
+            <Link href={buildHref(totalPages)} className="grid size-7 place-items-center rounded-lg text-xs transition-colors hover:bg-stone-100 text-stone-600">{totalPages}</Link>
           </>
         )}
         {page < totalPages && (
-          <Link href={buildHref(next)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors">
-            <ChevronRight className="w-4 h-4 text-gray-500" />
+          <Link href={buildHref(next)} className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-stone-100">
+            <ChevronRight className="size-4 text-stone-500" />
           </Link>
         )}
       </div>

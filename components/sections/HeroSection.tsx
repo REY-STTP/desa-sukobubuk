@@ -4,21 +4,33 @@ import HeroClient from './HeroClient'
 export const revalidate = 300
 
 export default async function HeroSection() {
-  const [profil, totalUMKM, totalProduk] = await Promise.all([
-    prisma.profilDesa.findFirst({
-      select: {
-        nama_desa: true,
-        nama_kecamatan: true,
-        nama_kabupaten: true,
-        nama_provinsi: true,
-        kode_pos: true,
-        jumlah_penduduk: true,
-        tahun_berdiri: true,
-      },
-    }),
-    prisma.uMKM.count(),
-    prisma.produk.count(),
-  ])
+  let profil = null
+  let totalUMKM = 0
+  let totalProduk = 0
+
+  try {
+    const results = await Promise.allSettled([
+      prisma.profilDesa.findFirst({
+        select: {
+          nama_desa: true,
+          nama_kecamatan: true,
+          nama_kabupaten: true,
+          nama_provinsi: true,
+          kode_pos: true,
+          jumlah_penduduk: true,
+          tahun_berdiri: true,
+        },
+      }),
+      prisma.uMKM.count(),
+      prisma.produk.count(),
+    ])
+
+    profil = results[0].status === 'fulfilled' ? results[0].value : null
+    totalUMKM = results[1].status === 'fulfilled' ? results[1].value : 0
+    totalProduk = results[2].status === 'fulfilled' ? results[2].value : 0
+  } catch {
+    // DB down — pakai fallback default
+  }
 
   return (
     <HeroClient

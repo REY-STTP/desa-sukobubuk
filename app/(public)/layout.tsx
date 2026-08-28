@@ -15,7 +15,9 @@ export default async function PublicLayout({ children }: { children: React.React
         namaKabupaten={profil?.nama_kabupaten ?? 'Kab. Pati'}
       />
       <Navbar />
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>
+        {children}
+      </main>
       <Footer />
     </>
   )

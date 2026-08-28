@@ -6,6 +6,17 @@ import DeleteButton from '@/components/admin/DeleteButton'
 import Pagination from '@/components/admin/Pagination'
 import SearchInput from '@/components/admin/SearchInput'
 import { getUMKMPage } from '@/lib/cache'
+import { Button } from '@/components/ui/button'
+import { Tag as UTag } from '@/components/ui/tag'
+import { EmptyState } from '@/components/ui/empty-state'
+import {
+  AdminTable,
+  AdminTableHead,
+  AdminTableBody,
+  AdminTableRow,
+  AdminTableHeaderCell,
+  AdminTableCell,
+} from '@/components/admin/Table'
 
 export const metadata: Metadata = { title: 'Kelola UMKM' }
 
@@ -21,150 +32,178 @@ export default async function AdminUMKMPage({ searchParams }: Props) {
   const { data: umkm, total, totalPages } = await getUMKMPage(page, search)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6">
+      {/* Page header */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900">Kelola UMKM</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="font-display text-2xl font-medium text-stone-800">Kelola UMKM</h1>
+          <p className="mt-1 text-sm text-stone-500">
             {search ? `${total} hasil untuk "${search}"` : `${total} UMKM terdaftar`}
           </p>
         </div>
-        <Link href="/admin/umkm/tambah" className="btn-primary">
-          <Plus className="w-4 h-4" /> Tambah UMKM
-        </Link>
-      </div>
+        <Button asChild>
+          <Link href="/admin/umkm/tambah">
+            <Plus className="size-4" data-icon="inline-start" />
+            Tambah UMKM
+          </Link>
+        </Button>
+      </header>
 
-      {/* Search Bar */}
+      {/* Search bar */}
       <SearchInput
         placeholder="Cari nama usaha, pemilik, kategori, atau alamat..."
         defaultValue={search}
       />
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {umkm.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <Store className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>{search ? `Tidak ada UMKM yang cocok dengan "${search}"` : 'Belum ada data UMKM'}</p>
-            {search && (
-              <Link href="/admin/umkm" className="mt-3 inline-block text-sm text-primary-600 hover:underline">
-                Hapus pencarian
-              </Link>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* ── Mobile: Card View ── */}
-            <div className="md:hidden divide-y divide-gray-100">
-              {umkm.map((item) => (
-                <div key={item.id} className="p-4 flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center flex-shrink-0">
-                    <Store className="w-5 h-5 text-primary-600" />
+      {umkm.length === 0 ? (
+        <div className="surface-elevated">
+          <EmptyState
+            icon={<Store className="size-6" />}
+            title={search ? `Tidak ada UMKM yang cocok dengan "${search}"` : 'Belum ada data UMKM'}
+            description={search ? 'Coba kata kunci lain.' : 'Mulai dengan menambahkan UMKM pertama.'}
+            action={
+              !search ? (
+                <Button asChild>
+                  <Link href="/admin/umkm/tambah">
+                    <Plus className="size-4" data-icon="inline-start" />
+                    Tambah UMKM
+                  </Link>
+                </Button>
+              ) : undefined
+            }
+          />
+        </div>
+      ) : (
+        <>
+          {/* Mobile: card view */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {umkm.map((item) => (
+              <div key={item.id} className="surface-elevated p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-stone-800 text-sm truncate">
+                      {item.nama_usaha}
+                    </p>
+                    <p className="text-xs text-stone-500 truncate">
+                      {item.pemilik}
+                    </p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-semibold text-gray-900 text-sm">{item.nama_usaha}</p>
-                        <p className="text-xs text-gray-400">{item.pemilik}</p>
-                      </div>
-                      {item.is_featured && (
-                        <span className="flex items-center gap-1 text-xs text-yellow-600 font-semibold flex-shrink-0">
-                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /> Unggulan
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span className="badge badge-green flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> {item.kategori}
-                      </span>
-                      <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <Package className="w-3 h-3" /> {item._count.produk} produk
-                      </span>
-                      <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> {formatDate(item.created_at)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Link href={`/admin/umkm/${item.id}/edit`}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold transition-colors">
-                        <Pencil className="w-3.5 h-3.5" /> Edit
-                      </Link>
-                      <div className="flex-1">
-                        <DeleteButton id={item.id} type="umkm" nama={item.nama_usaha} />
-                      </div>
-                    </div>
+                  {item.is_featured && (
+                    <UTag tone="ember" size="sm">
+                      <Star className="size-3" />
+                      Unggulan
+                    </UTag>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-stone-500">
+                  <UTag tone="sage" size="sm">
+                    <Tag className="size-3" />
+                    {item.kategori}
+                  </UTag>
+                  <span className="inline-flex items-center gap-1">
+                    <Package className="size-3" />
+                    {item._count.produk} produk
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Calendar className="size-3" />
+                    {formatDate(item.created_at)}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <Link href={`/admin/umkm/${item.id}/edit`}>
+                      <Pencil className="size-3.5" data-icon="inline-start" />
+                      Edit
+                    </Link>
+                  </Button>
+                  <div className="flex-1">
+                    <DeleteButton id={item.id} type="umkm" nama={item.nama_usaha} />
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
 
-            {/* ── Desktop: Table View ── */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Usaha</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pemilik</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Kategori</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Produk</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Unggulan</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanggal</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {umkm.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center flex-shrink-0">
-                            <Store className="w-4 h-4 text-primary-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm">{item.nama_usaha}</p>
-                            <p className="text-xs text-gray-400">{item.slug}</p>
-                          </div>
+          {/* Desktop: table */}
+          <div className="hidden md:block">
+            <AdminTable>
+              <AdminTableHead>
+                <tr>
+                  <AdminTableHeaderCell>Nama Usaha</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Pemilik</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Kategori</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Produk</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Status</AdminTableHeaderCell>
+                  <AdminTableHeaderCell>Tanggal</AdminTableHeaderCell>
+                  <AdminTableHeaderCell align="right">Aksi</AdminTableHeaderCell>
+                </tr>
+              </AdminTableHead>
+              <AdminTableBody>
+                {umkm.map((item) => (
+                  <AdminTableRow key={item.id}>
+                    <AdminTableCell>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-sage-100 text-sage-700">
+                          <Store className="size-4" />
                         </div>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-600">{item.pemilik}</td>
-                      <td className="px-5 py-4">
-                        <span className="badge badge-green">{item.kategori}</span>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-600">{item._count.produk} produk</td>
-                      <td className="px-5 py-4">
-                        {item.is_featured ? (
-                          <span className="flex items-center gap-1 text-xs text-yellow-600 font-semibold">
-                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /> Unggulan
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-xs text-gray-400">{formatDate(item.created_at)}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/admin/umkm/${item.id}/edit`}
-                            className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">
-                            <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-stone-800 truncate">
+                            {item.nama_usaha}
+                          </p>
+                          <p className="text-xs text-stone-400 truncate font-mono">
+                            /{item.slug}
+                          </p>
+                        </div>
+                      </div>
+                    </AdminTableCell>
+                    <AdminTableCell>{item.pemilik}</AdminTableCell>
+                    <AdminTableCell>
+                      <UTag tone="sage" size="sm">
+                        <Tag className="size-3" />
+                        {item.kategori}
+                      </UTag>
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      <span className="font-mono tabular-nums">{item._count.produk}</span>
+                    </AdminTableCell>
+                    <AdminTableCell>
+                      {item.is_featured ? (
+                        <UTag tone="ember" size="sm">
+                          <Star className="size-3 fill-ember-400" />
+                          Unggulan
+                        </UTag>
+                      ) : (
+                        <span className="text-xs text-stone-400">-</span>
+                      )}
+                    </AdminTableCell>
+                    <AdminTableCell className="text-xs text-stone-500">
+                      {formatDate(item.created_at)}
+                    </AdminTableCell>
+                    <AdminTableCell align="right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button asChild variant="ghost" size="icon-sm">
+                          <Link href={`/admin/umkm/${item.id}/edit`} aria-label="Edit">
+                            <Pencil className="size-3.5" />
                           </Link>
-                          <DeleteButton id={item.id} type="umkm" nama={item.nama_usaha} />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </Button>
+                        <DeleteButton id={item.id} type="umkm" nama={item.nama_usaha} />
+                      </div>
+                    </AdminTableCell>
+                  </AdminTableRow>
+                ))}
+              </AdminTableBody>
+            </AdminTable>
+          </div>
 
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              total={total}
-              basePath={`/admin/umkm${search ? `?q=${encodeURIComponent(search)}&` : '?'}`.replace(/\?$/, '')}
-              searchQuery={search}
-            />
-          </>
-        )}
-      </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            basePath={`/admin/umkm${search ? `?q=${encodeURIComponent(search)}&` : '?'}`.replace(/\?$/, '')}
+            searchQuery={search}
+          />
+        </>
+      )}
     </div>
   )
 }

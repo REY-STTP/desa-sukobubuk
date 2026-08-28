@@ -14,7 +14,7 @@ export default function ResetPasswordPage() {
 
       <div className="relative w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-primary-900/50 overflow-hidden">
+          <div className="size-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-primary-900/50 overflow-hidden">
             <Image
               src="/images/logo-desa.png"
               alt="Logo Desa"
@@ -28,8 +28,8 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl shadow-black/30 p-8">
-          <h2 className="font-display text-xl font-bold text-gray-900 mb-1">Buat Password Baru</h2>
-          <p className="text-gray-500 text-sm mb-6">Masukkan password baru untuk akun Anda.</p>
+          <h2 className="font-display text-xl font-bold text-stone-800 mb-1">Buat Password Baru</h2>
+          <p className="text-stone-500 text-sm mb-6">Masukkan password baru untuk akun Anda.</p>
           <ResetPasswordForm />
         </div>
       </div>

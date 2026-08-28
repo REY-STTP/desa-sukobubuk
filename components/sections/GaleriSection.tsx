@@ -1,25 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Images, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Images, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Galeri } from '@prisma/client'
 import { motion, AnimatePresence } from 'framer-motion'
-import ScrollReveal from '@/components/animations/ScrollReveal'
+import { Section, SectionHeader } from '@/components/ui/section'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   galeri: Galeri[]
 }
 
 const placeholderGradients = [
-  'linear-gradient(135deg, #4f8ef7 0%, #2563eb 100%)',
-  'linear-gradient(135deg, #34d399 0%, #059669 100%)',
-  'linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%)',
-  'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)',
-  'linear-gradient(135deg, #fb923c 0%, #ea580c 100%)',
-  'linear-gradient(135deg, #f472b6 0%, #db2777 100%)',
+  'linear-gradient(135deg, #5a7548 0%, #374a2b 100%)',
+  'linear-gradient(135deg, #c27141 0%, #7e4220 100%)',
+  'linear-gradient(135deg, #455c36 0%, #1f2a1a 100%)',
+  'linear-gradient(135deg, #d3884f 0%, #a35a30 100%)',
+  'linear-gradient(135deg, #79766a 0%, #403e37 100%)',
+  'linear-gradient(135deg, #aebc8e 0%, #5a7548 100%)',
 ]
 
-function GaleriMedia({ item, index, className = 'w-full h-full object-cover' }: {
+function GaleriMedia({
+  item,
+  index,
+  className = 'size-full object-cover',
+}: {
   item: Galeri
   index: number
   className?: string
@@ -32,7 +37,7 @@ function GaleriMedia({ item, index, className = 'w-full h-full object-cover' }: 
       <img
         src={item.foto!}
         alt={item.judul}
-        className={`${className} pointer-events-none`}
+        className={className}
         draggable={false}
       />
     )
@@ -40,237 +45,308 @@ function GaleriMedia({ item, index, className = 'w-full h-full object-cover' }: 
 
   return (
     <div
-      className="w-full h-full flex flex-col items-center justify-center gap-3 pointer-events-none"
+      className="flex size-full flex-col items-center justify-center gap-3 p-6"
       style={{ background: gradient }}
     >
-      <Images className="w-12 h-12 text-white/40" />
-      <p className="text-white/60 text-sm font-medium px-6 text-center line-clamp-2">{item.judul}</p>
+      <Images className="size-10 text-white/40" />
+      <p className="line-clamp-2 text-center text-sm font-medium text-white/80">
+        {item.judul}
+      </p>
     </div>
   )
 }
 
-function getSlideProps(offset: number) {
-  const abs = Math.abs(offset)
-  const dir = Math.sign(offset)
-
-  if (abs === 0) return {
-    x: '0%', scale: 1, opacity: 1,
-    zIndex: 30, rotateY: 0, brightness: 1,
-    pointerEvents: 'auto' as const,
-  }
-  if (abs === 1) return {
-    x: `${dir * 58}%`, scale: 0.78, opacity: 0.9,
-    zIndex: 20, rotateY: dir * 20, brightness: 0.7,
-    pointerEvents: 'none' as const,
-  }
-  if (abs === 2) return {
-    x: `${dir * 76}%`, scale: 0.62, opacity: 0.5,
-    zIndex: 10, rotateY: dir * 32, brightness: 0.5,
-    pointerEvents: 'none' as const,
-  }
-  return { opacity: 0, zIndex: 0, pointerEvents: 'none' as const }
-}
-
 export default function GaleriSection({ galeri }: Props) {
-  const [current, setCurrent] = useState(0)
   const [lightbox, setLightbox] = useState<number | null>(null)
-  const [dragStartX, setDragStartX] = useState<number | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
-
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
   const total = galeri.length
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
   }, [])
 
-  function go(idx: number) {
-    setCurrent((idx + total) % total)
-  }
-
-  function onPointerDown(e: React.PointerEvent) {
-    setDragStartX(e.clientX)
-  }
-
-  function onPointerUp(e: React.PointerEvent) {
-    if (dragStartX === null) return
-    const diff = dragStartX - e.clientX
-    if (Math.abs(diff) > 40) {
-      diff > 0 ? go(current + 1) : go(current - 1)
+  useEffect(() => {
+    updateScrollState()
+    const el = scrollRef.current
+    if (!el) return
+    el.addEventListener('scroll', updateScrollState, { passive: true })
+    window.addEventListener('resize', updateScrollState)
+    return () => {
+      el.removeEventListener('scroll', updateScrollState)
+      window.removeEventListener('resize', updateScrollState)
     }
-    setDragStartX(null)
+  }, [updateScrollState, total])
+
+  const scrollBy = (dir: 'left' | 'right') => {
+    const el = scrollRef.current
+    if (!el) return
+    const amount = Math.round(el.clientWidth * 0.85)
+    el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' })
   }
 
-  const offsets = isMobile ? [0] : [-2, -1, 0, 1, 2]
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (lightbox === null) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightbox(null)
+      if (e.key === 'ArrowRight')
+        setLightbox((i) => (i !== null ? (i + 1) % total : null))
+      if (e.key === 'ArrowLeft')
+        setLightbox((i) => (i !== null ? (i - 1 + total) % total : null))
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [lightbox, total])
 
-  // Ukuran slot aktif — lebih kecil dari versi 16:9 agar 1:1 tidak makan terlalu banyak tinggi
-  const SLOT = isMobile ? 'min(84vw, 380px)' : 'min(36vw, 360px)'
+  // Lock body scroll when lightbox open
+  useEffect(() => {
+    if (lightbox !== null) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [lightbox])
+
+  // Drag to scroll (mouse)
+  const isDragging = useRef(false)
+  const startX = useRef(0)
+  const startScrollLeft = useRef(0)
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    const el = scrollRef.current
+    if (!el) return
+    isDragging.current = true
+    startX.current = e.pageX - el.offsetLeft
+    startScrollLeft.current = el.scrollLeft
+    el.style.cursor = 'grabbing'
+    el.style.userSelect = 'none'
+  }
+  const onMouseUp = () => {
+    const el = scrollRef.current
+    if (!el) return
+    isDragging.current = false
+    el.style.cursor = 'grab'
+    el.style.userSelect = ''
+  }
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current) return
+    e.preventDefault()
+    const el = scrollRef.current
+    if (!el) return
+    const x = e.pageX - el.offsetLeft
+    const walk = (x - startX.current) * 1.2
+    el.scrollLeft = startScrollLeft.current - walk
+  }
+  const onMouseLeave = () => {
+    const el = scrollRef.current
+    if (!el) return
+    isDragging.current = false
+    el.style.cursor = 'grab'
+    el.style.userSelect = ''
+  }
+
+  if (total === 0) return null
 
   return (
-    <section className="section-padding bg-white">
-      <div className="container-custom">
-        <ScrollReveal direction="none" className="text-center mb-10 md:mb-14">
-          <div className="flex items-center justify-center gap-2 text-primary-600 font-semibold text-sm mb-3">
-            <Images className="w-4 h-4" />
+    <Section variant="default" spacing="default">
+      <SectionHeader
+        eyebrow={
+          <>
+            <Images className="size-3.5" />
             Galeri Foto
-          </div>
-          <h2 className="section-title">Momen <span className="text-primary-600 italic">Berharga</span></h2>
-          <p className="section-subtitle max-w-lg mx-auto">Abadikan setiap momen berharga kegiatan dan kehidupan desa.</p>
-        </ScrollReveal>
+          </>
+        }
+        heading={
+          <>
+            Momen <span className="text-sage-700 italic">berharga</span>
+          </>
+        }
+        subtitle="Geser untuk melihat dokumentasi kegiatan dan kehidupan Desa Sukobubuk."
+        align="left"
+      />
 
-        {/* Carousel */}
-        <div className="relative" style={{ perspective: '1000px' }}>
-          {/* Tinggi container = lebar slot aktif (1:1) */}
-          <div
-            className="relative flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
-            style={{ height: SLOT }}
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
-          >
-            {offsets.map((offset) => {
-              const idx = (current + offset + total) % total
-              const p = getSlideProps(offset)
-              const isActive = offset === 0
+      {/* Horizontal scroll container */}
+      <div className="relative -mx-5 sm:-mx-6 md:-mx-8 lg:-mx-10">
+        {/* Edge fades — subtle hint */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-4 bg-gradient-to-r from-white/30 to-transparent md:w-6"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-4 bg-gradient-to-l from-white/30 to-transparent md:w-6"
+        />
 
-              return (
-                <motion.div
-                  key={idx + '-' + offset}
-                  animate={{
-                    x: p.x ?? '0%',
-                    scale: p.scale ?? 1,
-                    opacity: p.opacity ?? 0,
-                    rotateY: p.rotateY ?? 0,
-                  }}
-                  style={{
-                    position: 'absolute',
-                    width: SLOT,
-                    zIndex: p.zIndex,
-                    transformStyle: 'preserve-3d',
-                    pointerEvents: p.pointerEvents,
-                    filter: `brightness(${p.brightness ?? 1})`,
-                    cursor: isActive ? 'pointer' : 'default',
-                  }}
-                  transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
-                  onClick={() => isActive && setLightbox(idx)}
-                >
-                  {/* ← Satu-satunya perubahan dari versi asli: 1/1 menggantikan 16/9 */}
-                  <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '1 / 1' }}>
-                    <GaleriMedia item={galeri[idx]} index={idx} />
-
-                    {isActive && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4 md:p-5 pointer-events-none">
-                        <p className="text-white font-bold text-sm md:text-base leading-snug drop-shadow line-clamp-2">
-                          {galeri[idx].judul}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-
-          {/* Arrows */}
-          <button
-            onClick={() => go(current - 1)}
-            className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          <button
-            onClick={() => go(current + 1)}
-            className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Dots */}
-        <div className="flex justify-center gap-2 mt-6">
-          {galeri.map((_, i) => (
+        {/* Scroll track */}
+        <div
+          ref={scrollRef}
+          onMouseDown={onMouseDown}
+          onMouseUp={onMouseUp}
+          onMouseMove={onMouseMove}
+          onMouseLeave={onMouseLeave}
+          className="flex gap-4 overflow-x-auto overscroll-x-contain scroll-smooth px-5 pb-2 pt-1 [scrollbar-width:none] sm:gap-5 sm:px-6 md:px-8 lg:px-10 [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: 'none', cursor: 'grab' }}
+          role="region"
+          aria-label="Galeri foto — geser untuk melihat lebih banyak"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight') {
+              e.preventDefault()
+              scrollBy('right')
+            }
+            if (e.key === 'ArrowLeft') {
+              e.preventDefault()
+              scrollBy('left')
+            }
+          }}
+        >
+          {galeri.map((item, idx) => (
             <button
-              key={i}
-              onClick={() => go(i)}
-              className={`rounded-full transition-all duration-300 ${
-                i === current
-                  ? 'w-6 h-2 bg-primary-500'
-                  : 'w-2 h-2 bg-gray-300'
-              }`}
-            />
+              key={item.id}
+              onClick={() => {
+                // Jangan buka lightbox kalau sedang drag
+                if (isDragging.current) return
+                setLightbox(idx)
+              }}
+              className="group relative shrink-0 snap-start overflow-hidden rounded-2xl text-left shadow-elevated-2 ring-1 ring-stone-200/60 transition-all duration-300 hover:shadow-elevated-4 hover:ring-sage-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2"
+              aria-label={`Buka foto: ${item.judul}`}
+            >
+              <div className="relative h-[220px] w-[300px] overflow-hidden sm:h-[260px] sm:w-[360px] md:h-[300px] md:w-[420px]">
+                <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.03]">
+                  <GaleriMedia item={item} index={idx} />
+                </div>
+                {/* Caption overlay — always visible subtle, stronger on hover */}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-sage-950/80 via-sage-900/30 to-transparent p-4 pt-12">
+                  <p className="line-clamp-2 font-display text-sm font-medium leading-snug text-white drop-shadow-sm">
+                    {item.judul}
+                  </p>
+                </div>
+                {/* Hover ring accent */}
+                <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/0 transition-colors group-hover:ring-white/20" />
+              </div>
+            </button>
           ))}
         </div>
+
+        {/* Nav arrows — desktop, overlay on track */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => scrollBy('left')}
+          disabled={!canScrollLeft}
+          className="absolute left-2 top-1/2 z-20 hidden size-10 -translate-y-1/2 rounded-full border-stone-200 bg-white/90 shadow-elevated-3 backdrop-blur hover:bg-white disabled:pointer-events-none disabled:opacity-0 md:grid"
+          aria-label="Geser ke kiri"
+        >
+          <ChevronLeft className="size-5" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => scrollBy('right')}
+          disabled={!canScrollRight}
+          className="absolute right-2 top-1/2 z-20 hidden size-10 -translate-y-1/2 rounded-full border-stone-200 bg-white/90 shadow-elevated-3 backdrop-blur hover:bg-white disabled:pointer-events-none disabled:opacity-0 md:grid"
+          aria-label="Geser ke kanan"
+        >
+          <ChevronRight className="size-5" />
+        </Button>
       </div>
 
-      {/* Lightbox — juga 1:1 */}
+      {/* Scroll hint + count */}
+      <div className="mt-4 flex items-center justify-between">
+        <p className="inline-flex items-center gap-1.5 text-xs text-stone-500">
+          <span className="hidden sm:inline">Geser atau gunakan panah untuk melihat lebih banyak</span>
+          <span className="sm:hidden">Geser ke samping untuk melihat lebih banyak</span>
+        </p>
+        <span className="font-mono text-xs tabular-nums text-stone-400">
+          {total} foto
+        </span>
+      </div>
+
+      {/* Lightbox */}
       <AnimatePresence>
         {lightbox !== null && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100] grid place-items-center bg-sage-950/95 p-4 backdrop-blur-sm"
             onClick={() => setLightbox(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Lightbox galeri"
           >
             <motion.div
               initial={{ scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.92, opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="relative w-full max-w-md"
+              className="relative w-full max-w-3xl"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Kontainer 1:1 */}
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '1 / 1' }}>
+              <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-elevated-5 sm:aspect-[16/10]">
                 <GaleriMedia
                   item={galeri[lightbox]}
                   index={lightbox}
-                  className="w-full h-full object-cover"
+                  className="size-full object-cover"
                 />
-                {/* Caption */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-transparent to-transparent px-5 pb-5 pt-10 pointer-events-none">
-                  <p className="text-white font-semibold text-sm md:text-base leading-snug">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6">
+                  <p className="font-display text-lg font-medium text-white text-balance">
                     {galeri[lightbox].judul}
                   </p>
                 </div>
               </div>
 
-              {/* Navigasi lightbox */}
+              {/* Nav arrows */}
               {total > 1 && (
                 <>
                   <button
-                    onClick={() => setLightbox(i => (i !== null ? (i - 1 + total) % total : null))}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition shadow-lg"
+                    onClick={() =>
+                      setLightbox((i) =>
+                        i !== null ? (i - 1 + total) % total : null
+                      )
+                    }
+                    className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 grid size-12 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition-colors hover:bg-white/20"
+                    aria-label="Foto sebelumnya"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="size-5" />
                   </button>
                   <button
-                    onClick={() => setLightbox(i => (i !== null ? (i + 1) % total : null))}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition shadow-lg"
+                    onClick={() =>
+                      setLightbox((i) =>
+                        i !== null ? (i + 1) % total : null
+                      )
+                    }
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 grid size-12 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition-colors hover:bg-white/20"
+                    aria-label="Foto berikutnya"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="size-5" />
                   </button>
                 </>
               )}
 
-              {/* Tombol tutup */}
               <button
                 onClick={() => setLightbox(null)}
-                className="absolute top-3 right-3 bg-white/20 hover:bg-white/30 rounded-full p-1.5 transition"
+                className="absolute -top-12 right-0 grid size-10 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition-colors hover:bg-white/20"
+                aria-label="Tutup"
               >
-                <X className="text-white w-4 h-4" />
+                <X className="size-5" />
               </button>
 
-              {/* Counter */}
-              <p className="text-center text-white/50 text-xs mt-3">
+              <p className="mt-4 text-center font-mono text-sm tabular-nums text-stone-300">
                 {lightbox + 1} / {total}
               </p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+    </Section>
   )
 }

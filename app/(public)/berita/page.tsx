@@ -5,10 +5,23 @@ import type { Metadata } from 'next'
 import { Newspaper, Calendar, User, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDate, stripHtml, truncate } from '@/lib/utils'
 import PageWrapper from '@/components/animations/PageWrapper'
+import PageHeader from '@/components/layout/PageHeader'
+import { Section, SectionHeader } from '@/components/ui/section'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { getBeritaPublik, PUBLIC_PAGE_SIZE } from '@/lib/cache'
 
 export const metadata: Metadata = {
   title: 'Berita & Pengumuman',
+  description:
+    'Berita terkini dan pengumuman resmi dari Pemerintah Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah. Informasi kegiatan desa, program, dan pengumuman penting untuk warga.',
+  alternates: { canonical: '/berita' },
+  openGraph: {
+    title: 'Berita & Pengumuman Desa Sukobubuk',
+    description: 'Kumpulan berita dan pengumuman resmi Desa Sukobubuk.',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://desa-sukobubuk.id'}/berita`,
+  },
+  keywords: ['berita Desa Sukobubuk', 'pengumuman desa', 'Kecamatan Margorejo', 'Pati'],
 }
 
 interface Props {
@@ -25,113 +38,212 @@ export default async function BeritaPage({ searchParams }: Props) {
 
   const buildHref = (p: number) => (p === 1 ? '/berita' : `/berita?page=${p}`)
 
+  const [featured, ...rest] = berita
+
   return (
     <PageWrapper>
-      <div className="pt-24">
-        <div className="bg-gradient-to-br from-primary-900 to-primary-700 text-white py-16">
-          <div className="container-custom">
-            <div className="flex items-center gap-2 text-primary-300 text-sm mb-3">
-              <Newspaper className="w-4 h-4" />
-              Berita & Pengumuman
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold">Berita Terkini</h1>
-            <p className="text-primary-200 mt-2">Informasi dan pengumuman resmi Desa Sukobubuk</p>
-          </div>
-        </div>
+      <PageHeader
+        title="Berita & Pengumuman"
+        subtitle="Informasi dan pengumuman resmi Desa Sukobubuk"
+        breadcrumbs={[{ label: 'Berita' }]}
+        variant="editorial"
+      />
 
-        <div className="container-custom py-16">
-          {berita.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
-              <Newspaper className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p>Belum ada berita tersedia</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {berita.map((item) => (
-                  <Link key={item.id} href={`/berita/${item.slug}`} className="card group hover:-translate-y-1 transition-transform duration-300">
-                    <div className="h-48 bg-gradient-to-br from-primary-700 to-sage-700 relative overflow-hidden">
-                      {item.thumbnail ? (
+      <Section spacing="default">
+        {berita.length === 0 ? (
+          <EmptyState
+            icon={<Newspaper className="size-6" />}
+            title="Belum ada berita"
+            description="Berita akan muncul di sini setelah dipublikasikan oleh admin desa."
+          />
+        ) : (
+          <>
+            {/* Bento: featured + grid */}
+            {featured && (
+              <div className="mb-8 grid grid-cols-1 gap-5 md:mb-12 md:grid-cols-3 md:gap-6">
+                {/* Featured — 2/3 */}
+                <Link
+                  href={`/berita/${featured.slug}`}
+                  className="group block md:col-span-2"
+                >
+                  <article className="surface-elevated flex h-full flex-col overflow-hidden rounded-3xl">
+                    <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-sage-200 to-stone-200">
+                      {featured.thumbnail ? (
                         <Image
-                          src={item.thumbnail}
-                          alt={item.judul}
+                          src={featured.thumbnail}
+                          alt={featured.judul}
                           fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
                           unoptimized
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                          <Newspaper className="w-20 h-20 text-white" />
+                        <div className="grid size-full place-items-center">
+                          <Newspaper className="size-20 text-stone-400" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     </div>
-                    <div className="p-5">
-                      <div className="flex items-center gap-4 text-xs text-gray-400 mb-3">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(item.created_at)}
+                    <div className="flex flex-1 flex-col gap-3 p-6 md:p-8">
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-stone-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Calendar className="size-3.5" />
+                          {formatDate(featured.created_at)}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {item.author.name}
+                        <span className="inline-flex items-center gap-1.5">
+                          <User className="size-3.5" />
+                          {featured.author.name}
                         </span>
                       </div>
-                      <h3 className="font-display font-bold text-gray-900 group-hover:text-primary-700 transition-colors leading-snug">
-                        {item.judul}
+                      <h3 className="font-display text-2xl font-medium leading-tight text-stone-800 group-hover:text-sage-700 transition-colors text-balance md:text-3xl">
+                        {featured.judul}
                       </h3>
-                      <p className="text-sm text-gray-600 mt-2 line-clamp-3">
-                        {truncate(stripHtml(item.konten), 150)}
+                      <p className="line-clamp-3 text-sm leading-relaxed text-stone-600 md:text-base">
+                        {truncate(stripHtml(featured.konten), 180)}
                       </p>
-                      <div className="mt-4 flex items-center gap-2 text-primary-600 font-semibold text-sm group-hover:gap-3 transition-all">
-                        Baca Selengkapnya <ArrowRight className="w-4 h-4" />
-                      </div>
+                      <span className="mt-auto inline-flex items-center gap-1.5 pt-2 text-sm font-medium text-sage-700 transition-all group-hover:gap-2.5">
+                        Baca selengkapnya
+                        <ArrowRight className="size-4" />
+                      </span>
                     </div>
+                  </article>
+                </Link>
+
+                {/* Sidebar recent — 1/3 */}
+                <aside className="flex flex-col gap-3">
+                  <p className="section-eyebrow text-stone-500 mb-2">
+                    Terbaru
+                  </p>
+                  {rest.slice(0, 4).map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/berita/${item.slug}`}
+                      className="group flex gap-3 rounded-2xl p-3 transition-colors hover:bg-white hover:shadow-elevated-2"
+                    >
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-sage-100 to-stone-100">
+                        {item.thumbnail ? (
+                          <Image
+                            src={item.thumbnail}
+                            alt={item.judul}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="grid size-full place-items-center">
+                            <Newspaper className="size-5 text-stone-300" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-sm font-medium leading-snug text-stone-800 group-hover:text-sage-700 transition-colors">
+                          {item.judul}
+                        </p>
+                        <p className="mt-1 text-xs text-stone-500 inline-flex items-center gap-1">
+                          <Calendar className="size-3" />
+                          {formatDate(item.created_at)}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </aside>
+              </div>
+            )}
+
+            {/* Grid of remaining */}
+            {rest.length > 4 && (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+                {rest.slice(4).map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/berita/${item.slug}`}
+                    className="group block"
+                  >
+                    <article className="surface-elevated flex h-full flex-col overflow-hidden rounded-2xl">
+                      <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-sage-100 to-stone-100">
+                        {item.thumbnail ? (
+                          <Image
+                            src={item.thumbnail}
+                            alt={item.judul}
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="grid size-full place-items-center">
+                            <Newspaper className="size-10 text-stone-300" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-1 flex-col p-5">
+                        <div className="mb-2 flex items-center gap-3 text-xs text-stone-500">
+                          <span className="inline-flex items-center gap-1">
+                            <Calendar className="size-3" />
+                            {formatDate(item.created_at)}
+                          </span>
+                          <span className="inline-flex items-center gap-1 truncate">
+                            <User className="size-3" />
+                            {item.author.name}
+                          </span>
+                        </div>
+                        <h3 className="font-display text-base font-medium leading-snug text-stone-800 group-hover:text-sage-700 transition-colors line-clamp-2">
+                          {item.judul}
+                        </h3>
+                        <p className="mt-2 line-clamp-2 text-sm text-stone-600">
+                          {truncate(stripHtml(item.konten), 110)}
+                        </p>
+                        <span className="mt-auto inline-flex items-center gap-1 pt-3 text-xs font-medium text-sage-700 transition-all group-hover:gap-1.5">
+                          Baca
+                          <ArrowRight className="size-3" />
+                        </span>
+                      </div>
+                    </article>
                   </Link>
                 ))}
               </div>
+            )}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-12 pt-6 border-t border-gray-100">
-                  <p className="text-sm text-gray-500">
-                    Menampilkan{' '}
-                    <span className="font-semibold text-gray-900">
-                      {(page - 1) * PUBLIC_PAGE_SIZE + 1}–{Math.min(page * PUBLIC_PAGE_SIZE, total)}
-                    </span>{' '}
-                    dari <span className="font-semibold text-gray-900">{total}</span> berita
-                  </p>
-                  <div className="flex items-center gap-1">
-                    {page > 1 && (
-                      <Link href={buildHref(page - 1)} className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 hover:bg-gray-50 transition-colors">
-                        <ChevronLeft className="w-4 h-4 text-gray-600" />
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-stone-200 pt-6 sm:flex-row">
+                <p className="text-sm text-stone-500">
+                  Menampilkan{' '}
+                  <span className="font-semibold text-stone-800">
+                    {(page - 1) * PUBLIC_PAGE_SIZE + 1}–
+                    {Math.min(page * PUBLIC_PAGE_SIZE, total)}
+                  </span>{' '}
+                  dari <span className="font-semibold text-stone-800">{total}</span>{' '}
+                  berita
+                </p>
+                <div className="flex items-center gap-1">
+                  {page > 1 && (
+                    <Button asChild variant="outline" size="icon-sm" aria-label="Sebelumnya">
+                      <Link href={buildHref(page - 1)}>
+                        <ChevronLeft className="size-4" />
                       </Link>
-                    )}
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                      <Link
-                        key={p}
-                        href={buildHref(p)}
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${
-                          p === page
-                            ? 'bg-primary-600 text-white'
-                            : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        {p}
+                    </Button>
+                  )}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <Button
+                      key={p}
+                      asChild
+                      variant={p === page ? 'default' : 'outline'}
+                      size="icon-sm"
+                    >
+                      <Link href={buildHref(p)}>{p}</Link>
+                    </Button>
+                  ))}
+                  {page < totalPages && (
+                    <Button asChild variant="outline" size="icon-sm" aria-label="Berikutnya">
+                      <Link href={buildHref(page + 1)}>
+                        <ChevronRight className="size-4" />
                       </Link>
-                    ))}
-                    {page < totalPages && (
-                      <Link href={buildHref(page + 1)} className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 hover:bg-gray-50 transition-colors">
-                        <ChevronRight className="w-4 h-4 text-gray-600" />
-                      </Link>
-                    )}
-                  </div>
+                    </Button>
+                  )}
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+              </div>
+            )}
+          </>
+        )}
+      </Section>
     </PageWrapper>
   )
 }

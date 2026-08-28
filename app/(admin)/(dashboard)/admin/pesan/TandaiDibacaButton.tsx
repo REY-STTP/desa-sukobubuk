@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCheck, Loader2 } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 
 export default function TandaiDibacaButton({ id }: { id: number }) {
   const router = useRouter()
@@ -16,17 +17,24 @@ export default function TandaiDibacaButton({ id }: { id: number }) {
       body: JSON.stringify({ is_read: true }),
     })
     setLoading(false)
+    window.dispatchEvent(new CustomEvent('admin:mutated'))
     router.refresh()
   }
 
   return (
-    <button
+    <Button
       onClick={handleClick}
       disabled={loading}
-      title="Tandai sudah dibaca"
-      className="w-8 h-8 rounded-lg bg-primary-50 hover:bg-primary-100 flex items-center justify-center transition-colors"
+      variant="outline"
+      size="sm"
+      aria-label="Tandai sudah dibaca"
     >
-      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-600" /> : <CheckCheck className="w-3.5 h-3.5 text-primary-600" />}
-    </button>
+      {loading ? (
+        <Loader2 className="size-3.5 animate-spin" data-icon="inline-start" />
+      ) : (
+        <Check className="size-3.5" data-icon="inline-start" />
+      )}
+      Tandai Dibaca
+    </Button>
   )
 }

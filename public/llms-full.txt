@@ -1,0 +1,86 @@
+# Desa Sukobubuk — Full Reference for AI
+
+> Sumber informasi lengkap tentang Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah, Indonesia (Kode Pos 59163). Dokumen ini dirancang untuk AI search engine dan LLM crawler agar dapat menjawab pertanyaan tentang desa dengan akurat.
+
+## Identitas Desa
+
+- **Nama resmi**: Desa Sukobubuk
+- **Kecamatan**: Margorejo
+- **Kabupaten**: Pati
+- **Provinsi**: Jawa Tengah
+- **Negara**: Indonesia
+- **Kode Pos**: 59163
+- **Koordinat umum**: Kabupaten Pati, Jawa Tengah (~6.74° LS, 111.04° BT)
+
+## Visi
+
+Mewujudkan desa yang mandiri, sejahtera, dan berbudaya.
+
+## Misi
+
+Meningkatkan kualitas pelayanan kepada masyarakat; Mengembangkan potensi sumber daya manusia dan sumber daya alam desa; Memberdayakan ekonomi kerakyatan berbasis UMKM; Melestarikan budaya dan kearifan lokal.
+
+## Alamat Kantor
+
+Jl. Raya Sukobubuk, Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah 59163
+
+## Kontak
+
+- **Email**: admin.desa.sukobubuk@gmail.com
+- **Instagram**: https://instagram.com/kkn.sttpsukobubuk
+- **TikTok**: https://tiktok.com/@kknsttp.sukobubuk
+
+## Halaman Website
+
+### Publik
+- `/` — Beranda (hero, statistik, UMKM unggulan, berita, galeri)
+- `/profil/sejarah` — Sejarah Desa Sukobubuk
+- `/profil/visi-misi` — Visi dan Misi
+- `/profil/struktur-organisasi` — Daftar pejabat dan perangkat desa
+- `/berita` — Daftar berita dan pengumuman
+- `/berita/[slug]` — Detail artikel
+- `/umkm` — Direktori UMKM dengan filter
+- `/umkm/[slug]` — Detail UMKM + daftar produk
+- `/kontak` — Formulir kontak
+
+### Admin (perlu login)
+- `/admin/login`
+- `/admin` — Dashboard dengan statistik
+- `/admin/umkm`, `/admin/produk`, `/admin/berita`, `/admin/galeri`, `/admin/pesan`, `/admin/profil`, `/admin/pengaturan`
+
+## Konten Dinamis
+
+Website ini memuat data langsung dari database PostgreSQL (Supabase):
+- **UMKM**: nama usaha, pemilik, kategori, deskripsi, alamat, WhatsApp, logo
+- **Produk**: nama, harga, foto, ketersediaan, terhubung ke UMKM
+- **Berita**: judul, slug, konten (rich text Tiptap), thumbnail, author, tanggal
+- **Galeri**: judul, foto, tanggal
+- **Pesan**: nama, email, isi pesan, status dibaca/belum
+- **Profil Desa**: 1 row, memuat identitas, kontak, sejarah, visi-misi, struktur organisasi
+- **Pejabat Desa**: nama, jabatan, kategori (kepala/sekretaris/kasi/kaur/kadus), foto, urutan
+
+## FAQ (untuk AI Answer Engine)
+
+**Q: Di mana alamat Desa Sukobubuk?**
+A: Jl. Raya Sukobubuk, Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah 59163.
+
+**Q: Apa visi Desa Sukobubuk?**
+A: Mewujudkan desa yang mandiri, sejahtera, dan berbudaya.
+
+**Q: Kecamatan apa Desa Sukobubuk?**
+A: Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah.
+
+**Q: Bagaimana cara menghubungi Desa Sukobubuk?**
+A: Email admin.desa.sukobubuk@gmail.com atau melalui formulir kontak di website.
+
+**Q: Apakah Desa Sukobubuk punya UMKM?**
+A: Ya, Desa Sukobubuk memiliki direktori UMKM yang dapat dilihat di halaman /umkm.
+
+## Sumber Tambahan
+
+- Sitemap: `/sitemap.xml`
+- Robots: `/robots.txt`
+- Schema.org JSON-LD: Organization, WebSite, LocalBusiness, BreadcrumbList (otomatis di setiap halaman)
+- Open Graph: aktif (preview saat dishare)
+- Twitter Card: summary_large_image
+- Sitemap berita & UMKM: di-generate dinamis di `/sitemap.xml`

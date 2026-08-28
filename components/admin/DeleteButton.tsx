@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   id: number
@@ -19,9 +20,10 @@ export default function DeleteButton({ id, type, nama }: Props) {
     setLoading(true)
     try {
       await fetch(`/api/admin/${type}/${id}`, { method: 'DELETE' })
+      window.dispatchEvent(new CustomEvent('admin:mutated'))
       router.refresh()
-    } catch (e) {
-      alert('Gagal menghapus data')
+    } catch {
+      // handled via refresh
     } finally {
       setLoading(false)
       setShowConfirm(false)
@@ -30,40 +32,38 @@ export default function DeleteButton({ id, type, nama }: Props) {
 
   return (
     <>
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={() => setShowConfirm(true)}
-        className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
+        aria-label={`Hapus ${nama}`}
+        className="text-stone-400 hover:bg-ember-50 hover:text-ember-600"
       >
-        <Trash2 className="w-3.5 h-3.5 text-red-600" />
-      </button>
+        <Trash2 className="size-3.5" />
+      </Button>
 
-      {/* Confirm modal */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full animate-slide-up">
-            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-sage-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-elevated-5">
+            <div className="mx-auto mb-4 grid size-12 place-items-center rounded-xl bg-ember-100 text-ember-600">
+              <AlertTriangle className="size-6" />
             </div>
-            <h3 className="font-display font-bold text-lg text-gray-900 text-center mb-2">Hapus Data?</h3>
-            <p className="text-sm text-gray-500 text-center mb-6">
-              Anda akan menghapus <span className="font-semibold text-gray-900">"{nama}"</span>.
-              Tindakan ini tidak dapat dibatalkan.
+            <h3 className="text-center font-display text-lg font-medium text-stone-800">Hapus Data?</h3>
+            <p className="mt-2 text-center text-sm text-stone-500">
+              Anda akan menghapus <span className="font-semibold text-stone-800">&ldquo;{nama}&rdquo;</span>. Tindakan ini tidak dapat dibatalkan.
             </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
-              >
+            <div className="mt-6 flex gap-3">
+              <Button variant="outline" onClick={() => setShowConfirm(false)} className="flex-1">
                 Batal
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={loading}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={loading} className="flex-1">
+                {loading ? (
+                  <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
+                ) : (
+                  <Trash2 className="size-4" data-icon="inline-start" />
+                )}
                 Hapus
-              </button>
+              </Button>
             </div>
           </div>
         </div>

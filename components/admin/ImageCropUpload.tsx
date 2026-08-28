@@ -194,23 +194,23 @@ function CropModal({ src, aspect, onConfirm, onCancel }: CropModalProps) {
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
           <div>
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Crop className="w-4 h-4 text-primary-500" />
+            <h3 className="font-semibold text-stone-800 flex items-center gap-2">
+              <Crop className="size-4 text-primary-500" />
               Crop &amp; Resize Gambar
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-stone-500 mt-0.5">
               Output: {sizeLabel} · Format WebP
             </p>
           </div>
-          <button onClick={onCancel} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-            <X className="w-4 h-4 text-gray-500" />
+          <button onClick={onCancel} className="p-1.5 hover:bg-stone-100 rounded-lg transition-colors">
+            <X className="size-4 text-stone-500" />
           </button>
         </div>
 
         {/* Canvas area */}
-        <div className="relative bg-gray-900 select-none overflow-hidden" style={{ height: 360 }}>
+        <div className="relative bg-sage-900 select-none overflow-hidden" style={{ height: 360 }}>
           <div
             ref={containerRef}
             className="absolute inset-0 flex items-center justify-center"
@@ -258,11 +258,11 @@ function CropModal({ src, aspect, onConfirm, onCancel }: CropModalProps) {
                   'top-0 right-0 translate-x-1/2 -translate-y-1/2',
                   'bottom-0 left-0 -translate-x-1/2 translate-y-1/2',
                 ].map((cls, i) => (
-                  <div key={i} className={`absolute w-3 h-3 bg-white border-2 border-gray-500 rounded-sm pointer-events-none ${cls}`} />
+                  <div key={i} className={`absolute size-3 bg-white border-2 border-stone-400 rounded-sm pointer-events-none ${cls}`} />
                 ))}
                 {/* Resize handle (bottom-right) */}
                 <div
-                  className="absolute bottom-0 right-0 w-4 h-4 bg-white border-2 border-gray-500 rounded-sm cursor-se-resize translate-x-1/2 translate-y-1/2"
+                  className="absolute bottom-0 right-0 size-4 bg-white border-2 border-stone-400 rounded-sm cursor-se-resize translate-x-1/2 translate-y-1/2"
                   onMouseDown={e => { e.stopPropagation(); handleMouseDown(e, 'resize') }}
                 />
               </div>
@@ -271,45 +271,45 @@ function CropModal({ src, aspect, onConfirm, onCancel }: CropModalProps) {
 
           {!isLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-white" />
+              <Loader2 className="size-8 animate-spin text-white" />
             </div>
           )}
         </div>
 
         {/* Zoom controls */}
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-100 bg-gray-50">
-          <span className="text-xs text-gray-500 mr-1">Zoom:</span>
-          <button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))} className="p-1 hover:bg-gray-200 rounded">
-            <ZoomOut className="w-4 h-4 text-gray-600" />
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-stone-200 bg-stone-50">
+          <span className="text-xs text-stone-500 mr-1">Zoom:</span>
+          <button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))} className="p-1 hover:bg-stone-200 rounded">
+            <ZoomOut className="size-4 text-stone-600" />
           </button>
           <input
             type="range" min={0.5} max={3} step={0.05} value={zoom}
             onChange={e => setZoom(Number(e.target.value))}
             className="w-28 accent-green-500"
           />
-          <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="p-1 hover:bg-gray-200 rounded">
-            <ZoomIn className="w-4 h-4 text-gray-600" />
+          <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="p-1 hover:bg-stone-200 rounded">
+            <ZoomIn className="size-4 text-stone-600" />
           </button>
-          <span className="text-xs text-gray-400 ml-1">{Math.round(zoom * 100)}%</span>
+          <span className="text-xs text-stone-400 ml-1">{Math.round(zoom * 100)}%</span>
         </div>
 
         {/* Footer actions */}
         <div className="flex items-center justify-between px-5 py-4">
           <button
             onClick={handleReset}
-            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-stone-600 hover:text-stone-800 transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             Reset Crop
           </button>
           <div className="flex items-center gap-2">
-            <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <button onClick={onCancel} className="px-4 py-2 text-sm text-stone-600 hover:bg-stone-100 rounded-lg transition-colors">
               Batal
             </button>
             <button
               onClick={handleConfirm}
               disabled={!isLoaded || processing}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-sage-500 hover:bg-sage-700 text-white rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {processing
                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Memproses...</>
@@ -394,29 +394,29 @@ export default function ImageCropUpload({
       )}
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+        <label className="block text-sm font-semibold text-stone-700 mb-1.5">
           {label}
-          <span className="ml-1.5 text-xs font-normal text-gray-400">({sizeLabel})</span>
+          <span className="ml-1.5 text-xs font-normal text-stone-400">({sizeLabel})</span>
         </label>
 
         {value ? (
           <div className="relative group">
-            <div className={`relative w-full ${aspectClass} rounded-xl overflow-hidden bg-gray-100 border border-gray-200`}>
+            <div className={`relative w-full ${aspectClass} rounded-xl overflow-hidden bg-stone-100 border border-stone-200`}>
               <Image src={value} alt={label} fill className="object-cover" unoptimized />
             </div>
             <button
               type="button"
               onClick={() => onChange(null)}
-              className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+              className="absolute top-2 right-2 size-8 bg-red-500 hover:bg-red-600 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
             >
-              <X className="w-4 h-4 text-white" />
+              <X className="size-4 text-white" />
             </button>
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
               className="absolute bottom-2 right-2 flex items-center gap-1.5 text-xs bg-black/60 hover:bg-black/80 text-white px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <Crop className="w-3 h-3" /> Ganti &amp; Crop
+              <Crop className="size-3" /> Ganti &amp; Crop
             </button>
           </div>
         ) : (
@@ -426,20 +426,20 @@ export default function ImageCropUpload({
             onDragLeave={() => setIsDragging(false)}
             onDrop={e => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
             className={`w-full ${aspectClass} border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors
-              ${isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-400 hover:bg-gray-50'}
+              ${isDragging ? 'border-primary-500 bg-primary-50' : 'border-stone-200 hover:border-primary-400 hover:bg-stone-50'}
               ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {loading
-              ? <Loader2 className="w-8 h-8 animate-spin text-primary-500 mb-2" />
-              : <ImageIcon className="w-8 h-8 text-gray-300 mb-2" />
+              ? <Loader2 className="size-8 animate-spin text-primary-500 mb-2" />
+              : <ImageIcon className="size-8 text-stone-400 mb-2" />
             }
-            <p className="text-sm font-medium text-gray-600">
+            <p className="text-sm font-medium text-stone-600">
               {loading ? 'Mengupload...' : 'Klik atau drag & drop'}
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, WEBP — Maks. 10MB</p>
+            <p className="text-xs text-stone-400 mt-0.5">JPG, PNG, WEBP — Maks. 10MB</p>
             {!loading && (
               <span className="mt-2 flex items-center gap-1 text-xs text-primary-500 font-medium">
-                <Crop className="w-3 h-3" /> Akan dibuka editor crop
+                <Crop className="size-3" /> Akan dibuka editor crop
               </span>
             )}
           </div>

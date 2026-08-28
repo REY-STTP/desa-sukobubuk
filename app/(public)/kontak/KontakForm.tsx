@@ -1,125 +1,268 @@
 'use client'
 
-import { useState } from 'react'
-import { Send, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { Send, CheckCircle, AlertCircle, Loader2, Mail, User, MessageSquare } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 
 type Status = 'idle' | 'loading' | 'success' | 'error'
+
+interface FormErrors {
+  nama?: string
+  email?: string
+  isi_pesan?: string
+}
 
 export default function KontakForm() {
   const [form, setForm] = useState({ nama: '', email: '', isi_pesan: '' })
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [errors, setErrors] = useState<FormErrors>({})
+  const [isPending, startTransition] = useTransition()
 
-  const handleSubmit = async () => {
-    if (!form.nama || !form.email || !form.isi_pesan) {
-      setErrorMsg('Semua field wajib diisi')
+  function validate(): FormErrors {
+    const e: FormErrors = {}
+    if (!form.nama.trim()) e.nama = 'Nama wajib diisi'
+    else if (form.nama.trim().length < 2) e.nama = 'Nama minimal 2 karakter'
+
+    if (!form.email.trim()) e.email = 'Email wajib diisi'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      e.email = 'Format email tidak valid'
+
+    if (!form.isi_pesan.trim()) e.isi_pesan = 'Pesan wajib diisi'
+    else if (form.isi_pesan.trim().length < 10)
+      e.isi_pesan = 'Pesan minimal 10 karakter'
+
+    return e
+  }
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+
+    const v = validate()
+    setErrors(v)
+    if (Object.keys(v).length > 0) {
       setStatus('error')
+      setErrorMsg('Periksa kembali isian Anda')
       return
     }
 
     setStatus('loading')
     setErrorMsg('')
 
-    try {
-      const res = await fetch('/api/pesan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+    startTransition(async () => {
+      try {
+        const res = await fetch('/api/pesan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        })
+
+        if (!res.ok) throw new Error('Gagal mengirim pesan')
+
+        setStatus('success')
+        setForm({ nama: '', email: '', isi_pesan: '' })
+        setErrors({})
+      } catch {
+        setStatus('error')
+        setErrorMsg('Gagal mengirim pesan. Silakan coba lagi.')
+      }
+    })
+  }
+
+  const handleChange = (field: keyof typeof form, value: string) => {
+    setForm((f) => ({ ...f, [field]: value }))
+    // Clear field error when user types
+    if (errors[field]) {
+      setErrors((e) => {
+        const next = { ...e }
+        delete next[field]
+        return next
       })
-
-      if (!res.ok) throw new Error('Gagal mengirim pesan')
-
-      setStatus('success')
-      setForm({ nama: '', email: '', isi_pesan: '' })
-    } catch {
-      setStatus('error')
-      setErrorMsg('Gagal mengirim pesan. Silakan coba lagi.')
     }
   }
 
   return (
-    <div className="card p-8">
-      <h2 className="font-display text-2xl font-bold text-gray-900 mb-2">Kirim Pesan</h2>
-      <p className="text-gray-500 text-sm mb-8">Isi form berikut dan kami akan merespons sesegera mungkin.</p>
+    <form
+      onSubmit={handleSubmit}
+      className="surface-elevated p-6 md:p-8"
+      noValidate
+    >
+      <div className="mb-6">
+        <h2 className="font-display text-2xl font-medium text-stone-800 mb-1.5">
+          Kirim Pesan
+        </h2>
+        <p className="text-sm text-stone-500">
+          Isi form berikut dan kami akan merespons sesegera mungkin.
+        </p>
+      </div>
 
+      {/* Status alerts */}
       {status === 'success' && (
-        <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+        <div
+          role="status"
+          className="mb-6 flex items-start gap-3 rounded-2xl border border-sage-200 bg-sage-50 p-4 animate-in fade-in slide-in-from-top-2"
+        >
+          <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-sage-600 text-white">
+            <CheckCircle className="size-4" />
+          </div>
           <div>
-            <p className="font-semibold text-green-800">Pesan berhasil dikirim!</p>
-            <p className="text-sm text-green-600">Kami akan segera merespons pesan Anda.</p>
+            <p className="font-semibold text-sage-800">Pesan berhasil dikirim</p>
+            <p className="mt-0.5 text-sm text-sage-700">
+              Kami akan segera merespons pesan Anda lewat email.
+            </p>
           </div>
         </div>
       )}
 
       {status === 'error' && errorMsg && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <p className="text-sm text-red-700">{errorMsg}</p>
+        <div
+          role="alert"
+          className="mb-6 flex items-start gap-3 rounded-2xl border border-stone-300 bg-stone-100 p-4"
+        >
+          <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-stone-700 text-white">
+            <AlertCircle className="size-4" />
+          </div>
+          <div>
+            <p className="font-semibold text-stone-800">{errorMsg}</p>
+            {Object.keys(errors).length > 0 && (
+              <p className="mt-0.5 text-sm text-stone-600">
+                Periksa field yang ditandai di bawah.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
-      <div className="space-y-5">
+      <div className="flex flex-col gap-4">
+        {/* Nama */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Nama Lengkap <span className="text-red-500">*</span>
+          <label
+            htmlFor="nama"
+            className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-stone-700"
+          >
+            <User className="size-3.5 text-stone-400" />
+            Nama Lengkap
+            <span className="text-ember-600">*</span>
           </label>
-          <input
+          <Input
+            id="nama"
             type="text"
             placeholder="Masukkan nama lengkap Anda"
             value={form.nama}
-            onChange={(e) => setForm({ ...form, nama: e.target.value })}
-            className="input-field"
+            onChange={(e) => handleChange('nama', e.target.value)}
             disabled={status === 'loading'}
+            aria-invalid={!!errors.nama}
+            aria-describedby={errors.nama ? 'nama-error' : undefined}
+            className={cn(
+              errors.nama &&
+                'border-stone-400 ring-1 ring-stone-300 focus-visible:ring-stone-400/40'
+            )}
           />
+          {errors.nama && (
+            <p id="nama-error" className="mt-1 text-xs text-stone-600">
+              {errors.nama}
+            </p>
+          )}
         </div>
 
+        {/* Email */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Email <span className="text-red-500">*</span>
+          <label
+            htmlFor="email"
+            className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-stone-700"
+          >
+            <Mail className="size-3.5 text-stone-400" />
+            Email
+            <span className="text-ember-600">*</span>
           </label>
-          <input
+          <Input
+            id="email"
             type="email"
             placeholder="nama@email.com"
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="input-field"
+            onChange={(e) => handleChange('email', e.target.value)}
             disabled={status === 'loading'}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            className={cn(
+              errors.email &&
+                'border-stone-400 ring-1 ring-stone-300 focus-visible:ring-stone-400/40'
+            )}
           />
+          {errors.email && (
+            <p id="email-error" className="mt-1 text-xs text-stone-600">
+              {errors.email}
+            </p>
+          )}
         </div>
 
+        {/* Pesan */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Pesan <span className="text-red-500">*</span>
+          <label
+            htmlFor="isi_pesan"
+            className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-stone-700"
+          >
+            <MessageSquare className="size-3.5 text-stone-400" />
+            Pesan
+            <span className="text-ember-600">*</span>
           </label>
-          <textarea
+          <Textarea
+            id="isi_pesan"
             placeholder="Tulis pesan, pertanyaan, atau masukan Anda..."
             value={form.isi_pesan}
-            onChange={(e) => setForm({ ...form, isi_pesan: e.target.value })}
+            onChange={(e) => handleChange('isi_pesan', e.target.value)}
             rows={6}
-            className="input-field resize-none"
             disabled={status === 'loading'}
+            aria-invalid={!!errors.isi_pesan}
+            aria-describedby={
+              errors.isi_pesan ? 'isi_pesan-error' : undefined
+            }
+            className={cn(
+              'resize-none',
+              errors.isi_pesan &&
+                'border-stone-400 ring-1 ring-stone-300 focus-visible:ring-stone-400/40'
+            )}
           />
+          {errors.isi_pesan && (
+            <p
+              id="isi_pesan-error"
+              className="mt-1 text-xs text-stone-600"
+            >
+              {errors.isi_pesan}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-stone-400">
+            {form.isi_pesan.length} karakter
+          </p>
         </div>
 
-        <button
-          onClick={handleSubmit}
+        <Button
+          type="submit"
+          size="lg"
           disabled={status === 'loading'}
-          className="btn-primary w-full justify-center py-4 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full"
         >
           {status === 'loading' ? (
             <>
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
               Mengirim...
             </>
           ) : (
             <>
-              <Send className="w-4 h-4" />
+              <Send className="size-4" data-icon="inline-start" />
               Kirim Pesan
             </>
           )}
-        </button>
+        </Button>
+
+        <p className="text-xs text-stone-400 text-center">
+          Dengan mengirim pesan, Anda setuju data Anda diproses untuk
+          keperluan komunikasi desa.
+        </p>
       </div>
-    </div>
+    </form>
   )
 }

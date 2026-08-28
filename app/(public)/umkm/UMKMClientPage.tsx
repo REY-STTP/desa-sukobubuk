@@ -2,10 +2,16 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState } from 'react'
-import { Store, Search, Filter, MapPin, ArrowRight, Package, Star, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Store, Search, Filter, MapPin, ArrowRight, Package, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Tag } from '@/components/ui/tag'
 import PageWrapper from '@/components/animations/PageWrapper'
+import PageHeader from '@/components/layout/PageHeader'
+import { Section } from '@/components/ui/section'
+import { EmptyState } from '@/components/ui/empty-state'
 import { PUBLIC_PAGE_SIZE } from '@/lib/cache'
 
 interface UMKM {
@@ -31,187 +37,265 @@ interface Props {
   totalPages: number
 }
 
-const kategoriColors: Record<string, string> = {
-  'Makanan': 'bg-amber-100 text-amber-700',
-  'Kerajinan': 'bg-purple-100 text-purple-700',
-  'Jasa': 'bg-blue-100 text-blue-700',
-  'Pertanian': 'bg-primary-100 text-primary-700',
+const kategoriToneMap: Record<string, 'ember' | 'stone' | 'sage' | 'muted'> = {
+  Makanan: 'ember',
+  Kerajinan: 'stone',
+  Jasa: 'sage',
+  Pertanian: 'sage',
 }
 
 export default function UMKMClientPage({ umkm, kategoriList, page, total, totalPages }: Props) {
   const [search, setSearch] = useState('')
   const [kategori, setKategori] = useState('Semua')
 
-  // Filter hanya berlaku untuk data di halaman saat ini
-  const filtered = umkm.filter((item) => {
-    const matchSearch =
-      item.nama_usaha.toLowerCase().includes(search.toLowerCase()) ||
-      item.pemilik.toLowerCase().includes(search.toLowerCase()) ||
-      item.deskripsi.toLowerCase().includes(search.toLowerCase())
-    const matchKategori = kategori === 'Semua' || item.kategori === kategori
-    return matchSearch && matchKategori
-  })
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim()
+    return umkm.filter((item) => {
+      const matchSearch =
+        !q ||
+        item.nama_usaha.toLowerCase().includes(q) ||
+        item.pemilik.toLowerCase().includes(q) ||
+        item.deskripsi.toLowerCase().includes(q)
+      const matchKategori = kategori === 'Semua' || item.kategori === kategori
+      return matchSearch && matchKategori
+    })
+  }, [umkm, search, kategori])
 
   const buildHref = (p: number) => (p === 1 ? '/umkm' : `/umkm?page=${p}`)
 
+  // Featured = first item with is_featured, atau first item
+  const featured = filtered.find((u) => u.is_featured) ?? filtered[0]
+  const others = filtered.filter((u) => u.id !== featured?.id)
+
   return (
     <PageWrapper>
-      <div className="pt-24">
-        <div className="bg-gradient-to-br from-primary-900 to-primary-700 text-white py-16">
-          <div className="container-custom">
-            <div className="flex items-center gap-2 text-primary-300 text-sm mb-3">
-              <Store className="w-4 h-4" />
-              Direktori UMKM
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold">UMKM Desa Sukobubuk</h1>
-            <p className="text-primary-200 mt-2">Temukan produk dan layanan terbaik dari pengusaha lokal kami</p>
+      <PageHeader
+        title="UMKM Desa Sukobubuk"
+        subtitle="Temukan produk dan layanan terbaik dari pengusaha lokal kami"
+        breadcrumbs={[{ label: 'UMKM' }]}
+        variant="light"
+      />
+
+      <Section spacing="default">
+        {/* Search & Filter */}
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
+            <Input
+              type="text"
+              placeholder="Cari nama usaha, pemilik, atau produk..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-11 pl-11"
+            />
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <Filter className="size-4 shrink-0 text-stone-400" />
+            {['Semua', ...kategoriList].map((k) => (
+              <Button
+                key={k}
+                size="sm"
+                variant={kategori === k ? 'default' : 'outline'}
+                onClick={() => setKategori(k)}
+                className="shrink-0"
+              >
+                {k}
+              </Button>
+            ))}
           </div>
         </div>
 
-        <div className="container-custom py-12">
-          {/* Search & Filter */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari nama usaha, pemilik, atau produk..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input-field pl-11"
-              />
-            </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              {['Semua', ...kategoriList].map((k) => (
-                <button
-                  key={k}
-                  onClick={() => setKategori(k)}
-                  className={cn(
-                    'flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200',
-                    kategori === k
-                      ? 'bg-primary-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  )}
+        {/* Result count */}
+        <p className="mb-8 text-sm text-stone-500">
+          Menampilkan <span className="font-semibold text-stone-800">{filtered.length}</span> UMKM
+          {kategori !== 'Semua' && (
+            <span>
+              {' '}
+              dalam kategori <span className="font-semibold text-sage-700">{kategori}</span>
+            </span>
+          )}
+          {search && (
+            <span>
+              {' '}
+              untuk &quot;<span className="font-semibold">{search}</span>&quot;
+            </span>
+          )}
+        </p>
+
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={<Store className="size-6" />}
+            title="UMKM tidak ditemukan"
+            description="Coba ubah kata kunci pencarian atau pilih kategori lain."
+          />
+        ) : (
+          <>
+            {/* Featured (hanya jika tidak ada filter aktif dan featured ada di list) */}
+            {featured && !search && kategori === 'Semua' && (
+              <div className="mb-8 md:mb-12">
+                <Link
+                  href={`/umkm/${featured.slug}`}
+                  className="group block"
                 >
-                  {k}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-sm text-gray-500 mb-6">
-            Menampilkan <span className="font-semibold text-gray-900">{filtered.length}</span> UMKM
-            {kategori !== 'Semua' && (
-              <span> dalam kategori <span className="font-semibold text-primary-700">{kategori}</span></span>
-            )}
-            {search && (
-              <span> untuk pencarian &quot;<span className="font-semibold">{search}</span>&quot;</span>
-            )}
-          </p>
-
-          {filtered.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
-              <Store className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg">Tidak ada UMKM ditemukan</p>
-              <p className="text-sm mt-2">Coba ubah filter atau kata kunci pencarian</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((item) => (
-                <Link key={item.id} href={`/umkm/${item.slug}`} className="card group hover:-translate-y-1 transition-transform duration-300">
-                  <div className="aspect-square bg-gradient-to-br from-primary-100 to-sage-100 relative overflow-hidden">
-                    {item.logo ? (
-                      <Image
-                        src={item.logo}
-                        alt={item.nama_usaha}
-                        fill
-                        className="object-contain p-4"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Store className="w-16 h-16 text-primary-300" />
-                      </div>
-                    )}
-                    <div className="absolute top-3 left-3 flex gap-2">
-                      <span className={`badge ${kategoriColors[item.kategori] || 'bg-gray-100 text-gray-600'}`}>
-                        {item.kategori}
-                      </span>
-                      {item.is_featured && (
-                        <span className="badge bg-yellow-400 text-yellow-900 flex items-center gap-1">
-                          <Star className="w-3 h-3" /> Unggulan
-                        </span>
+                  <article className="surface-elevated grid grid-cols-1 overflow-hidden rounded-3xl md:grid-cols-5 md:items-stretch">
+                    <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-sage-100 to-stone-100 md:col-span-2">
+                      {featured.logo ? (
+                        <Image
+                          src={featured.logo}
+                          alt={featured.nama_usaha}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="grid size-full place-items-center">
+                          <Store className="size-20 text-sage-300" />
+                        </div>
                       )}
                     </div>
-                  </div>
-
-                  <div className="p-5">
-                    <h3 className="font-display font-bold text-lg text-gray-900 group-hover:text-primary-700 transition-colors">
-                      {item.nama_usaha}
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">Pemilik: {item.pemilik}</p>
-                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">{item.deskripsi}</p>
-
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <Package className="w-3 h-3" />
-                        {item._count.produk} Produk
+                    <div className="flex flex-col gap-3 p-6 md:col-span-3 md:p-8">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Tag tone={kategoriToneMap[featured.kategori] ?? 'sage'}>
+                          {featured.kategori}
+                        </Tag>
+                        {featured.is_featured && (
+                          <Tag tone="ember" className="bg-ember-50 text-ember-700">
+                            <Sparkles className="size-3" />
+                            Unggulan
+                          </Tag>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                        <MapPin className="w-3 h-3" />
-                        <span className="truncate max-w-32">{item.alamat.split(',')[0]}</span>
+                      <h3 className="font-display text-2xl font-medium leading-tight text-stone-800 group-hover:text-sage-700 transition-colors text-balance md:text-3xl">
+                        {featured.nama_usaha}
+                      </h3>
+                      <p className="text-sm text-stone-500">Pemilik: {featured.pemilik}</p>
+                      <p className="line-clamp-3 text-sm leading-relaxed text-stone-600">
+                        {featured.deskripsi}
+                      </p>
+                      <div className="mt-auto flex items-center justify-between gap-3 pt-2">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-stone-500">
+                          <Package className="size-3.5" />
+                          {featured._count.produk} produk
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-sage-700 transition-all group-hover:gap-2.5">
+                          Lihat detail
+                          <ArrowRight className="size-4" />
+                        </span>
                       </div>
                     </div>
+                  </article>
+                </Link>
+              </div>
+            )}
 
-                    <div className="mt-4 flex items-center gap-2 text-primary-600 font-semibold text-sm group-hover:gap-3 transition-all">
-                      Lihat Detail <ArrowRight className="w-4 h-4" />
+            {/* Grid */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+              {(search || kategori !== 'Semua' ? filtered : others).map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/umkm/${item.slug}`}
+                  className="group block"
+                >
+                  <article className="surface-elevated flex h-full flex-col overflow-hidden rounded-2xl">
+                    <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-sage-50 to-stone-100">
+                      {item.logo ? (
+                        <Image
+                          src={item.logo}
+                          alt={item.nama_usaha}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="grid size-full place-items-center">
+                          <Store className="size-12 text-sage-300" />
+                        </div>
+                      )}
+                      <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+                        <Tag tone={kategoriToneMap[item.kategori] ?? 'sage'} size="sm">
+                          {item.kategori}
+                        </Tag>
+                        {item.is_featured && (
+                          <Tag tone="ember" size="sm" className="bg-ember-50 text-ember-700">
+                            <Sparkles className="size-3" />
+                            Unggulan
+                          </Tag>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                    <div className="flex flex-1 flex-col p-5">
+                      <h3 className="font-display text-lg font-medium leading-snug text-stone-800 group-hover:text-sage-700 transition-colors line-clamp-2">
+                        {item.nama_usaha}
+                      </h3>
+                      <p className="mt-0.5 text-xs text-stone-500 line-clamp-1">
+                        {item.pemilik}
+                      </p>
+                      <p className="mt-2 line-clamp-2 text-sm text-stone-600">
+                        {item.deskripsi}
+                      </p>
+                      <div className="mt-auto flex items-center justify-between gap-2 border-t border-stone-100 pt-3 text-xs text-stone-500">
+                        <span className="inline-flex items-center gap-1">
+                          <Package className="size-3" />
+                          {item._count.produk}
+                        </span>
+                        <span className="inline-flex items-center gap-1 truncate">
+                          <MapPin className="size-3" />
+                          {item.alamat.split(',')[0]}
+                        </span>
+                      </div>
+                      <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-sage-700 transition-all group-hover:gap-1.5">
+                        Lihat detail
+                        <ArrowRight className="size-3" />
+                      </span>
+                    </div>
+                  </article>
                 </Link>
               ))}
             </div>
-          )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-12 pt-6 border-t border-gray-100">
-              <p className="text-sm text-gray-500">
-                Menampilkan{' '}
-                <span className="font-semibold text-gray-900">
-                  {(page - 1) * PUBLIC_PAGE_SIZE + 1}–{Math.min(page * PUBLIC_PAGE_SIZE, total)}
-                </span>{' '}
-                dari <span className="font-semibold text-gray-900">{total}</span> UMKM
-              </p>
-              <div className="flex items-center gap-1">
-                {page > 1 && (
-                  <Link href={buildHref(page - 1)} className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <ChevronLeft className="w-4 h-4 text-gray-600" />
-                  </Link>
-                )}
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <Link
-                    key={p}
-                    href={buildHref(p)}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-semibold transition-colors ${
-                      p === page
-                        ? 'bg-primary-600 text-white'
-                        : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {p}
-                  </Link>
-                ))}
-                {page < totalPages && (
-                  <Link href={buildHref(page + 1)} className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <ChevronRight className="w-4 h-4 text-gray-600" />
-                  </Link>
-                )}
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-stone-200 pt-6 sm:flex-row">
+                <p className="text-sm text-stone-500">
+                  Menampilkan{' '}
+                  <span className="font-semibold text-stone-800">
+                    {(page - 1) * PUBLIC_PAGE_SIZE + 1}–
+                    {Math.min(page * PUBLIC_PAGE_SIZE, total)}
+                  </span>{' '}
+                  dari <span className="font-semibold text-stone-800">{total}</span>{' '}
+                  UMKM
+                </p>
+                <div className="flex items-center gap-1">
+                  {page > 1 && (
+                    <Button asChild variant="outline" size="icon-sm" aria-label="Sebelumnya">
+                      <Link href={buildHref(page - 1)}>
+                        <ChevronLeft className="size-4" />
+                      </Link>
+                    </Button>
+                  )}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <Button
+                      key={p}
+                      asChild
+                      variant={p === page ? 'default' : 'outline'}
+                      size="icon-sm"
+                    >
+                      <Link href={buildHref(p)}>{p}</Link>
+                    </Button>
+                  ))}
+                  {page < totalPages && (
+                    <Button asChild variant="outline" size="icon-sm" aria-label="Berikutnya">
+                      <Link href={buildHref(page + 1)}>
+                        <ChevronRight className="size-4" />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+          </>
+        )}
+      </Section>
     </PageWrapper>
   )
 }

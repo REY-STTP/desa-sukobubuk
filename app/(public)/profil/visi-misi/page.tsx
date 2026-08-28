@@ -1,72 +1,118 @@
 import type { Metadata } from 'next'
-import { Eye, Target, CheckCircle, MapPin } from 'lucide-react'
+import { Eye, Target, CheckCircle, Quote } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import PageWrapper from '@/components/animations/PageWrapper'
+import PageHeader from '@/components/layout/PageHeader'
+import { Section } from '@/components/ui/section'
 
-export const metadata: Metadata = { title: 'Visi & Misi' }
+export const metadata: Metadata = {
+  title: 'Visi & Misi',
+  description:
+    'Visi dan Misi Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah. Komitmen Pemerintah Desa untuk melayani warga.',
+  alternates: { canonical: '/profil/visi-misi' },
+  openGraph: {
+    title: 'Visi & Misi Desa Sukobubuk',
+    description: 'Arah dan komitmen Pemerintah Desa Sukobubuk.',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://desa-sukobubuk.id'}/profil/visi-misi`,
+  },
+  keywords: ['visi misi Desa Sukobubuk', 'Komitmen desa', 'Margorejo'],
+}
 
 export default async function VisiMisiPage() {
   const profil = await prisma.profilDesa.findFirst()
   if (!profil) notFound()
 
   let misi: string[] = []
-  try { misi = JSON.parse(profil.misi) } catch { misi = [] }
+  try {
+    misi = JSON.parse(profil.misi)
+  } catch {
+    misi = []
+  }
 
   return (
     <PageWrapper>
-      <div className="pt-24">
-        <div className="bg-gradient-to-br from-primary-900 to-primary-700 text-white py-16">
-          <div className="container-custom">
-            <div className="flex items-center gap-2 text-primary-300 text-sm mb-3">
-              <MapPin className="w-4 h-4" />
-              Profil Desa / Visi & Misi
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold">Visi & Misi</h1>
-            <p className="text-primary-200 mt-2">{profil.nama_desa} Periode {profil.periode_visi_misi}</p>
-          </div>
+      <PageHeader
+        title="Visi & Misi"
+        subtitle={`Arah dan komitmen ${profil.nama_desa} Periode ${profil.periode_visi_misi}`}
+        breadcrumbs={[
+          { label: 'Profil Desa', href: '/profil/visi-misi' },
+          { label: 'Visi & Misi' },
+        ]}
+        variant="editorial"
+      />
+
+      {/* VISI — editorial blockquote centered */}
+      <Section
+        variant="subtle"
+        spacing="loose"
+        pattern="topo"
+        size="narrow"
+        className="text-center"
+      >
+        <div className="mb-6 inline-flex items-center gap-2 text-sage-700 font-semibold text-xs uppercase tracking-[0.14em]">
+          <Eye className="size-4" />
+          Visi
         </div>
 
-        <div className="container-custom py-16 max-w-4xl mx-auto">
-          {/* Visi */}
-          <div className="card p-8 mb-8 border-2 border-primary-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-primary-600 flex items-center justify-center">
-                <Eye className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="font-display text-2xl font-bold text-gray-900">Visi</h2>
+        <Quote
+          aria-hidden
+          className="mx-auto mb-6 size-12 text-sage-300/70"
+        />
+
+        <blockquote className="font-display text-2xl font-medium italic leading-snug text-stone-800 text-balance md:text-3xl lg:text-4xl">
+          &ldquo;{profil.visi}&rdquo;
+        </blockquote>
+
+        <p className="mt-6 text-sm text-stone-500">
+          — Visi Pemerintah {profil.nama_desa} Periode{' '}
+          {profil.periode_visi_misi}
+        </p>
+      </Section>
+
+      {/* MISI — numbered grid 2-col */}
+      <Section spacing="default">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <div className="mb-3 inline-flex items-center gap-2 text-sage-700 font-semibold text-xs uppercase tracking-[0.14em]">
+              <Target className="size-4" />
+              Misi
             </div>
-            <div className="bg-gradient-to-br from-primary-50 to-sage-50 rounded-2xl p-6 border border-primary-100">
-              <p className="font-display text-xl md:text-2xl text-primary-900 font-semibold italic leading-relaxed text-center">
-                "{profil.visi}"
-              </p>
-            </div>
+            <h2 className="font-display text-3xl font-medium text-stone-800 md:text-4xl text-balance">
+              Komitmen Konkrit Kami
+            </h2>
+            <p className="mt-3 text-stone-600 max-w-2xl mx-auto">
+              Langkah-langkah strategis yang kami tempuh untuk mewujudkan visi
+              desa.
+            </p>
           </div>
 
-          {/* Misi */}
-          <div className="card p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-primary-600 flex items-center justify-center">
-                <Target className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="font-display text-2xl font-bold text-gray-900">Misi</h2>
-            </div>
-            <ul className="space-y-4">
+          {misi.length === 0 ? (
+            <p className="text-center text-stone-500 py-8">
+              Misi belum ditambahkan.
+            </p>
+          ) : (
+            <ol className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
               {misi.map((item, index) => (
-                <li key={index} className="flex gap-4 p-4 rounded-xl hover:bg-primary-50 transition-colors">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-600 text-white font-bold text-sm flex-shrink-0">
-                    {index + 1}
+                <li
+                  key={index}
+                  className="group surface-elevated flex gap-4 p-5 transition-shadow hover:shadow-elevated-3"
+                >
+                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-sage-100 text-sage-700 ring-1 ring-inset ring-sage-200 font-mono font-semibold tabular-nums text-sm">
+                    {String(index + 1).padStart(2, '0')}
                   </div>
-                  <div className="flex-1 flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-gray-700">{item}</p>
+                  <div className="flex flex-1 items-start gap-3 min-w-0">
+                    <CheckCircle className="mt-0.5 size-4 shrink-0 text-sage-600" />
+                    <p className="text-sm leading-relaxed text-stone-700">
+                      {item}
+                    </p>
                   </div>
                 </li>
               ))}
-            </ul>
-          </div>
+            </ol>
+          )}
         </div>
-      </div>
+      </Section>
     </PageWrapper>
   )
 }

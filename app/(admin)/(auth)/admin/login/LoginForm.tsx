@@ -4,7 +4,10 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2, ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 export default function LoginForm() {
   const router = useRouter()
@@ -13,7 +16,8 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     if (!form.email || !form.password) {
       setError('Email dan password wajib diisi')
       return
@@ -38,75 +42,97 @@ export default function LoginForm() {
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSubmit()
-  }
-
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
-        <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3.5 text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{error}</span>
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-xl border border-stone-300 bg-stone-100 p-3.5 text-sm"
+        >
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-stone-700" />
+          <span className="text-stone-800">{error}</span>
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
+      <div className="flex flex-col gap-1.5">
+        <label
+          htmlFor="email"
+          className="text-sm font-medium text-stone-700"
+        >
+          Email
+        </label>
         <div className="relative">
-          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
+          <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
+          <Input
+            id="email"
             type="email"
             placeholder="admin.desa.sukobubuk@gmail.com"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            onKeyDown={handleKeyDown}
-            className="input-field pl-10"
             disabled={loading}
+            className="h-10 pl-10"
+            autoComplete="email"
           />
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+      <div className="flex flex-col gap-1.5">
+        <label
+          htmlFor="password"
+          className="text-sm font-medium text-stone-700"
+        >
+          Password
+        </label>
         <div className="relative">
-          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
+          <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
+          <Input
+            id="password"
             type={showPassword ? 'text' : 'password'}
             placeholder="••••••••"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            onKeyDown={handleKeyDown}
-            className="input-field pl-10 pr-11"
             disabled={loading}
+            className="h-10 pl-10 pr-11"
+            autoComplete="current-password"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 transition-colors hover:text-stone-700"
+            aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
           >
-            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
       </div>
 
       <div className="flex justify-end">
-        <Link href="/admin/lupa-password" className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors">
+        <Link
+          href="/admin/lupa-password"
+          className="text-sm font-medium text-sage-700 transition-colors hover:text-sage-800"
+        >
           Lupa password?
         </Link>
       </div>
 
-      <button
-        onClick={handleSubmit}
+      <Button
+        type="submit"
+        size="lg"
         disabled={loading}
-        className="btn-primary w-full justify-center py-3 mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="mt-1 w-full"
       >
         {loading ? (
-          <><Loader2 className="w-4 h-4 animate-spin" /> Memproses...</>
+          <>
+            <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
+            Memproses...
+          </>
         ) : (
-          'Masuk ke Dashboard'
+          <>
+            Masuk ke Dashboard
+            <ArrowRight className="size-4" data-icon="inline-end" />
+          </>
         )}
-      </button>
-    </div>
+      </Button>
+    </form>
   )
 }

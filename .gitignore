@@ -21,6 +21,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # local env files
 .env
@@ -35,3 +36,40 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# editor / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+Thumbs.db
+
+# agent tooling
+/.agents/
+/skills-lock.json
+/.claude/
+/.cursor/
+/.aider*
+/.continue/
+/.windsurf/
+/.idea/agent-settings/
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+ehthumbs.db
+ehthumbs_vista.db
+.Trashes
+Thumbs.db
+.DS_Store
+
+# uploads (dev only — production pakai Cloudinary)
+/public/uploads/
+/uploads/

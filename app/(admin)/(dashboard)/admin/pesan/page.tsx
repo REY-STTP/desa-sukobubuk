@@ -1,12 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { MessageSquare, Mail, MailOpen } from 'lucide-react'
+import { MessageSquare, Mail, MailOpen, MailCheck } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { Tag as UTag } from '@/components/ui/tag'
+import { Button } from '@/components/ui/button'
 import TandaiDibacaButton from './TandaiDibacaButton'
 import DeleteButton from '@/components/admin/DeleteButton'
 import Pagination from '@/components/admin/Pagination'
 import SearchInput from '@/components/admin/SearchInput'
+import { EmptyState } from '@/components/ui/empty-state'
 import { getPesanPage } from '@/lib/cache'
+import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = { title: 'Pesan Masuk' }
 
@@ -22,73 +26,110 @@ export default async function AdminPesanPage({ searchParams }: Props) {
   const { data: pesan, total, belumDibaca, totalPages } = await getPesanPage(page, search)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900">Pesan Masuk</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {search ? `${total} hasil untuk "${search}"` : (
+          <h1 className="font-display text-2xl font-medium text-stone-800">Pesan Masuk</h1>
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-stone-500">
+            {search ? (
+              <span>{total} hasil untuk "{search}"</span>
+            ) : (
               <>
-                {total} pesan total
-                {belumDibaca > 0 && <span className="ml-2 badge bg-primary-100 text-primary-700">{belumDibaca} belum dibaca</span>}
+                <span>
+                  {total} pesan total
+                </span>
+                {belumDibaca > 0 && (
+                  <UTag tone="ember" size="sm">
+                    <Mail className="size-3" />
+                    {belumDibaca} belum dibaca
+                  </UTag>
+                )}
               </>
             )}
           </p>
         </div>
-      </div>
+      </header>
 
-      {/* Search Bar */}
       <SearchInput
         placeholder="Cari nama pengirim, email, atau isi pesan..."
         defaultValue={search}
       />
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {pesan.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>{search ? `Tidak ada pesan yang cocok dengan "${search}"` : 'Belum ada pesan masuk'}</p>
-            {search && (
-              <Link href="/admin/pesan" className="mt-3 inline-block text-sm text-primary-600 hover:underline">
-                Hapus pencarian
-              </Link>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="divide-y divide-gray-50">
-              {pesan.map((item) => (
-                <div key={item.id} className={`p-5 hover:bg-gray-50 transition-colors ${!item.is_read ? 'bg-primary-50/30' : ''}`}>
-                  <div className="flex items-start gap-4">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${item.is_read ? 'bg-gray-100' : 'bg-primary-100'}`}>
-                      {item.is_read
-                        ? <MailOpen className="w-4 h-4 text-gray-500" />
-                        : <Mail className="w-4 h-4 text-primary-600" />
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-4 mb-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-gray-900 text-sm">{item.nama}</p>
-                          {!item.is_read && <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" />}
-                        </div>
-                        <p className="text-xs text-gray-400 flex-shrink-0">{formatDate(item.created_at)}</p>
-                      </div>
-                      <p className="text-xs text-gray-500 mb-2">{item.email}</p>
-                      <p className="text-sm text-gray-700 leading-relaxed">{item.isi_pesan}</p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {!item.is_read && <TandaiDibacaButton id={item.id} />}
-                      <DeleteButton id={item.id} type="pesan" nama={`pesan dari ${item.nama}`} />
-                    </div>
-                  </div>
+      {pesan.length === 0 ? (
+        <div className="surface-elevated">
+          <EmptyState
+            icon={<MessageSquare className="size-6" />}
+            title={search ? `Tidak ada pesan yang cocok dengan "${search}"` : 'Belum ada pesan masuk'}
+            description={
+              search
+                ? 'Coba kata kunci lain.'
+                : 'Pesan dari halaman kontak publik akan muncul di sini.'
+            }
+          />
+        </div>
+      ) : (
+        <div className="surface-elevated overflow-hidden">
+          <ul className="divide-y divide-stone-100">
+            {pesan.map((item) => (
+              <li
+                key={item.id}
+                className={cn(
+                  'flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-stone-50 sm:flex-row sm:items-start',
+                  !item.is_read && 'bg-sage-50/40'
+                )}
+              >
+                <div
+                  aria-hidden
+                  className={cn(
+                    'grid size-10 shrink-0 place-items-center rounded-xl',
+                    item.is_read
+                      ? 'bg-stone-100 text-stone-500'
+                      : 'bg-sage-600 text-white'
+                  )}
+                >
+                  {item.is_read ? (
+                    <MailOpen className="size-4" />
+                  ) : (
+                    <Mail className="size-4" />
+                  )}
                 </div>
-              ))}
-            </div>
-            <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/pesan" searchQuery={search} />
-          </>
-        )}
-      </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="truncate font-medium text-stone-800">
+                        {item.nama}
+                      </p>
+                      {!item.is_read && (
+                        <span
+                          aria-hidden
+                          className="size-2 shrink-0 rounded-full bg-sage-500"
+                        />
+                      )}
+                    </div>
+                    <p className="text-xs text-stone-400 shrink-0">
+                      {formatDate(item.created_at)}
+                    </p>
+                  </div>
+                  <p className="mt-0.5 text-xs text-stone-500 break-all font-mono">
+                    {item.email}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-stone-700">
+                    {item.isi_pesan}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 sm:flex-col sm:items-end">
+                  {!item.is_read && (
+                    <TandaiDibacaButton id={item.id} />
+                  )}
+                  <DeleteButton id={item.id} type="pesan" nama={`pesan dari ${item.nama}`} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <Pagination page={page} totalPages={totalPages} total={total} basePath="/admin/pesan" searchQuery={search} />
     </div>
   )
 }

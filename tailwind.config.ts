@@ -1,5 +1,12 @@
 import type { Config } from 'tailwindcss'
 
+/**
+ * Catatan: Project ini menggunakan Tailwind v4 dengan theme inline
+ * di `app/globals.css` (lihat block `@theme inline`). File ini tetap
+ * ada untuk kompatibilitas dengan tooling yang membaca tailwind.config
+ * (mis. shadcn CLI, IDE IntelliSense untuk path kustom). Konfigurasi
+ * warna & font di sini hanya sebagai fallback dokumentasi.
+ */
 const config: Config = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -9,44 +16,88 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50:  '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
-          950: '#052e16',
-        },
+        // Earth-Sage (brand primary)
         sage: {
-          50:  '#f8faf8',
-          100: '#eef3ee',
-          200: '#d5e5d5',
-          300: '#aecbae',
-          400: '#7faa7f',
-          500: '#578a57',
-          600: '#416e41',
-          700: '#345834',
-          800: '#2b472b',
-          900: '#233b23',
+          50:  '#f7f8f4',
+          100: '#eaeee2',
+          200: '#d2dac0',
+          300: '#aebc8e',
+          400: '#7a9361',
+          500: '#5a7548',
+          600: '#455c36',
+          700: '#374a2b',
+          800: '#2b3a23',
+          900: '#1f2a1a',
+          950: '#0e150b',
+        },
+        // Ember (accent — untuk CTA konversi)
+        ember: {
+          50:  '#fdf5ee',
+          100: '#fae6d2',
+          200: '#f4cdac',
+          300: '#e8a979',
+          400: '#d3884f',
+          500: '#c27141',
+          600: '#a35a30',
+          700: '#7e4220',
+          800: '#5d3117',
+          900: '#3f2110',
+        },
+        // Stone (neutral warm — BUKAN gray)
+        stone: {
+          0:   '#ffffff',
+          50:  '#fafaf7',
+          100: '#f4f3ee',
+          200: '#e8e6dd',
+          300: '#cfccc0',
+          400: '#a3a094',
+          500: '#79766a',
+          600: '#5b5950',
+          700: '#403e37',
+          800: '#2a2924',
+          900: '#1a1916',
+        },
+        // Legacy aliases (transisi bertahap ke sage)
+        primary: {
+          50:  '#f7f8f4',
+          100: '#eaeee2',
+          200: '#d2dac0',
+          300: '#aebc8e',
+          400: '#7a9361',
+          500: '#5a7548',
+          600: '#455c36',
+          700: '#374a2b',
+          800: '#2b3a23',
+          900: '#1f2a1a',
+          950: '#0e150b',
         },
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'sans-serif'],
-        display: ['Playfair Display', 'serif'],
+        sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-fraunces)', 'ui-serif', 'Georgia', 'serif'],
+        mono: ['var(--font-jetbrains)', 'ui-monospace', 'monospace'],
       },
       backgroundImage: {
         'hero-pattern': "url('/images/hero-bg.jpg')",
-        'leaf-pattern': "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2316a34a' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+        'grain':
+          "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.18 0 0 0 0 0.16 0 0 0 0 0.14 0 0 0 0.45 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E\")",
+        'topo':
+          "url(\"data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23455c36' stroke-opacity='0.06' stroke-width='0.75'%3E%3Cpath d='M0 30 Q30 20 60 30 T120 30'/%3E%3Cpath d='M0 60 Q30 50 60 60 T120 60'/%3E%3Cpath d='M0 90 Q30 80 60 90 T120 90'/%3E%3C/g%3E%3C/svg%3E\")",
+        'grid':
+          "url(\"data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M32 0H0v32' fill='none' stroke='%23455c36' stroke-opacity='0.05' stroke-width='0.5'/%3E%3C/svg%3E\")",
+      },
+      boxShadow: {
+        'elevated-1': '0 1px 2px hsl(60 12% 18% / 0.04), 0 1px 1px hsl(60 12% 18% / 0.03)',
+        'elevated-2': '0 2px 4px hsl(60 12% 18% / 0.05), 0 4px 8px hsl(60 12% 18% / 0.04)',
+        'elevated-3': '0 4px 8px hsl(60 12% 18% / 0.06), 0 12px 24px hsl(60 12% 18% / 0.05)',
+        'elevated-4': '0 8px 16px hsl(60 12% 18% / 0.08), 0 24px 48px hsl(60 12% 18% / 0.06)',
+        'elevated-5': '0 16px 32px hsl(60 12% 18% / 0.10), 0 32px 64px hsl(60 12% 18% / 0.08)',
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out',
         'slide-up': 'slideUp 0.5s ease-out',
         'slide-in': 'slideIn 0.4s ease-out',
+        'shimmer': 'shimmer 2.4s linear infinite',
       },
       keyframes: {
         fadeIn: {
@@ -61,10 +112,14 @@ const config: Config = {
           '0%': { transform: 'translateX(-20px)', opacity: '0' },
           '100%': { transform: 'translateX(0)', opacity: '1' },
         },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
       },
     },
   },
-  plugins: [require('@tailwindcss/typography')]
+  plugins: [require('@tailwindcss/typography')],
 }
 
 export default config

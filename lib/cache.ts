@@ -34,7 +34,7 @@ export const getProdukPage = (page: number, search = '') =>
           take: PAGE_SIZE,
           skip,
           orderBy: { created_at: 'desc' },
-          include: { umkm: { select: { nama_usaha: true } } },
+          include: { umkm: { select: { nama_usaha: true, kategori: true } } },
         }),
         prisma.produk.count({ where }),
       ])
@@ -184,20 +184,25 @@ export const getDashboardStats = unstable_cache(
 // ─── Home Page ────────────────────────────────────────────
 export const getHomeData = unstable_cache(
   async () => {
-    const [umkmFeatured, beritaTerbaru, galeri] = await Promise.all([
-      prisma.uMKM.findMany({
-        where: { is_featured: true },
-        take: 3,
-        orderBy: { created_at: 'desc' },
-      }),
-      prisma.berita.findMany({
-        take: 3,
-        orderBy: { created_at: 'desc' },
-        include: { author: { select: { name: true } } },
-      }),
-      prisma.galeri.findMany({ take: 6, orderBy: { created_at: 'desc' } }),
-    ])
-    return { umkmFeatured, beritaTerbaru, galeri }
+    try {
+      const [umkmFeatured, beritaTerbaru, galeri] = await Promise.all([
+        prisma.uMKM.findMany({
+          where: { is_featured: true },
+          take: 5,
+          orderBy: { created_at: 'desc' },
+        }),
+        prisma.berita.findMany({
+          take: 5,
+          orderBy: { created_at: 'desc' },
+          include: { author: { select: { name: true } } },
+        }),
+        prisma.galeri.findMany({ take: 6, orderBy: { created_at: 'desc' } }),
+      ])
+      return { umkmFeatured, beritaTerbaru, galeri }
+    } catch {
+      // DB unreachable — graceful degradation, jangan crash page
+      return { umkmFeatured: [], beritaTerbaru: [], galeri: [] }
+    }
   },
   ['home-data'],
   { revalidate: 60, tags: [CACHE_TAGS.umkm, CACHE_TAGS.berita, CACHE_TAGS.galeri] }
