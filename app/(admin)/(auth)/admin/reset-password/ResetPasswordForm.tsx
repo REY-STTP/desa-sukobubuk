@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 
 export default function ResetPasswordForm() {
   const router = useRouter()
@@ -31,26 +30,22 @@ export default function ResetPasswordForm() {
     if (!form.password || !form.konfirmasi) {
       setMessage('Semua field wajib diisi')
       setStatus('error')
-      toast.error('Semua field wajib diisi')
       return
     }
     if (form.password.length < 8) {
       setMessage('Password minimal 8 karakter')
       setStatus('error')
-      toast.error('Password minimal 8 karakter')
       return
     }
     if (form.password !== form.konfirmasi) {
       setMessage('Konfirmasi password tidak cocok')
       setStatus('error')
-      toast.error('Konfirmasi password tidak cocok')
       return
     }
 
     setStatus('loading')
     setMessage('')
 
-    const toastId = toast.loading('Menyimpan password baru...')
     try {
       const res = await fetch('/api/admin/reset-password', {
         method: 'PUT',
@@ -60,11 +55,9 @@ export default function ResetPasswordForm() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal reset password')
       setStatus('success')
-      toast.success('Password berhasil diubah!', { id: toastId })
     } catch (err: any) {
       setStatus('error')
       setMessage(err.message || 'Terjadi kesalahan.')
-      toast.error(err.message || 'Terjadi kesalahan.', { id: toastId })
     }
   }
 

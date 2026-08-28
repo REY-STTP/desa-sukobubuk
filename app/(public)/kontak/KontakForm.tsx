@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { Send, CheckCircle, AlertCircle, Loader2, Mail, User, MessageSquare } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -47,7 +46,6 @@ export default function KontakForm() {
     if (Object.keys(v).length > 0) {
       setStatus('error')
       setErrorMsg('Periksa kembali isian Anda')
-      toast.error('Periksa kembali isian Anda')
       return
     }
 
@@ -55,7 +53,6 @@ export default function KontakForm() {
     setErrorMsg('')
 
     startTransition(async () => {
-      const toastId = toast.loading('Mengirim pesan...')
       try {
         const res = await fetch('/api/pesan', {
           method: 'POST',
@@ -68,11 +65,9 @@ export default function KontakForm() {
         setStatus('success')
         setForm({ nama: '', email: '', isi_pesan: '' })
         setErrors({})
-        toast.success('Pesan berhasil dikirim! Kami akan segera merespons lewat email.', { id: toastId })
       } catch {
         setStatus('error')
         setErrorMsg('Gagal mengirim pesan. Silakan coba lagi.')
-        toast.error('Gagal mengirim pesan. Silakan coba lagi.', { id: toastId })
       }
     })
   }

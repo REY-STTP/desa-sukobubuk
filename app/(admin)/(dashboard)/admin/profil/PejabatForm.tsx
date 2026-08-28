@@ -8,7 +8,6 @@ import {
   ChevronDown, ChevronUp, Camera, UserCircle2, Save, GripVertical,
   Crop, Check, X, RotateCcw,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -333,12 +332,10 @@ export default function PejabatForm({ initialData }: Props) {
     for (const p of list) {
       if (!p.nama.trim() || !p.jabatan.trim()) {
         setAlert({ type: 'error', msg: 'Nama dan jabatan wajib diisi untuk semua entri.' })
-        toast.error('Nama dan jabatan wajib diisi untuk semua entri.')
         return
       }
     }
     setSaving(true); setAlert(null)
-    const toastId = toast.loading('Menyimpan struktur organisasi...')
     try {
       const withFotoUrls = await Promise.all(
         list.map(async (p, i) => {
@@ -362,11 +359,9 @@ export default function PejabatForm({ initialData }: Props) {
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Gagal menyimpan') }
       setAlert({ type: 'success', msg: 'Struktur organisasi berhasil disimpan!' })
-      toast.success('Struktur organisasi berhasil disimpan!', { id: toastId })
       router.refresh()
     } catch (e: any) {
       setAlert({ type: 'error', msg: e.message })
-      toast.error(e.message || 'Gagal menyimpan', { id: toastId })
     }
     setSaving(false)
   }

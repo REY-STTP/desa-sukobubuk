@@ -5,7 +5,6 @@ import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2, ArrowRight } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -21,7 +20,6 @@ export default function LoginForm() {
     e?.preventDefault()
     if (!form.email || !form.password) {
       setError('Email dan password wajib diisi')
-      toast.error('Email dan password wajib diisi')
       return
     }
 
@@ -38,9 +36,7 @@ export default function LoginForm() {
 
     if (res?.error) {
       setError('Email atau password salah. Silakan coba lagi.')
-      toast.error('Email atau password salah. Silakan coba lagi.')
     } else {
-      toast.success('Login berhasil, mengarahkan ke dashboard...')
       router.push('/admin')
       router.refresh()
     }

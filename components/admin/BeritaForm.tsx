@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle, Save, ArrowLeft, FileText, Link2 } from 'lucide-react'
-import { toast } from 'sonner'
 import { slugify } from '@/lib/utils'
 import ImageCropUpload from './ImageCropUpload'
 import TiptapEditor from './TiptapEditor'
@@ -46,14 +45,10 @@ export default function BeritaForm({ initialData, mode }: Props) {
     if (!form.judul.trim()) e.judul = 'Judul wajib diisi'
     if (!form.konten || form.konten === '<p></p>' || !form.konten.trim()) e.konten = 'Konten wajib diisi'
     setErrors(e)
-    if (Object.keys(e).length > 0) {
-      toast.error('Periksa field yang belum lengkap')
-      return
-    }
+    if (Object.keys(e).length > 0) return
 
     setLoading(true)
     setAlert(null)
-    const toastId = toast.loading(mode === 'edit' ? 'Menyimpan perubahan...' : 'Mempublish berita...')
     try {
       const url = mode === 'edit' ? `/api/admin/berita/${initialData?.id}` : '/api/admin/berita'
       const method = mode === 'edit' ? 'PUT' : 'POST'
@@ -66,11 +61,9 @@ export default function BeritaForm({ initialData, mode }: Props) {
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan berita')
       window.dispatchEvent(new CustomEvent('admin:mutated'))
       setAlert({ type: 'success', msg: mode === 'edit' ? 'Berita berhasil diperbarui.' : 'Berita berhasil dipublish.' })
-      toast.success(mode === 'edit' ? 'Berita berhasil diperbarui.' : 'Berita berhasil dipublish.', { id: toastId })
       setTimeout(() => router.push('/admin/berita'), 900)
     } catch (e: any) {
       setAlert({ type: 'error', msg: e.message })
-      toast.error(e.message || 'Gagal menyimpan berita', { id: toastId })
     }
     setLoading(false)
   }

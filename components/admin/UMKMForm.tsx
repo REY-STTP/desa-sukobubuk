@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle, Save, ArrowLeft, Store, Link2, User, Phone, MapPin, Tag, Sparkles } from 'lucide-react'
-import { toast } from 'sonner'
 import { slugify } from '@/lib/utils'
 import ImageCropUpload from './ImageCropUpload'
 import { Button } from '@/components/ui/button'
@@ -66,14 +65,10 @@ export default function UMKMForm({ initialData, mode }: Props) {
     if (!form.whatsapp.trim()) e.whatsapp = 'No. WhatsApp wajib diisi'
     else if (!/^62\d{8,}$/.test(form.whatsapp.trim())) e.whatsapp = 'Format 628xxx (tanpa + atau 0)'
     setErrors(e)
-    if (Object.keys(e).length > 0) {
-      toast.error('Periksa field yang belum lengkap')
-      return
-    }
+    if (Object.keys(e).length > 0) return
 
     setLoading(true)
     setAlert(null)
-    const toastId = toast.loading(mode === 'edit' ? 'Menyimpan perubahan...' : 'Menambahkan UMKM...')
     try {
       const url = mode === 'edit' ? `/api/admin/umkm/${initialData?.id}` : '/api/admin/umkm'
       const method = mode === 'edit' ? 'PUT' : 'POST'
@@ -86,11 +81,9 @@ export default function UMKMForm({ initialData, mode }: Props) {
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan data')
       window.dispatchEvent(new CustomEvent('admin:mutated'))
       setAlert({ type: 'success', msg: mode === 'edit' ? 'UMKM berhasil diperbarui.' : 'UMKM berhasil ditambahkan.' })
-      toast.success(mode === 'edit' ? 'UMKM berhasil diperbarui.' : 'UMKM berhasil ditambahkan.', { id: toastId })
       setTimeout(() => router.push('/admin/umkm'), 900)
     } catch (e: any) {
       setAlert({ type: 'error', msg: e.message })
-      toast.error(e.message || 'Gagal menyimpan data', { id: toastId })
     }
     setLoading(false)
   }

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -16,10 +15,10 @@ export default function DeleteButton({ id, type, nama }: Props) {
   const router = useRouter()
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
   const handleDelete = async () => {
     setLoading(true)
-    const toastId = toast.loading(`Menghapus ${nama}...`)
     try {
       const res = await fetch(`/api/admin/${type}/${id}`, { method: 'DELETE' })
       if (!res.ok) {
@@ -28,9 +27,11 @@ export default function DeleteButton({ id, type, nama }: Props) {
       }
       window.dispatchEvent(new CustomEvent('admin:mutated'))
       router.refresh()
-      toast.success(`${nama} berhasil dihapus`, { id: toastId })
+      setFeedback({ type: 'success', msg: `${nama} berhasil dihapus` })
+      // Auto-dismiss setelah 4 detik
+      setTimeout(() => setFeedback(null), 4000)
     } catch (e: any) {
-      toast.error(e.message || 'Gagal menghapus data', { id: toastId })
+      setFeedback({ type: 'error', msg: e.message || 'Gagal menghapus data' })
     } finally {
       setLoading(false)
       setShowConfirm(false)
@@ -39,15 +40,32 @@ export default function DeleteButton({ id, type, nama }: Props) {
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => setShowConfirm(true)}
-        aria-label={`Hapus ${nama}`}
-        className="text-stone-400 hover:bg-ember-50 hover:text-ember-600"
-      >
-        <Trash2 className="size-3.5" />
-      </Button>
+      <div className="relative inline-flex">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setShowConfirm(true)}
+          aria-label={`Hapus ${nama}`}
+          className="text-stone-400 hover:bg-ember-50 hover:text-ember-600"
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+
+        {/* Inline feedback — muncul sebagai mini alert di pojok button */}
+        {feedback && (
+          <div
+            role="status"
+            className={
+              'absolute right-0 top-full z-10 mt-2 w-64 rounded-xl border p-3 text-xs shadow-elevated-3 ' +
+              (feedback.type === 'success'
+                ? 'border-sage-200 bg-sage-50 text-sage-800'
+                : 'border-ember-200 bg-ember-50 text-ember-800')
+            }
+          >
+            {feedback.msg}
+          </div>
+        )}
+      </div>
 
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-sage-950/60 p-4 backdrop-blur-sm">
