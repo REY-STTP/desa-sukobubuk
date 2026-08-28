@@ -16,6 +16,14 @@ interface Props {
   params: Promise<{ slug: string }>
 }
 
+// Helper: Date | string | null | undefined → ISO string | undefined
+// Di Vercel, unstable_cache bisa mengembalikan Date sebagai string setelah re-serialize.
+const toIso = (v: Date | string | null | undefined): string | undefined => {
+  if (!v) return undefined
+  if (typeof v === 'string') return v
+  return v.toISOString()
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const { berita } = await getBeritaDetail(slug)
@@ -29,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: berita.judul,
       description,
       url: `${SITE.url}/berita/${berita.slug}`,
-      publishedTime: berita.created_at.toISOString(),
+      publishedTime: toIso(berita.created_at),
       authors: [berita.author.name],
       images: berita.thumbnail ? [{ url: berita.thumbnail, alt: berita.judul }] : undefined,
     },

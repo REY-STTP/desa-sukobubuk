@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Upload, Loader2, CheckCircle, AlertCircle, ImagePlus, Crop, Check, X, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -266,7 +267,11 @@ export default function GaleriUploadForm() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    if (f.size > 10 * 1024 * 1024) { setAlert({ type: 'error', msg: 'Ukuran file maksimal 10MB' }); return }
+    if (f.size > 10 * 1024 * 1024) {
+      setAlert({ type: 'error', msg: 'Ukuran file maksimal 10MB' })
+      toast.error('Ukuran file maksimal 10MB')
+      return
+    }
     setCropSrc(URL.createObjectURL(f))
   }
 
@@ -284,10 +289,19 @@ export default function GaleriUploadForm() {
   }
 
   const handleSubmit = async () => {
-    if (!judul.trim()) { setAlert({ type: 'error', msg: 'Judul foto wajib diisi' }); return }
-    if (!croppedBlob) { setAlert({ type: 'error', msg: 'Pilih dan crop foto terlebih dahulu' }); return }
+    if (!judul.trim()) {
+      setAlert({ type: 'error', msg: 'Judul foto wajib diisi' })
+      toast.error('Judul foto wajib diisi')
+      return
+    }
+    if (!croppedBlob) {
+      setAlert({ type: 'error', msg: 'Pilih dan crop foto terlebih dahulu' })
+      toast.error('Pilih dan crop foto terlebih dahulu')
+      return
+    }
 
     setLoading(true); setAlert(null)
+    const toastId = toast.loading('Mengupload foto...')
     try {
       const formData = new FormData()
       formData.append('judul', judul)
@@ -298,6 +312,7 @@ export default function GaleriUploadForm() {
       if (!res.ok) throw new Error(data.error || 'Gagal upload foto')
 
       setAlert({ type: 'success', msg: 'Foto berhasil diupload!' })
+      toast.success('Foto berhasil diupload!', { id: toastId })
       setJudul(''); setCroppedBlob(null)
       if (preview) URL.revokeObjectURL(preview)
       setPreview(null)
@@ -306,6 +321,7 @@ export default function GaleriUploadForm() {
       router.refresh()
     } catch (e: any) {
       setAlert({ type: 'error', msg: e.message })
+      toast.error(e.message || 'Gagal upload foto', { id: toastId })
     }
     setLoading(false)
   }

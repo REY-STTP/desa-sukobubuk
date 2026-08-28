@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle, Building2, Phone, BookOpen, Target, MapPin, Mail, Save } from 'lucide-react'
+import { toast } from 'sonner'
 import TiptapEditor from '@/components/admin/TiptapEditor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,11 +72,13 @@ export default function ProfilForm({ initialData }: { initialData: any }) {
     }
     if (Object.keys(e).length > 0) {
       setErrors(e)
+      toast.error('Periksa field yang belum lengkap')
       return
     }
 
     setLoading(true)
     setAlert(null)
+    const toastId = toast.loading('Menyimpan profil desa...')
     try {
       const misiArr = form.misi_text
         .split('\n')
@@ -91,9 +94,11 @@ export default function ProfilForm({ initialData }: { initialData: any }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan')
       setAlert({ type: 'success', msg: 'Profil desa berhasil disimpan.' })
+      toast.success('Profil desa berhasil disimpan.', { id: toastId })
       router.refresh()
     } catch (e: any) {
       setAlert({ type: 'error', msg: e.message })
+      toast.error(e.message || 'Gagal menyimpan', { id: toastId })
     }
     setLoading(false)
   }

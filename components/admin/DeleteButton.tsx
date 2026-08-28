@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -18,12 +19,18 @@ export default function DeleteButton({ id, type, nama }: Props) {
 
   const handleDelete = async () => {
     setLoading(true)
+    const toastId = toast.loading(`Menghapus ${nama}...`)
     try {
-      await fetch(`/api/admin/${type}/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/${type}/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Gagal menghapus data')
+      }
       window.dispatchEvent(new CustomEvent('admin:mutated'))
       router.refresh()
-    } catch {
-      // handled via refresh
+      toast.success(`${nama} berhasil dihapus`, { id: toastId })
+    } catch (e: any) {
+      toast.error(e.message || 'Gagal menghapus data', { id: toastId })
     } finally {
       setLoading(false)
       setShowConfirm(false)

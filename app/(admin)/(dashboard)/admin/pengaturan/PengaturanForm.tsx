@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { User, Mail, Lock, CheckCircle, AlertCircle, Loader2, Eye, EyeOff, Save } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,9 +38,11 @@ export default function PengaturanForm({ user }: { user: UserData }) {
     setErrors({})
     if (!nama.trim()) {
       setErrors({ nama: 'Nama tidak boleh kosong' })
+      toast.error('Nama tidak boleh kosong')
       return
     }
     setLoading(true)
+    const toastId = toast.loading('Menyimpan nama...')
     try {
       const res = await fetch('/api/admin/pengaturan', {
         method: 'PATCH',
@@ -48,8 +51,10 @@ export default function PengaturanForm({ user }: { user: UserData }) {
       })
       if (!res.ok) throw new Error((await res.json()).error)
       showAlert('success', 'Nama berhasil diperbarui')
+      toast.success('Nama berhasil diperbarui', { id: toastId })
     } catch (e: any) {
       showAlert('error', e.message)
+      toast.error(e.message || 'Gagal menyimpan nama', { id: toastId })
     }
     setLoading(false)
   }
@@ -60,9 +65,13 @@ export default function PengaturanForm({ user }: { user: UserData }) {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.baru)) e.emailBaru = 'Format email tidak valid'
     if (!email.passwordKonfirmasi) e.passwordKonfirmasi = 'Password konfirmasi wajib diisi'
     setErrors(e)
-    if (Object.keys(e).length > 0) return
+    if (Object.keys(e).length > 0) {
+      toast.error('Periksa field yang belum lengkap')
+      return
+    }
 
     setLoading(true)
+    const toastId = toast.loading('Memperbarui email...')
     try {
       const res = await fetch('/api/admin/pengaturan', {
         method: 'PATCH',
@@ -71,10 +80,12 @@ export default function PengaturanForm({ user }: { user: UserData }) {
       })
       if (!res.ok) throw new Error((await res.json()).error)
       showAlert('success', 'Email berhasil diperbarui. Silakan login ulang.')
+      toast.success('Email berhasil diperbarui. Silakan login ulang.', { id: toastId })
       setEmail({ baru: '', passwordKonfirmasi: '' })
       setErrors({})
     } catch (e: any) {
       showAlert('error', e.message)
+      toast.error(e.message || 'Gagal memperbarui email', { id: toastId })
     }
     setLoading(false)
   }
@@ -87,9 +98,13 @@ export default function PengaturanForm({ user }: { user: UserData }) {
     if (!password.konfirmasi) e.konfirmasi = 'Konfirmasi wajib diisi'
     else if (password.konfirmasi !== password.baru) e.konfirmasi = 'Konfirmasi tidak cocok'
     setErrors(e)
-    if (Object.keys(e).length > 0) return
+    if (Object.keys(e).length > 0) {
+      toast.error('Periksa field yang belum lengkap')
+      return
+    }
 
     setLoading(true)
+    const toastId = toast.loading('Memperbarui password...')
     try {
       const res = await fetch('/api/admin/pengaturan', {
         method: 'PATCH',
@@ -98,10 +113,12 @@ export default function PengaturanForm({ user }: { user: UserData }) {
       })
       if (!res.ok) throw new Error((await res.json()).error)
       showAlert('success', 'Password berhasil diperbarui')
+      toast.success('Password berhasil diperbarui', { id: toastId })
       setPassword({ lama: '', baru: '', konfirmasi: '' })
       setErrors({})
     } catch (e: any) {
       showAlert('error', e.message)
+      toast.error(e.message || 'Gagal memperbarui password', { id: toastId })
     }
     setLoading(false)
   }

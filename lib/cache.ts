@@ -211,13 +211,18 @@ export const getHomeData = unstable_cache(
 // ─── Public Layout (Profil Desa) ──────────────────────────
 export const getProfilDesa = unstable_cache(
   async () => {
-    return prisma.profilDesa.findFirst({
-      select: {
-        nama_desa: true,
-        nama_kecamatan: true,
-        nama_kabupaten: true,
-      },
-    })
+    try {
+      return prisma.profilDesa.findFirst({
+        select: {
+          nama_desa: true,
+          nama_kecamatan: true,
+          nama_kabupaten: true,
+        },
+      })
+    } catch {
+      // DB unreachable — caller punya default fallback di layout
+      return null
+    }
   },
   ['profil-desa'],
   { revalidate: 3600, tags: [CACHE_TAGS.profil] }
@@ -227,17 +232,22 @@ export const getProfilDesa = unstable_cache(
 export const getBeritaPublik = (page: number) =>
   unstable_cache(
     async () => {
-      const skip = (page - 1) * PUBLIC_PAGE_SIZE
-      const [data, total] = await prisma.$transaction([
-        prisma.berita.findMany({
-          skip,
-          take: PUBLIC_PAGE_SIZE,
-          orderBy: { created_at: 'desc' },
-          include: { author: { select: { name: true } } },
-        }),
-        prisma.berita.count(),
-      ])
-      return { data, total, totalPages: Math.ceil(total / PUBLIC_PAGE_SIZE) }
+      try {
+        const skip = (page - 1) * PUBLIC_PAGE_SIZE
+        const [data, total] = await prisma.$transaction([
+          prisma.berita.findMany({
+            skip,
+            take: PUBLIC_PAGE_SIZE,
+            orderBy: { created_at: 'desc' },
+            include: { author: { select: { name: true } } },
+          }),
+          prisma.berita.count(),
+        ])
+        return { data, total, totalPages: Math.ceil(total / PUBLIC_PAGE_SIZE) }
+      } catch {
+        // DB unreachable — return empty page agar caller render empty state
+        return { data: [], total: 0, totalPages: 0 }
+      }
     },
     ['berita-publik', String(page)],
     { revalidate: 60, tags: [CACHE_TAGS.berita] }
@@ -247,19 +257,26 @@ export const getBeritaPublik = (page: number) =>
 export const getBeritaDetail = (slug: string) =>
   unstable_cache(
     async () => {
-      const [berita, lainnya] = await Promise.all([
-        prisma.berita.findUnique({
-          where: { slug },
-          include: { author: { select: { name: true } } },
-        }),
-        prisma.berita.findMany({
-          where: { slug: { not: slug } },
-          take: 3,
-          orderBy: { created_at: 'desc' },
-          include: { author: { select: { name: true } } },
-        }),
-      ])
-      return { berita, lainnya }
+      try {
+        const [berita, lainnya] = await Promise.all([
+          prisma.berita.findUnique({
+            where: { slug },
+            include: { author: { select: { name: true } } },
+          }),
+          prisma.berita.findMany({
+            where: { slug: { not: slug } },
+            take: 3,
+            orderBy: { created_at: 'desc' },
+            include: { author: { select: { name: true } } },
+          }),
+        ])
+        return { berita, lainnya }
+      } catch {
+        // DB unreachable (mis. Vercel → Supabase pooler timeout saat background revalidate).
+        // Return null agar caller (generateMetadata & page) bisa fallback ke notFound() / empty state
+        // alih-alih meledak jadi 500.
+        return { berita: null, lainnya: [] as never[] }
+      }
     },
     ['berita-detail', slug],
     { revalidate: 60, tags: [CACHE_TAGS.berita] }
@@ -269,26 +286,31 @@ export const getBeritaDetail = (slug: string) =>
 export const getUMKMPublik = (page: number) =>
   unstable_cache(
     async () => {
-      const skip = (page - 1) * PUBLIC_PAGE_SIZE
-      const [data, total, kategoriList] = await Promise.all([
-        prisma.uMKM.findMany({
-          skip,
-          take: PUBLIC_PAGE_SIZE,
-          orderBy: [{ is_featured: 'desc' }, { created_at: 'desc' }],
-          include: { _count: { select: { produk: true } } },
-        }),
-        prisma.uMKM.count(),
-        prisma.uMKM.findMany({
-          select: { kategori: true },
-          distinct: ['kategori'],
-          orderBy: { kategori: 'asc' },
-        }),
-      ])
-      return {
-        data,
-        total,
-        totalPages: Math.ceil(total / PUBLIC_PAGE_SIZE),
-        kategoriList: kategoriList.map((u) => u.kategori),
+      try {
+        const skip = (page - 1) * PUBLIC_PAGE_SIZE
+        const [data, total, kategoriList] = await Promise.all([
+          prisma.uMKM.findMany({
+            skip,
+            take: PUBLIC_PAGE_SIZE,
+            orderBy: [{ is_featured: 'desc' }, { created_at: 'desc' }],
+            include: { _count: { select: { produk: true } } },
+          }),
+          prisma.uMKM.count(),
+          prisma.uMKM.findMany({
+            select: { kategori: true },
+            distinct: ['kategori'],
+            orderBy: { kategori: 'asc' },
+          }),
+        ])
+        return {
+          data,
+          total,
+          totalPages: Math.ceil(total / PUBLIC_PAGE_SIZE),
+          kategoriList: kategoriList.map((u) => u.kategori),
+        }
+      } catch {
+        // DB unreachable — return empty page
+        return { data: [], total: 0, totalPages: 0, kategoriList: [] }
       }
     },
     ['umkm-publik', String(page)],
@@ -299,15 +321,20 @@ export const getUMKMPublik = (page: number) =>
 export const getUMKMDetail = (slug: string) =>
   unstable_cache(
     async () => {
-      return prisma.uMKM.findUnique({
-        where: { slug },
-        include: {
-          produk: {
-            where: { is_available: true },
-            orderBy: { created_at: 'asc' },
+      try {
+        return prisma.uMKM.findUnique({
+          where: { slug },
+          include: {
+            produk: {
+              where: { is_available: true },
+              orderBy: { created_at: 'asc' },
+            },
           },
-        },
-      })
+        })
+      } catch {
+        // DB unreachable — caller akan notFound() di halaman detail
+        return null
+      }
     },
     ['umkm-detail', slug],
     { revalidate: 60, tags: [CACHE_TAGS.umkm, CACHE_TAGS.produk] }
@@ -317,10 +344,15 @@ export const getUMKMDetail = (slug: string) =>
 export const getProdukDetail = (produkSlug: string) =>
   unstable_cache(
     async () => {
-      return prisma.produk.findUnique({
-        where: { slug: produkSlug },
-        include: { umkm: true },
-      })
+      try {
+        return prisma.produk.findUnique({
+          where: { slug: produkSlug },
+          include: { umkm: true },
+        })
+      } catch {
+        // DB unreachable — caller akan notFound() di halaman detail
+        return null
+      }
     },
     ['produk-detail', produkSlug],
     { revalidate: 60, tags: [CACHE_TAGS.produk] }
@@ -329,10 +361,15 @@ export const getProdukDetail = (produkSlug: string) =>
 export const getProdukLain = (umkmId: number, excludeSlug: string) =>
   unstable_cache(
     async () => {
-      return prisma.produk.findMany({
-        where: { umkm_id: umkmId, slug: { not: excludeSlug }, is_available: true },
-        take: 3,
-      })
+      try {
+        return prisma.produk.findMany({
+          where: { umkm_id: umkmId, slug: { not: excludeSlug }, is_available: true },
+          take: 3,
+        })
+      } catch {
+        // DB unreachable — return empty array agar caller tidak crash
+        return [] as Awaited<ReturnType<typeof prisma.produk.findMany>>
+      }
     },
     ['produk-lain', String(umkmId), excludeSlug],
     { revalidate: 60, tags: [CACHE_TAGS.produk] }

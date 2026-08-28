@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Check, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
 export default function TandaiDibacaButton({ id }: { id: number }) {
@@ -11,14 +12,24 @@ export default function TandaiDibacaButton({ id }: { id: number }) {
 
   const handleClick = async () => {
     setLoading(true)
-    await fetch(`/api/admin/pesan/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_read: true }),
-    })
+    const toastId = toast.loading('Menandai sebagai dibaca...')
+    try {
+      const res = await fetch(`/api/admin/pesan/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_read: true }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Gagal menandai pesan')
+      }
+      toast.success('Pesan ditandai sudah dibaca', { id: toastId })
+      window.dispatchEvent(new CustomEvent('admin:mutated'))
+      router.refresh()
+    } catch (e: any) {
+      toast.error(e.message || 'Gagal menandai pesan', { id: toastId })
+    }
     setLoading(false)
-    window.dispatchEvent(new CustomEvent('admin:mutated'))
-    router.refresh()
   }
 
   return (

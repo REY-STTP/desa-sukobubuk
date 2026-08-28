@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -11,11 +12,17 @@ export default function LupaPasswordForm() {
   const [message, setMessage] = useState('')
 
   const handleSubmit = async () => {
-    if (!email) { setMessage('Email wajib diisi'); setStatus('error'); return }
+    if (!email) {
+      setMessage('Email wajib diisi')
+      setStatus('error')
+      toast.error('Email wajib diisi')
+      return
+    }
 
     setStatus('loading')
     setMessage('')
 
+    const toastId = toast.loading('Mengirim link reset...')
     try {
       const res = await fetch('/api/admin/reset-password', {
         method: 'POST',
@@ -28,9 +35,11 @@ export default function LupaPasswordForm() {
 
       setStatus('success')
       setMessage('Link reset password telah dikirim ke email Anda. Silakan cek inbox atau folder spam.')
+      toast.success('Link reset telah dikirim ke email Anda', { id: toastId })
     } catch (err: any) {
       setStatus('error')
       setMessage(err.message || 'Terjadi kesalahan. Coba lagi.')
+      toast.error(err.message || 'Terjadi kesalahan. Coba lagi.', { id: toastId })
     }
   }
 
