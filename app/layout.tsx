@@ -20,7 +20,12 @@ const jetbrains = JetBrains_Mono({
   display: 'swap',
 })
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://desa-sukobubuk.id').replace(/\/$/, '')
+/**
+ * Domain production untuk OG, sitemap, JSON-LD, canonical.
+ * NEXT_PUBLIC_SITE_URL WAJIB di-set (Vercel env).
+ * Fallback ke localhost untuk dev.
+ */
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
 const SITE_NAME = 'Desa Sukobubuk'
 const SITE_DESC =
   'Website resmi Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah. Kode Pos 59163. Profil desa, sejarah, visi-misi, struktur organisasi, berita, UMKM, dan layanan administrasi.'
