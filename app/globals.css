@@ -454,3 +454,158 @@
 .animate-slide-in-left {
   animation: slide-in-left 0.25s ease-out forwards;
 }
+
+/* ============================================================
+   Sonner toast — match earth-sage + ember palette
+   Brand-aligned: success=sage, error=ember, warning=amber, info=stone
+   Pattern: tinted bg, 1px border, 3px left accent bar, elevated shadow
+   ============================================================ */
+[data-sonner-toaster] {
+  --width: 380px;
+  --gap: 12px;
+
+  /* Normal (default toast()) */
+  --normal-bg: hsl(var(--card));
+  --normal-text: hsl(var(--card-foreground));
+  --normal-border: hsl(var(--border));
+
+  /* Success — earth-sage */
+  --success-bg: hsl(95 30% 96%);
+  --success-border: hsl(95 25% 82%);
+  --success-text: hsl(95 30% 22%);
+
+  /* Error — ember (matches site's "destructive" alert pattern) */
+  --error-bg: hsl(22 60% 96%);
+  --error-border: hsl(22 60% 84%);
+  --error-text: hsl(22 50% 28%);
+
+  /* Warning — warm amber (between ember & stone) */
+  --warning-bg: hsl(40 55% 95%);
+  --warning-border: hsl(40 55% 82%);
+  --warning-text: hsl(35 50% 28%);
+
+  /* Info — neutral stone */
+  --info-bg: hsl(60 14% 96%);
+  --info-border: hsl(60 12% 88%);
+  --info-text: hsl(60 7% 25%);
+}
+
+/* Toast card — base layout, matches `surface-elevated` */
+[data-sonner-toast] {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--normal-border);
+  border-left: 3px solid var(--normal-border);
+  box-shadow:
+    0 4px 8px hsl(60 12% 18% / 0.06),
+    0 12px 24px hsl(60 12% 18% / 0.05);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.4;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  gap: 10px;
+}
+
+[data-sonner-toast][data-type="success"] {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  border-left-color: hsl(95 25% 45%);   /* sage-500 accent bar */
+  color: var(--success-text);
+}
+
+[data-sonner-toast][data-type="error"] {
+  background: var(--error-bg);
+  border-color: var(--error-border);
+  border-left-color: hsl(22 53% 51%);   /* ember-500 accent bar */
+  color: var(--error-text);
+}
+
+[data-sonner-toast][data-type="warning"] {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  border-left-color: hsl(40 65% 52%);
+  color: var(--warning-text);
+}
+
+[data-sonner-toast][data-type="info"] {
+  background: var(--info-bg);
+  border-color: var(--info-border);
+  border-left-color: hsl(95 15% 50%);
+  color: var(--info-text);
+}
+
+/* Icon color per type — slightly stronger than text */
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: hsl(95 30% 32%);
+}
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: hsl(22 55% 42%);
+}
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: hsl(35 55% 40%);
+}
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: hsl(60 7% 35%);
+}
+
+/* Title & description typography */
+[data-sonner-toast] [data-title] {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.4;
+  color: inherit;
+}
+[data-sonner-toast] [data-description] {
+  font-size: 13px;
+  line-height: 1.5;
+  color: inherit;
+  opacity: 0.82;
+  margin-top: 2px;
+}
+
+/* Close button — subtle, tinted */
+[data-sonner-toast] [data-close-button] {
+  background: transparent;
+  border: 1px solid var(--normal-border);
+  color: inherit;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+[data-sonner-toast] [data-close-button]:hover {
+  opacity: 1;
+  background: hsl(0 0% 0% / 0.04);
+}
+
+/* Dark mode */
+.dark [data-sonner-toaster] {
+  --normal-bg: hsl(var(--card));
+  --normal-text: hsl(var(--card-foreground));
+  --normal-border: hsl(var(--border));
+
+  --success-bg: hsl(95 20% 14%);
+  --success-border: hsl(95 20% 24%);
+  --success-text: hsl(95 25% 85%);
+
+  --error-bg: hsl(22 40% 14%);
+  --error-border: hsl(22 40% 24%);
+  --error-text: hsl(22 50% 85%);
+
+  --warning-bg: hsl(40 35% 14%);
+  --warning-border: hsl(40 35% 24%);
+  --warning-text: hsl(40 50% 85%);
+
+  --info-bg: hsl(60 8% 14%);
+  --info-border: hsl(60 8% 22%);
+  --info-text: hsl(60 8% 85%);
+}
+
+.dark [data-sonner-toast] {
+  box-shadow:
+    0 4px 8px hsl(0 0% 0% / 0.3),
+    0 12px 24px hsl(0 0% 0% / 0.25);
+}
+
+.dark [data-sonner-toast] [data-icon] {
+  filter: brightness(1.15);
+}
