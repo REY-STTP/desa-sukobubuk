@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireAdmin } from '@/lib/admin-guard'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
 
   try {
     const formData = await req.formData()

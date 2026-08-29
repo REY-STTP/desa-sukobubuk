@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { revalidateTag } from 'next/cache'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
+import { requireAdmin } from '@/lib/admin-guard'
 import { CACHE_TAGS } from '@/lib/cache'
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
 
   try {
     const body = await req.json()

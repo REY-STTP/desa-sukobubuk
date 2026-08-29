@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { revalidateTag } from 'next/cache'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
+import { sanitizeRichText } from '@/lib/sanitize'
+import { requireAdmin } from '@/lib/admin-guard'
 import { CACHE_TAGS } from '@/lib/cache'
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
+  const { session } = guard
 
   try {
     const body = await req.json()
@@ -24,7 +25,13 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
 
     const berita = await prisma.berita.create({
-      data: { judul, slug: finalSlug, konten, thumbnail: thumbnail ?? null, author_id: user.id },
+      data: {
+        judul,
+        slug: finalSlug,
+        konten: sanitizeRichText(konten),
+        thumbnail: thumbnail ?? null,
+        author_id: user.id,
+      },
     })
 
     revalidateTag(CACHE_TAGS.berita, 'max')

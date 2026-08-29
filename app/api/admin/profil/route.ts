@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sanitizeRichText } from '@/lib/sanitize'
+import { requireAdmin } from '@/lib/admin-guard'
 
 export async function GET() {
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
+
   const profil = await prisma.profilDesa.findFirst()
   return NextResponse.json(profil)
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
 
   try {
     const body = await req.json()
@@ -27,7 +30,9 @@ export async function PUT(req: NextRequest) {
       jumlah_penduduk: Number(jumlah_penduduk),
       tahun_berdiri, alamat_kantor, telepon, email, whatsapp,
       jam_pelayanan, maps_embed_url, maps_link,
-      sejarah_konten, visi, misi, periode_visi_misi,
+      // Defense-in-depth: sanitize sejarah_konten on save
+      sejarah_konten: sanitizeRichText(sejarah_konten),
+      visi, misi, periode_visi_misi,
     }
 
     const profil = existing

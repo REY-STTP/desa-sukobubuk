@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { revalidateTag } from 'next/cache'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAdmin } from '@/lib/admin-guard'
 import { CACHE_TAGS } from '@/lib/cache'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
 
-  const { id } = await params
+  const { id: idRaw } = await params
+  const id = Number.parseInt(idRaw, 10)
+  if (!Number.isFinite(id) || id <= 0) {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+  }
   try {
     const { nama_produk, slug, deskripsi, harga, umkm_id, is_available, foto } = await req.json()
     const produk = await prisma.produk.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: { nama_produk, slug, deskripsi, harga, umkm_id: Number(umkm_id), foto: foto ?? null, is_available },
     })
 
@@ -27,12 +30,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
 
-  const { id } = await params
+  const { id: idRaw } = await params
+  const id = Number.parseInt(idRaw, 10)
+  if (!Number.isFinite(id) || id <= 0) {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+  }
   try {
-    await prisma.produk.delete({ where: { id: parseInt(id) } })
+    await prisma.produk.delete({ where: { id } })
 
     revalidateTag(CACHE_TAGS.produk, 'max')
     revalidateTag(CACHE_TAGS.dashboard, 'max')

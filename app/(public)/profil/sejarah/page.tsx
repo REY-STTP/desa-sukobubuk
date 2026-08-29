@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { BookOpen, Calendar, ScrollText, Sparkles } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+import { sanitizeRichText } from '@/lib/sanitize'
 import { notFound } from 'next/navigation'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
@@ -73,7 +74,7 @@ export default async function SejarahPage() {
 
             <div
               className="prose-content"
-              dangerouslySetInnerHTML={{ __html: profil.sejarah_konten }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(profil.sejarah_konten) }}
             />
           </div>
 

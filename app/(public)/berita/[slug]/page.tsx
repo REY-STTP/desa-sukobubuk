@@ -4,6 +4,7 @@ import { Calendar, User, ArrowLeft, Newspaper, Share2, Tag as TagIcon } from 'lu
 import Link from 'next/link'
 import Image from 'next/image'
 import { formatDate, stripHtml, truncate } from '@/lib/utils'
+import { sanitizeRichText } from '@/lib/sanitize'
 import { Button } from '@/components/ui/button'
 import { Section } from '@/components/ui/section'
 import { Tag } from '@/components/ui/tag'
@@ -129,7 +130,7 @@ export default async function BeritaDetailPage({ params }: Props) {
 
             <div
               className="prose-content max-w-none"
-              dangerouslySetInnerHTML={{ __html: berita.konten }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(berita.konten) }}
             />
 
             {/* Footer artikel */}

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// F-107: API-002 — the public GET was removed (PII leak).
+// Admin listing of messages now lives at /api/admin/pesan (see
+// `app/api/admin/pesan/route.ts`).
+//
+// Only POST remains here for the public contact form.
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -23,17 +29,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: pesan }, { status: 201 })
   } catch (error) {
     console.error('Error creating pesan:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-export async function GET() {
-  try {
-    const pesan = await prisma.pesan.findMany({
-      orderBy: { created_at: 'desc' },
-    })
-    return NextResponse.json(pesan)
-  } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

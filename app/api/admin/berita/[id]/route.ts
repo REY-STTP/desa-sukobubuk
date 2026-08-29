@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { revalidateTag } from 'next/cache'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sanitizeRichText } from '@/lib/sanitize'
+import { requireAdmin } from '@/lib/admin-guard'
 import { CACHE_TAGS } from '@/lib/cache'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
 
-  const { id } = await params
+  const { id: idRaw } = await params
+  const id = Number.parseInt(idRaw, 10)
+  if (!Number.isFinite(id) || id <= 0) {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+  }
   try {
     const { judul, slug, konten, thumbnail } = await req.json()
     const berita = await prisma.berita.update({
-      where: { id: parseInt(id) },
-      data: { judul, slug, konten, thumbnail: thumbnail ?? null },
+      where: { id },
+      data: {
+        judul,
+        slug,
+        konten: sanitizeRichText(konten),
+        thumbnail: thumbnail ?? null,
+      },
     })
 
     revalidateTag(CACHE_TAGS.berita, 'max')
@@ -27,12 +36,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
 
-  const { id } = await params
+  const { id: idRaw } = await params
+  const id = Number.parseInt(idRaw, 10)
+  if (!Number.isFinite(id) || id <= 0) {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+  }
   try {
-    await prisma.berita.delete({ where: { id: parseInt(id) } })
+    await prisma.berita.delete({ where: { id } })
 
     revalidateTag(CACHE_TAGS.berita, 'max')
     revalidateTag(CACHE_TAGS.dashboard, 'max')

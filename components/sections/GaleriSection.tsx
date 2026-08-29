@@ -30,7 +30,12 @@ function GaleriMedia({
   className?: string
 }) {
   const gradient = placeholderGradients[index % placeholderGradients.length]
-  const hasValidFoto = item.foto?.startsWith('/uploads/')
+  // F-104: SEC-006 — accept both legacy local paths (pre-Cloudinary) and
+  // absolute Cloudinary URLs.
+  const hasValidFoto =
+    !!item.foto &&
+    (item.foto.startsWith('/uploads/') ||
+      item.foto.startsWith('https://res.cloudinary.com/'))
 
   if (hasValidFoto) {
     return (

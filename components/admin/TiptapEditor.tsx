@@ -10,7 +10,7 @@ import {
   Bold, Italic, UnderlineIcon, Strikethrough,
   List, ListOrdered, Heading2, Heading3,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Link as LinkIcon, Undo, Redo, Quote
+  Link as LinkIcon, Link2Off, Undo, Redo, Quote
 } from 'lucide-react'
 
 interface TiptapEditorProps {
@@ -58,7 +58,18 @@ export default function TiptapEditor({ value, onChange, placeholder }: TiptapEdi
       Underline,
       Link.configure({
         openOnClick: false,
-        HTMLAttributes: { class: 'text-blue-600 underline' },
+        autolink: true,
+        // F-203: force safe rel + target on every link, even those inserted
+        // by paste or by a future extension. Defence-in-depth alongside
+        // server-side sanitization in `lib/sanitize.ts`.
+        HTMLAttributes: {
+          class: 'text-blue-600 underline',
+          rel: 'noopener noreferrer',
+          target: '_blank',
+        },
+        // Reject any non-http(s)/relative/anchor/mailto/tel scheme
+        validate: (href: string) =>
+          /^(https?:\/\/|\/|#|mailto:|tel:)/i.test(href),
       }),
       TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right', 'justify'] }),
       Placeholder.configure({
@@ -79,11 +90,30 @@ export default function TiptapEditor({ value, onChange, placeholder }: TiptapEdi
 
   if (!editor) return null
 
+  // F-203: restrict Tiptap Link to safe URL schemes only. Defence-in-depth
+  // alongside the server-side sanitizer in `lib/sanitize.ts`.
+  const SAFE_URL_REGEX = /^(https?:\/\/|\/|#|mailto:|tel:)/i
+
   const addLink = () => {
     const url = window.prompt('Masukkan URL:')
-    if (url) {
-      editor.chain().focus().setLink({ href: url }).run()
+    if (!url) return
+    const trimmed = url.trim()
+    if (!SAFE_URL_REGEX.test(trimmed)) {
+      window.alert(
+        'URL tidak valid. Gunakan link http(s), path relatif (/…), anchor (#…), mailto: atau tel:'
+      )
+      return
     }
+    editor
+      .chain()
+      .focus()
+      .extendMarkRange('link')
+      .setLink({ href: trimmed, target: '_blank', rel: 'noopener noreferrer' })
+      .run()
+  }
+
+  const unsetLink = () => {
+    editor.chain().focus().extendMarkRange('link').unsetLink().run()
   }
 
   return (
@@ -214,6 +244,9 @@ export default function TiptapEditor({ value, onChange, placeholder }: TiptapEdi
           title="Tambah Link"
         >
           <LinkIcon className="size-4" />
+        </ToolbarButton>
+        <ToolbarButton onClick={unsetLink} active={false} title="Hapus Link">
+          <Link2Off className="size-4" />
         </ToolbarButton>
       </div>
 

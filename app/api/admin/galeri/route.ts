@@ -1,45 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { revalidateTag } from 'next/cache'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
+import { requireAdmin } from '@/lib/admin-guard'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 import { CACHE_TAGS } from '@/lib/cache'
 
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
 
   try {
     const formData = await req.formData()
-    const judul = formData.get('judul') as string
-    const foto = formData.get('foto') as File
+    const judul = formData.get('judul') as string | null
+    const foto = formData.get('foto') as File | null
 
     if (!judul) return NextResponse.json({ error: 'Judul wajib diisi' }, { status: 400 })
     if (!foto) return NextResponse.json({ error: 'Foto wajib diupload' }, { status: 400 })
 
-    if (foto.size > 5 * 1024 * 1024) {
+    if (foto.size > MAX_SIZE) {
       return NextResponse.json({ error: 'Ukuran foto maksimal 5MB' }, { status: 400 })
     }
-
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-    if (!allowedTypes.includes(foto.type)) {
+    if (!ALLOWED_TYPES.includes(foto.type)) {
       return NextResponse.json({ error: 'Format foto harus JPG, PNG, atau WEBP' }, { status: 400 })
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads')
-    await mkdir(uploadDir, { recursive: true })
-
-    const ext = foto.name.split('.').pop()
-    const fileName = `galeri-${Date.now()}.${ext}`
-    const filePath = path.join(uploadDir, fileName)
-
-    const bytes = await foto.arrayBuffer()
-    await writeFile(filePath, Buffer.from(bytes))
+    // F-104: switch from local filesystem to Cloudinary so the upload survives
+    // Vercel's read-only filesystem and ephemeral deployments.
+    const buffer = Buffer.from(await foto.arrayBuffer())
+    const { url } = await uploadToCloudinary(buffer, 'galeri', {
+      transformation: [{ quality: 'auto', fetch_format: 'auto' }],
+    })
 
     const galeri = await prisma.galeri.create({
-      data: { judul, foto: `/uploads/${fileName}` },
+      data: { judul, foto: url },
     })
 
     revalidateTag(CACHE_TAGS.galeri, 'max')

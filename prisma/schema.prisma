@@ -47,6 +47,7 @@ model UMKM {
   created_at  DateTime  @default(now())
   produk      Produk[]
 
+  @@index([created_at])
   @@map("umkm")
 }
 
@@ -62,6 +63,7 @@ model Produk {
   created_at   DateTime @default(now())
   umkm         UMKM     @relation(fields: [umkm_id], references: [id], onDelete: Cascade)
 
+  @@index([created_at])
   @@map("produk")
 }
 
@@ -75,6 +77,7 @@ model Berita {
   created_at DateTime @default(now())
   author     User     @relation(fields: [author_id], references: [id])
 
+  @@index([created_at])
   @@map("berita")
 }
 
@@ -84,6 +87,7 @@ model Galeri {
   foto       String
   created_at DateTime @default(now())
 
+  @@index([created_at])
   @@map("galeri")
 }
 
@@ -95,6 +99,7 @@ model Pesan {
   is_read    Boolean  @default(false)
   created_at DateTime @default(now())
 
+  @@index([created_at])
   @@map("pesan")
 }
 

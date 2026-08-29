@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAdmin } from '@/lib/admin-guard'
 import bcrypt from 'bcryptjs'
 
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireAdmin()
+  if ('error' in guard) return guard.error
+  const { session } = guard
 
   const body = await req.json()
   const { type } = body
