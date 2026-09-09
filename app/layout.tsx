@@ -136,8 +136,15 @@ export const metadata: Metadata = {
   },
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION,
-    // Optional — env-driven; only included when set.
-    ...(process.env.BING_SITE_VERIFICATION ? { bing: process.env.BING_SITE_VERIFICATION } : {}),
+    // Bing TIDAK punya key khusus di tipe Verification (hanya
+    // google/yahoo/yandex/me/other) — key `bing:` diam-diam diabaikan
+    // Next saat render (dan lolos tsc karena spread menghindari
+    // excess-property check). Jalur yang benar: `other`.
+    other: {
+      ...(process.env.BING_SITE_VERIFICATION
+        ? { 'msvalidate.01': process.env.BING_SITE_VERIFICATION }
+        : {}),
+    },
   },
 }
 
