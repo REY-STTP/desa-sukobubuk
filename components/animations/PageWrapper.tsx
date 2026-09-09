@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 
 interface Props {
   children: React.ReactNode
@@ -8,11 +8,19 @@ interface Props {
 }
 
 export default function PageWrapper({ children, className }: Props) {
+  const shouldReduceMotion = useReducedMotion()
+
+  if (shouldReduceMotion) {
+    return <div className={className}>{children}</div>
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
+      // P1-C3: opacity-only (tanpa geser y) + durasi pendek — konten tak
+      // bergeser (nol kontribusi CLS) dan LCP terukur lebih cepat.
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
       className={className}
     >
       {children}

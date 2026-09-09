@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useInView } from 'framer-motion'
+import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { useRef } from 'react'
 
 interface Props {
@@ -31,6 +31,11 @@ export const itemVariants = {
 export default function StaggerContainer({ children, className, staggerDelay = 0.1, once = true }: Props) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once, margin: '-60px' })
+  // P1-A3: render polos saat prefers-reduced-motion.
+  const shouldReduceMotion = useReducedMotion()
+  if (shouldReduceMotion) {
+    return <div ref={ref} className={className}>{children}</div>
+  }
 
   return (
     <motion.div

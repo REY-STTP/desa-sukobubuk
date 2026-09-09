@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Images, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Galeri } from '@prisma/client'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import FocusTrap from 'focus-trap-react'
+import { RemoveScroll } from 'react-remove-scroll'
 import { Section, SectionHeader } from '@/components/ui/section'
 import { Button } from '@/components/ui/button'
 
@@ -44,6 +46,29 @@ function GaleriMedia({
         alt={item.judul}
         className={className}
         draggable={false}
+        // P1-C3: lazy agar 6 foto bawah-fold tak berebut bandwidth LCP.
+        loading="lazy"
+        decoding="async"
+        // F-310 / PERF-008 (from audit §23.6) — if the image URL is broken
+        // (404 / 403 / deleted from Cloudinary), the user would otherwise
+        // see the alt text in a tiny box. Replace with the gradient
+        // placeholder instead.
+        onError={(e) => {
+          const el = e.currentTarget as HTMLImageElement
+          // Guard: onError can fire multiple times (e.g., if src is reset); avoid appending duplicate captions
+          if ((el as unknown as { _handled?: boolean })._handled) return
+          ;(el as unknown as { _handled: boolean })._handled = true
+          el.style.display = 'none'
+          const parent = el.parentElement
+          if (parent && !parent.querySelector('p[data-error-caption]')) {
+            parent.style.background = placeholderGradients[index % placeholderGradients.length]
+            const caption = document.createElement('p')
+            caption.setAttribute('data-error-caption', 'true')
+            caption.className = 'line-clamp-2 text-center text-sm font-medium text-white/80'
+            caption.textContent = item.judul
+            parent.appendChild(caption)
+          }
+        }}
       />
     )
   }
@@ -64,8 +89,10 @@ function GaleriMedia({
 export default function GaleriSection({ galeri }: Props) {
   const [lightbox, setLightbox] = useState<number | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
   const total = galeri.length
 
   const updateScrollState = useCallback(() => {
@@ -94,7 +121,7 @@ export default function GaleriSection({ galeri }: Props) {
     el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' })
   }
 
-  // Keyboard navigation for lightbox
+  // Keyboard navigation for lightbox (Esc / Arrow keys)
   useEffect(() => {
     if (lightbox === null) return
     const handler = (e: KeyboardEvent) => {
@@ -108,17 +135,41 @@ export default function GaleriSection({ galeri }: Props) {
     return () => window.removeEventListener('keydown', handler)
   }, [lightbox, total])
 
-  // Lock body scroll when lightbox open
+  // A11Y-002: body scroll lock — save/restore overflow + compensate scrollbar width
+  // Replaces naive `document.body.style.overflow='hidden'` which leaves page stuck
+  // if the component unmounts or multiple overlays interact. Also handles iOS overscroll.
   useEffect(() => {
-    if (lightbox !== null) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
+    if (lightbox === null) return
+    const body = document.body
+    const html = document.documentElement
+    const scrollbarWidth = window.innerWidth - html.clientWidth
+    const prevBodyOverflow = body.style.overflow
+    const prevBodyPaddingRight = body.style.paddingRight
+    const prevHtmlOverflow = html.style.overflow
+    const prevBodyOverscroll = (body.style as unknown as Record<string, string>).overscrollBehavior ?? ''
+
+    body.style.overflow = 'hidden'
+    html.style.overflow = 'hidden'
+    // Prevent layout shift when scrollbar disappears
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`
     }
+    // iOS / modern browsers: contain overscroll inside overlay
+    ;(body.style as unknown as Record<string, string>).overscrollBehavior = 'contain'
+
     return () => {
-      document.body.style.overflow = ''
+      body.style.overflow = prevBodyOverflow
+      body.style.paddingRight = prevBodyPaddingRight
+      html.style.overflow = prevHtmlOverflow
+      ;(body.style as unknown as Record<string, string>).overscrollBehavior = prevBodyOverscroll
     }
   }, [lightbox])
+
+  // P2-G1: SATU mekanisme fokus = FocusTrap di bawah (initial focus via
+  // fallbackFocus, Tab trap + return-focus bawaan, Escape via
+  // escapeDeactivates). Blok manual duplikat (initial-focus/Tab/restore)
+  // dihapus agar tak konflik. Efek keyboard Esc/Arrow terpisah
+  // dipertahankan (navigasi antar foto, bukan trapping).
 
   // Drag to scroll (mouse)
   const isDragging = useRef(false)
@@ -270,32 +321,47 @@ export default function GaleriSection({ galeri }: Props) {
           <span className="hidden sm:inline">Geser atau gunakan panah untuk melihat lebih banyak</span>
           <span className="sm:hidden">Geser ke samping untuk melihat lebih banyak</span>
         </p>
-        <span className="font-mono text-xs tabular-nums text-stone-400">
+        <span className="font-mono text-xs tabular-nums text-stone-500">
           {total} foto
         </span>
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox — A11Y-002: FocusTrap + RemoveScroll, A11Y-006: prefers-reduced-motion */}
       <AnimatePresence>
         {lightbox !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] grid place-items-center bg-sage-950/95 p-4 backdrop-blur-sm"
-            onClick={() => setLightbox(null)}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Lightbox galeri"
-          >
-            <motion.div
-              initial={{ scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.92, opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="relative w-full max-w-3xl"
-              onClick={(e) => e.stopPropagation()}
+          <RemoveScroll>
+            <FocusTrap
+              active={lightbox !== null}
+              focusTrapOptions={{
+                fallbackFocus: () => dialogRef.current as HTMLElement,
+                // P2-G1: FocusTrap satu-satunya penrap fokus (Tab trap,
+                // initial focus, return-focus bawaan). Escape menutup
+                // (efek keyboard Esc/Arrow terpisah tetap ada, idempoten).
+                escapeDeactivates: true,
+                clickOutsideDeactivates: true,
+                onDeactivate: () => setLightbox(null),
+              }}
             >
+              <motion.div
+                initial={shouldReduceMotion ? false : { opacity: 0 }}
+                animate={shouldReduceMotion ? {} : { opacity: 1 }}
+                exit={shouldReduceMotion ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0 }}
+                className="fixed inset-0 z-[100] grid place-items-center bg-sage-950/95 p-4 backdrop-blur-sm"
+                onClick={() => setLightbox(null)}
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Lightbox galeri: ${galeri[lightbox].judul}`}
+              >
+                <motion.div
+                  ref={dialogRef}
+                  tabIndex={-1}
+                  initial={shouldReduceMotion ? false : { scale: 0.92, opacity: 0 }}
+                  animate={shouldReduceMotion ? {} : { scale: 1, opacity: 1 }}
+                  exit={shouldReduceMotion ? { scale: 1, opacity: 0, transition: { duration: 0 } } : { scale: 0.92, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="relative w-full max-w-3xl outline-none"
+                  onClick={(e) => e.stopPropagation()}
+                >
               <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-elevated-5 sm:aspect-[16/10]">
                 <GaleriMedia
                   item={galeri[lightbox]}
@@ -339,8 +405,8 @@ export default function GaleriSection({ galeri }: Props) {
 
               <button
                 onClick={() => setLightbox(null)}
-                className="absolute -top-12 right-0 grid size-10 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition-colors hover:bg-white/20"
-                aria-label="Tutup"
+                className="absolute top-2 right-2 z-10 grid size-10 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur transition-colors hover:bg-white/20 md:-top-12 md:right-0"
+                aria-label={`Tutup pratinjau: ${galeri[lightbox].judul}`}
               >
                 <X className="size-5" />
               </button>
@@ -350,6 +416,8 @@ export default function GaleriSection({ galeri }: Props) {
               </p>
             </motion.div>
           </motion.div>
+            </FocusTrap>
+          </RemoveScroll>
         )}
       </AnimatePresence>
     </Section>

@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Store, Package, Newspaper, Building2,
   Images, MessageSquare, Settings, LogOut, ChevronRight, X, ExternalLink, ArrowLeftRight,
-  Pin, PinOff,
+  Pin, PinOff, ShieldCheck,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -21,6 +21,7 @@ const navItems = [
   { href: '/admin/galeri', label: 'Kelola Galeri', icon: Images },
   { href: '/admin/profil', label: 'Profil Desa', icon: Building2 },
   { href: '/admin/pesan', label: 'Pesan Masuk', icon: MessageSquare },
+  { href: '/admin/audit-log', label: 'Audit Log', icon: ShieldCheck },
 ]
 
 interface Props {
@@ -39,7 +40,7 @@ function SidebarContent({ namaDesa, logoUrl, unreadCount = 0, onClose }: Props &
       <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
         <Link href="/admin" onClick={onClose} className="flex items-center gap-3">
           <div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/15 shrink-0">
-            {logoUrl ? <Image src={logoUrl} alt={namaDesa} width={40} height={40} className="size-full object-contain" unoptimized /> : <span className="font-display text-base font-semibold text-white">{initial}</span>}
+            {logoUrl ? <Image src={logoUrl} alt={namaDesa} width={40} height={40} className="size-full object-contain" /> : <span className="font-display text-base font-semibold text-white">{initial}</span>}
           </div>
           <div className="min-w-0">
             <p className="truncate font-display text-sm font-semibold leading-tight text-white">{namaDesa}</p>
@@ -105,11 +106,13 @@ function DesktopSidebar({ namaDesa, logoUrl, unreadCount = 0 }: Props) {
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/')
   const initial = namaDesa.split(' ').find(w => w.length > 2 && w.toLowerCase() !== 'desa')?.[0]?.toUpperCase() ?? namaDesa[0]
 
-  const [isLocked, setIsLocked] = useState(false)
-  useEffect(() => {
-    const saved = localStorage.getItem('admin-sidebar-locked')
-    if (saved === '1') setIsLocked(true)
-  }, [])
+  // DEPS-004 / Phase 06 — read localStorage during lazy initial state
+  // so the effect doesn't need to call setState synchronously (which
+  // triggers the `react-hooks/set-state-in-effect` rule).
+  const [isLocked, setIsLocked] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('admin-sidebar-locked') === '1'
+  })
   useEffect(() => {
     localStorage.setItem('admin-sidebar-locked', isLocked ? '1' : '0')
   }, [isLocked])
@@ -130,7 +133,7 @@ function DesktopSidebar({ namaDesa, logoUrl, unreadCount = 0 }: Props) {
         <div className="flex h-[64px] shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3">
           <Link href="/admin" className="flex min-w-0 items-center gap-3">
             <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/15">
-              {logoUrl ? <Image src={logoUrl} alt={namaDesa} width={36} height={36} className="size-full object-contain" unoptimized /> : <span className="font-display text-sm font-semibold text-white">{initial}</span>}
+              {logoUrl ? <Image src={logoUrl} alt={namaDesa} width={36} height={36} className="size-full object-contain" /> : <span className="font-display text-sm font-semibold text-white">{initial}</span>}
             </span>
             <span className={cn('min-w-0 transition-[opacity,transform] duration-200', isLocked ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1 group-hover/sb:opacity-100 group-hover/sb:translate-x-0 group-hover/sb:delay-75')}>
               <span className="block truncate font-display text-sm font-semibold leading-tight text-white">{namaDesa}</span>

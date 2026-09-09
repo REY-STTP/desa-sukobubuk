@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Store, ArrowRight, MapPin, Star, Sparkles } from 'lucide-react'
 import { UMKM } from '@prisma/client'
+import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import { Button } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
 import { Section, SectionHeader } from '@/components/ui/section'
@@ -52,7 +53,16 @@ export default function FeaturedUMKM({ umkm }: Props) {
           <article className="surface-elevated flex flex-col overflow-hidden rounded-3xl sm:flex-row">
             <div className="relative aspect-square shrink-0 overflow-hidden bg-gradient-to-br from-sage-100 to-stone-100 sm:aspect-square sm:w-[42%]">
               {featured.logo ? (
-                <Image src={featured.logo} alt={featured.nama_usaha} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
+                <Image
+                  src={featured.logo}
+                  alt={featured.nama_usaha}
+                  fill
+                  sizes="(min-width: 1024px) 33vw, 100vw"
+                  // P1-C3: tanpa priority — LCP halaman adalah teks hero,
+                  // bukan gambar ini. Priority ganda berebut bandwidth.
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  unoptimized={shouldSkipImageOptimization(featured.logo)}
+                />
               ) : (
                 <div className="grid size-full place-items-center">
                   <Store className="size-16 text-sage-300" />
@@ -121,8 +131,10 @@ export default function FeaturedUMKM({ umkm }: Props) {
                   src={featured.logo}
                   alt={featured.nama_usaha}
                   fill
+                  sizes="(min-width: 1024px) 58vw, 100vw"
+                  // P1-C3: tanpa priority — lihat catatan di atas.
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  unoptimized
+                  unoptimized={shouldSkipImageOptimization(featured.logo)}
                 />
               ) : (
                 <div className="grid size-full place-items-center">
@@ -170,8 +182,9 @@ export default function FeaturedUMKM({ umkm }: Props) {
                       src={item.logo}
                       alt={item.nama_usaha}
                       fill
+                      sizes="(min-width: 1024px) 16vw, 50vw"
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      unoptimized
+                      unoptimized={shouldSkipImageOptimization(item.logo)}
                     />
                   ) : (
                     <div className="grid size-full place-items-center">

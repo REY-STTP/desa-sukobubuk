@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { getProfilLengkap } from '@/lib/cache'
 import NavbarClient from './NavbarClient'
 
 export default async function Navbar() {
@@ -12,16 +12,8 @@ export default async function Navbar() {
   } | null = null
 
   try {
-    profil = await prisma.profilDesa.findFirst({
-      select: {
-        nama_desa: true,
-        nama_kecamatan: true,
-        nama_kabupaten: true,
-        alamat_kantor: true,
-        telepon: true,
-        email: true,
-      },
-    })
+    // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
+    profil = await getProfilLengkap()
   } catch {
     // DB down — pakai fallback default
   }
@@ -29,7 +21,7 @@ export default async function Navbar() {
   return (
     <NavbarClient
       namaDesa={profil?.nama_desa ?? 'Desa Sukobubuk'}
-      logoUrl="/images/logo-desa.png"
+      logoUrl="/images/logo-desa.webp"
       namaKecamatan={profil?.nama_kecamatan ?? 'Kec. Margorejo'}
       namaKabupaten={profil?.nama_kabupaten ?? 'Kab. Pati'}
       telepon={profil?.telepon ?? null}

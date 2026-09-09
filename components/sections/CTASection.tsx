@@ -2,16 +2,15 @@ import Link from 'next/link'
 import { ArrowRight, MessageCircle, Quote } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Section } from '@/components/ui/section'
-import { prisma } from '@/lib/prisma'
+import { getProfilLengkap } from '@/lib/cache'
 
 export const revalidate = 600
 
 export default async function CTASection() {
   let profil: { nama_desa: string | null; visi: string | null } | null = null
   try {
-    profil = await prisma.profilDesa.findFirst({
-      select: { nama_desa: true, visi: true },
-    })
+    // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
+    profil = await getProfilLengkap()
   } catch {
     // DB down — pakai fallback
   }

@@ -1,46 +1,40 @@
-import { prisma } from '@/lib/prisma'
 import HeroClient from './HeroClient'
 
-export const revalidate = 300
+// P1-C2: data dioper dari `getHomeData()` via page (satu round-trip).
+// Query ganda profil/count di sini dihapus — sebelumnya ~3 query tambahan
+// per request homepage yang duplikat dengan `page.tsx`.
+type HeroSectionProps = {
+  namaDesa: string
+  namaKecamatan: string
+  namaKabupaten: string
+  namaProvinsi: string
+  kodePos: string
+  jumlahPenduduk: number
+  tahunBerdiri: string
+  totalUMKM: number
+  totalProduk: number
+}
 
-export default async function HeroSection() {
-  let profil = null
-  let totalUMKM = 0
-  let totalProduk = 0
-
-  try {
-    const results = await Promise.allSettled([
-      prisma.profilDesa.findFirst({
-        select: {
-          nama_desa: true,
-          nama_kecamatan: true,
-          nama_kabupaten: true,
-          nama_provinsi: true,
-          kode_pos: true,
-          jumlah_penduduk: true,
-          tahun_berdiri: true,
-        },
-      }),
-      prisma.uMKM.count(),
-      prisma.produk.count(),
-    ])
-
-    profil = results[0].status === 'fulfilled' ? results[0].value : null
-    totalUMKM = results[1].status === 'fulfilled' ? results[1].value : 0
-    totalProduk = results[2].status === 'fulfilled' ? results[2].value : 0
-  } catch {
-    // DB down — pakai fallback default
-  }
-
+export default function HeroSection({
+  namaDesa,
+  namaKecamatan,
+  namaKabupaten,
+  namaProvinsi,
+  kodePos,
+  jumlahPenduduk,
+  tahunBerdiri,
+  totalUMKM,
+  totalProduk,
+}: HeroSectionProps) {
   return (
     <HeroClient
-      namaDesa={profil?.nama_desa ?? 'Desa Sukobubuk'}
-      namaKecamatan={profil?.nama_kecamatan ?? 'Kecamatan Margorejo'}
-      namaKabupaten={profil?.nama_kabupaten ?? 'Kabupaten Pati'}
-      namaProvinsi={profil?.nama_provinsi ?? 'Jawa Tengah'}
-      kodePos={profil?.kode_pos ?? '59163'}
-      jumlahPenduduk={profil?.jumlah_penduduk ?? 0}
-      tahunBerdiri={profil?.tahun_berdiri?.toString() ?? ''}
+      namaDesa={namaDesa}
+      namaKecamatan={namaKecamatan}
+      namaKabupaten={namaKabupaten}
+      namaProvinsi={namaProvinsi}
+      kodePos={kodePos}
+      jumlahPenduduk={jumlahPenduduk}
+      tahunBerdiri={tahunBerdiri}
       totalUMKM={totalUMKM}
       totalProduk={totalProduk}
     />

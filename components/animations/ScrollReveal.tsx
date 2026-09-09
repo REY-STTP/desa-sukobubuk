@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useInView } from 'framer-motion'
+import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { useRef } from 'react'
 
 interface Props {
@@ -22,6 +22,12 @@ export default function ScrollReveal({
 }: Props) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once, margin: '-80px' })
+  // P1-A3: tanpa gerakan untuk prefers-reduced-motion (sekaligus terlihat
+  // langsung tanpa menunggu in-view + JS animasi).
+  const shouldReduceMotion = useReducedMotion()
+  if (shouldReduceMotion) {
+    return <div ref={ref} className={className}>{children}</div>
+  }
 
   const directionOffset = {
     up: { y: 40, x: 0 },

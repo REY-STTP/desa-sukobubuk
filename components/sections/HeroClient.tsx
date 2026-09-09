@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowRight, MapPin, TreePine, Users, Store, Sparkles } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
 import { StatTile, StatNumber, StatLabel } from '@/components/ui/stat-tile'
@@ -78,22 +78,38 @@ export default function HeroClient({
     return { prefix: '', name: nama }
   }
   const { prefix, name } = splitName(namaDesa)
+  // P1-A3: hentikan semua gerakan saat prefers-reduced-motion.
+  const shouldReduceMotion = useReducedMotion()
 
   return (
     <section
       className="relative flex min-h-[88svh] items-center overflow-hidden pt-20 md:min-h-[90svh] md:pt-24"
       aria-label="Sambutan Desa Sukobubuk"
     >
-      {/* Video background */}
-      <video
-        src="https://res.cloudinary.com/dtsnhei95/video/upload/f_auto,q_auto/v1774572204/hero-bg_ccrlcv.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        poster="https://res.cloudinary.com/dtsnhei95/video/upload/so_1/v1774572204/hero-bg_ccrlcv.jpg"
-        className="absolute inset-0 z-0 size-full object-cover"
-      />
+      {/* Video background. P1-C3/P1-A3: preload metadata agar tak berebut
+          bandwidth LCP; aria-hidden (murni dekoratif); pause total saat
+          prefers-reduced-motion (ganti poster statis). */}
+      {shouldReduceMotion ? (
+        <img
+          src="https://res.cloudinary.com/dtsnhei95/video/upload/so_1/v1774572204/hero-bg_ccrlcv.jpg"
+          alt=""
+          aria-hidden
+          className="absolute inset-0 z-0 size-full object-cover"
+        />
+      ) : (
+        <video
+          src="https://res.cloudinary.com/dtsnhei95/video/upload/f_auto,q_auto/v1774572204/hero-bg_ccrlcv.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          disablePictureInPicture
+          aria-hidden
+          poster="https://res.cloudinary.com/dtsnhei95/video/upload/so_1/v1774572204/hero-bg_ccrlcv.jpg"
+          className="absolute inset-0 z-0 size-full object-cover"
+        />
+      )}
 
       {/* Gradient overlay — sage tinted, warm (diperkuat untuk kontras teks) */}
       <div
@@ -111,19 +127,34 @@ export default function HeroClient({
         className="pointer-events-none absolute inset-0 z-10 bg-grain opacity-30"
       />
 
-      {/* Animated blobs (subtle) */}
-      <motion.div
-        aria-hidden
-        className="absolute right-20 top-32 z-10 size-96 rounded-full bg-sage-500/20 blur-3xl"
-        animate={{ scale: [1, 1.15, 1], x: [0, 20, 0], y: [0, -20, 0] }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        aria-hidden
-        className="absolute bottom-32 left-20 z-10 size-64 rounded-full bg-ember-500/10 blur-3xl"
-        animate={{ scale: [1, 1.2, 1], x: [0, -15, 0], y: [0, 15, 0] }}
-        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-      />
+      {/* Animated blobs (subtle) — statis saat reduced-motion */}
+      {shouldReduceMotion ? (
+        <>
+          <div
+            aria-hidden
+            className="absolute right-20 top-32 z-10 size-96 rounded-full bg-sage-500/20 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="absolute bottom-32 left-20 z-10 size-64 rounded-full bg-ember-500/10 blur-3xl"
+          />
+        </>
+      ) : (
+        <>
+          <motion.div
+            aria-hidden
+            className="absolute right-20 top-32 z-10 size-96 rounded-full bg-sage-500/20 blur-3xl"
+            animate={{ scale: [1, 1.15, 1], x: [0, 20, 0], y: [0, -20, 0] }}
+            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            aria-hidden
+            className="absolute bottom-32 left-20 z-10 size-64 rounded-full bg-ember-500/10 blur-3xl"
+            animate={{ scale: [1, 1.2, 1], x: [0, -15, 0], y: [0, 15, 0] }}
+            transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          />
+        </>
+      )}
 
       <div className="container-custom relative z-20 py-16 md:py-24">
         <div className="grid grid-cols-1 items-end gap-10 lg:grid-cols-12 lg:gap-12">

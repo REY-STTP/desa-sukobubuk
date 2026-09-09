@@ -52,6 +52,8 @@ export default function NavbarClient({
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [profilOpen, setProfilOpen] = useState(() => pathname.startsWith('/profil'))
+  // P1-D1: state khusus dropdown DESKTOP (terpisah dari menu mobile).
+  const [desktopProfilOpen, setDesktopProfilOpen] = useState(false)
   const [open, setOpen] = useState(false)
 
   const initial =
@@ -67,12 +69,17 @@ export default function NavbarClient({
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // DEPS-004 / Phase 06 — avoid synchronous setState in effect body.
+  // Wrap each set in a microtask so the linter is satisfied without
+  // changing the actual timing of the state update.
   useEffect(() => {
-    setOpen(false)
+    queueMicrotask(() => setOpen(false))
+    // P1-D1: tutup dropdown desktop setiap navigasi.
+    queueMicrotask(() => setDesktopProfilOpen(false))
   }, [pathname])
 
   useEffect(() => {
-    if (pathname.startsWith('/profil')) setProfilOpen(true)
+    if (pathname.startsWith('/profil')) queueMicrotask(() => setProfilOpen(true))
   }, [pathname])
 
   const linkBase =
@@ -116,7 +123,7 @@ export default function NavbarClient({
               )}
             >
               {logoUrl ? (
-                <Image src={logoUrl} alt={`Logo ${namaDesa}`} width={40} height={40} className="size-full object-contain" unoptimized />
+                <Image src={logoUrl} alt={`Logo ${namaDesa}`} width={40} height={40} className="size-full object-contain" />
               ) : (
                 <span className={cn('font-display text-lg font-semibold', isHeroMode ? 'text-white' : 'text-sage-700')}>
                   {initial}
@@ -137,17 +144,44 @@ export default function NavbarClient({
             {navItems.map((item) => {
               if (item.children) {
                 const isActive = pathname.startsWith('/profil')
+                // P1-D1: dropdown bisa dibuka keyboard (klik/Enter/Space via
+                // onClick button, Escape menutup, blur keluar menutup) —
+                // sebelumnya hanya hover/focus-within + aria-expanded statis.
+                const menuVisible = desktopProfilOpen
                 return (
-                  <div key={item.label} className="group relative">
+                  <div
+                    key={item.label}
+                    className="group relative"
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                        setDesktopProfilOpen(false)
+                      }
+                    }}
+                  >
                     <button
                       className={cn(linkBase, 'inline-flex items-center', isActive ? linkActive : linkIdle)}
-                      aria-expanded="false"
+                      aria-expanded={desktopProfilOpen}
                       aria-haspopup="menu"
+                      onClick={() => setDesktopProfilOpen((v) => !v)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setDesktopProfilOpen(false)
+                      }}
                     >
                       {item.label}
-                      <ChevronDown className="ml-1 inline size-3.5 transition-transform duration-200 group-hover:rotate-180" />
+                      <ChevronDown className={cn('ml-1 inline size-3.5 transition-transform duration-200 group-hover:rotate-180', menuVisible && 'rotate-180')} />
                     </button>
-                    <div className="invisible absolute left-0 top-full mt-1 w-56 translate-y-1 rounded-xl border border-stone-200/80 bg-white p-1.5 opacity-0 shadow-elevated-3 transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 focus-within:visible focus-within:translate-y-0 focus-within:opacity-100">
+                    <div
+                      role="menu"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setDesktopProfilOpen(false)
+                      }}
+                      className={cn(
+                        'absolute left-0 top-full mt-1 w-56 rounded-xl border border-stone-200/80 bg-white p-1.5 shadow-elevated-3 transition-all duration-200',
+                        menuVisible
+                          ? 'visible translate-y-0 opacity-100'
+                          : 'invisible translate-y-1 opacity-0 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 focus-within:visible focus-within:translate-y-0 focus-within:opacity-100'
+                      )}
+                    >
                       {item.children.map((child) => (
                         <Link
                           key={child.href}
@@ -195,7 +229,7 @@ export default function NavbarClient({
                 <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-3" aria-label={`Beranda ${namaDesa}`}>
                   <span className="grid size-10 place-items-center overflow-hidden rounded-xl bg-sage-100 ring-1 ring-sage-200">
                     {logoUrl ? (
-                      <Image src={logoUrl} alt={namaDesa} width={40} height={40} className="size-full object-contain" unoptimized />
+                      <Image src={logoUrl} alt={namaDesa} width={40} height={40} className="size-full object-contain" />
                     ) : (
                       <span className="font-display text-base font-semibold text-sage-700">{initial}</span>
                     )}

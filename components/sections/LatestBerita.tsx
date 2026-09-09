@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Newspaper, ArrowRight, Calendar, User } from 'lucide-react'
 import { formatDate, stripHtml, truncate } from '@/lib/utils'
+import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import { Button } from '@/components/ui/button'
 import { Section, SectionHeader } from '@/components/ui/section'
 import StaggerContainer, { StaggerItem } from '@/components/animations/StaggerContainer'
@@ -67,8 +68,10 @@ export default function LatestBerita({ berita }: Props) {
                       src={featured.thumbnail}
                       alt={featured.judul}
                       fill
+                      sizes="(min-width: 1024px) 66vw, 100vw"
+                      // P1-C3: tanpa priority — LCP halaman adalah teks hero.
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      unoptimized
+                      unoptimized={shouldSkipImageOptimization(featured.thumbnail)}
                     />
                   ) : (
                     <div className="grid size-full place-items-center">
@@ -118,8 +121,9 @@ export default function LatestBerita({ berita }: Props) {
                     src={item.thumbnail}
                     alt={item.judul}
                     fill
+                    sizes="64px"
                     className="object-cover"
-                    unoptimized
+                    unoptimized={shouldSkipImageOptimization(item.thumbnail)}
                   />
                 ) : (
                   <div className="grid size-full place-items-center">
