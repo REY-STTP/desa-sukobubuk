@@ -1,9 +1,12 @@
 import nodemailer from 'nodemailer'
+import { escapeHtml } from '@/lib/sanitize'
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
-  secure: false,
+  // P1-F2: ikuti port — 465 = SMTPS implisit (secure true), selainnya
+  // STARTTLS (perilaku existing untuk 587 dipertahankan).
+  secure: Number(process.env.SMTP_PORT) === 465,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -11,7 +14,7 @@ const transporter = nodemailer.createTransport({
 })
 
 export async function sendResetPasswordEmail(email: string, token: string, name: string) {
-  const resetUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? 'http://localhost:3000'}/admin/reset-password?token=${token}`
+  const resetUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? process.env.AUTH_URL ?? 'https://www.desa-sukobubuk.web.id'}/admin/reset-password?token=${token}`
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
@@ -24,7 +27,7 @@ export async function sendResetPasswordEmail(email: string, token: string, name:
           <p style="color: #bbf7d0; margin: 4px 0 0; font-size: 13px;">Admin Panel</p>
         </div>
         <div style="background: #f9fafb; padding: 32px; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px;">
-          <h2 style="color: #111827; font-size: 18px; margin: 0 0 8px;">Halo, ${name}!</h2>
+          <h2 style="color: #111827; font-size: 18px; margin: 0 0 8px;">Halo, ${escapeHtml(name)}!</h2>
           <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
             Kami menerima permintaan untuk mereset password akun admin Anda. 
             Klik tombol di bawah untuk membuat password baru.

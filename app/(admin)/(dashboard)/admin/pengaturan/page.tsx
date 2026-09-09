@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Tag as UTag } from '@/components/ui/tag'
 import PengaturanForm from './PengaturanForm'
@@ -8,7 +7,7 @@ import PengaturanForm from './PengaturanForm'
 export const metadata: Metadata = { title: 'Pengaturan Akun' }
 
 export default async function PengaturanPage() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   const user = await prisma.user.findUnique({
     where: { email: session!.user.email },
     select: { id: true, name: true, email: true, role: true, created_at: true },
