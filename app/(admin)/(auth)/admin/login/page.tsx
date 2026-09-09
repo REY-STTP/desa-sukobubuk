@@ -3,14 +3,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react'
 import LoginForm from './LoginForm'
-import { prisma } from '@/lib/prisma'
+import { getProfilLengkap } from '@/lib/cache'
 
 export const metadata: Metadata = { title: 'Login Admin | Desa Sukobubuk' }
 
 export default async function LoginPage() {
-  const profil = await prisma.profilDesa.findFirst({
-    select: { nama_desa: true, nama_kecamatan: true, nama_kabupaten: true },
-  })
+  // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
+  const profil = await getProfilLengkap()
 
   const namaDesa = profil?.nama_desa ?? 'Desa Sukobubuk'
 
@@ -42,7 +41,7 @@ export default async function LoginPage() {
             <Link href="/" className="flex items-center gap-3">
               <div className="grid size-12 place-items-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur">
                 <Image
-                  src="/images/logo-desa.png"
+                  src="/images/logo-desa.webp"
                   alt={namaDesa}
                   width={48}
                   height={48}
@@ -107,7 +106,7 @@ export default async function LoginPage() {
           <div className="mb-8 flex items-center justify-center gap-3 lg:hidden">
             <div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-sage-100 ring-1 ring-sage-200">
               <Image
-                src="/images/logo-desa.png"
+                src="/images/logo-desa.webp"
                 alt={namaDesa}
                 width={40}
                 height={40}

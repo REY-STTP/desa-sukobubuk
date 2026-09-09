@@ -2,10 +2,13 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import { Users, Mail, Building2 } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+import { getProfilLengkap } from '@/lib/cache'
+import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import { notFound } from 'next/navigation'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
 import { Section } from '@/components/ui/section'
+import { faqLd, ldScript } from '@/lib/structured-data'
 
 export const metadata: Metadata = {
   title: 'Struktur Organisasi',
@@ -15,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Struktur Organisasi Desa Sukobubuk',
     description: 'Pejabat dan perangkat Desa Sukobubuk.',
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://desa-sukobubuk.id'}/profil/struktur-organisasi`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.desa-sukobubuk.web.id'}/profil/struktur-organisasi`,
   },
   keywords: ['struktur organisasi Desa Sukobubuk', 'kepala desa Sukobubuk', 'perangkat desa'],
 }
@@ -64,7 +67,7 @@ function OrgCard({ pejabat, highlight = false, size = 'md' }: OrgCardProps) {
             width={80}
             height={80}
             className="size-full object-cover"
-            unoptimized
+            unoptimized={shouldSkipImageOptimization(pejabat.foto_url)}
           />
         ) : (
           <Users
@@ -123,7 +126,8 @@ function BranchTrack({ count }: { count: number }) {
 
 export default async function StrukturOrganisasiPage() {
   const [profil, pejabat] = await Promise.all([
-    prisma.profilDesa.findFirst(),
+    // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
+    getProfilLengkap(),
     prisma.pejabatDesa.findMany({
       orderBy: [{ kategori: 'asc' }, { urutan: 'asc' }],
     }),
@@ -169,7 +173,7 @@ export default async function StrukturOrganisasiPage() {
             <>
               <Connector height={32} />
               <div className="mb-4 text-center">
-                <p className="section-eyebrow text-stone-500">Kepala Seksi</p>
+                <h2 className="section-eyebrow text-stone-500">Kepala Seksi</h2>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {kasi.map((p) => (
@@ -183,7 +187,7 @@ export default async function StrukturOrganisasiPage() {
             <>
               <Connector height={32} />
               <div className="mb-4 text-center">
-                <p className="section-eyebrow text-stone-500">Kepala Urusan</p>
+                <h2 className="section-eyebrow text-stone-500">Kepala Urusan</h2>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {kaur.map((p) => (
@@ -197,7 +201,7 @@ export default async function StrukturOrganisasiPage() {
             <>
               <Connector height={32} />
               <div className="mb-4 text-center">
-                <p className="section-eyebrow text-stone-500">Kepala Dusun</p>
+                <h2 className="section-eyebrow text-stone-500">Kepala Dusun</h2>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                 {kadus.map((p) => (
@@ -213,6 +217,65 @@ export default async function StrukturOrganisasiPage() {
               <p className="text-stone-500">Data struktur organisasi belum tersedia.</p>
             </div>
           )}
+        </div>
+      </Section>
+
+      {/* SEO-005 / F-219 — FAQ block + JSON-LD */}
+      <Section variant="subtle" spacing="default">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-2 font-display text-2xl font-medium text-stone-800 text-balance">
+            Pertanyaan yang Sering Diajukan
+          </h2>
+          <p className="mb-8 text-sm text-stone-500">
+            Jawaban atas pertanyaan umum tentang struktur organisasi Desa Sukobubuk.
+          </p>
+          <dl className="flex flex-col gap-4">
+            <div className="surface-elevated p-5">
+              <dt className="faq-q font-medium text-stone-800">Siapa Kepala Desa saat ini?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
+                Kepala Desa tercantum di halaman ini (/profil/struktur-organisasi) sebagai Pejabat dengan kategori kepala.
+              </dd>
+            </div>
+            <div className="surface-elevated p-5">
+              <dt className="faq-q font-medium text-stone-800">Bagaimana cara menghubungi perangkat desa?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
+                Datang ke kantor desa pada jam pelayanan (lihat /kontak) atau gunakan formulir kontak.
+              </dd>
+            </div>
+            <div className="surface-elevated p-5">
+              <dt className="faq-q font-medium text-stone-800">Apakah struktur organisasi berubah setiap periode?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
+                Ya, struktur organisasi dapat berubah sesuai periode kepemimpinan dan regulasi yang berlaku.
+              </dd>
+            </div>
+          </dl>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={ldScript(
+              faqLd(
+                [
+                  {
+                    q: 'Siapa Kepala Desa saat ini?',
+                    a: 'Kepala Desa tercantum di halaman ini (/profil/struktur-organisasi) sebagai Pejabat dengan kategori kepala.',
+                  },
+                  {
+                    q: 'Bagaimana cara menghubungi perangkat desa?',
+                    a: 'Datang ke kantor desa pada jam pelayanan (lihat /kontak) atau gunakan formulir kontak.',
+                  },
+                  {
+                    q: 'Apakah struktur organisasi berubah setiap periode?',
+                    a: 'Ya, struktur organisasi dapat berubah sesuai periode kepemimpinan dan regulasi yang berlaku.',
+                  },
+                ],
+                {
+                  speakableXpath: [
+                    '/html/body//dt[contains(@class,"faq-q")]',
+                    '/html/body//dd[contains(@class,"faq-a")]',
+                  ],
+                }
+              )
+            )}
+          />
         </div>
       </Section>
     </PageWrapper>

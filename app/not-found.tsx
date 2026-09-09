@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { headers } from 'next/headers'
-import { Home, Search, ArrowLeft, Compass, ShieldCheck } from 'lucide-react'
+import { Home, Search, Compass, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { prisma } from '@/lib/prisma'
+import BackButton from '@/components/ui/back-button'
+import { getProfilLengkap } from '@/lib/cache'
 
 /**
  * Global 404 — dipanggil untuk SEMUA route yang tidak ditemukan
@@ -22,8 +23,9 @@ export default async function GlobalNotFound() {
     return <AdminNotFound />
   }
 
-  // Untuk publik: tampilkan branded dengan motif desa
-  const profil = await prisma.profilDesa.findFirst().catch(() => null)
+  // Untuk publik: tampilkan branded dengan motif desa.
+  // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
+  const profil = await getProfilLengkap()
   const namaDesa = profil?.nama_desa ?? 'Desa Sukobubuk'
   return <PublicNotFound namaDesa={namaDesa} />
 }
@@ -31,6 +33,7 @@ export default async function GlobalNotFound() {
 function PublicNotFound({ namaDesa }: { namaDesa: string }) {
   return (
     <main
+      id="main-content"
       className="relative flex min-h-screen items-center justify-center overflow-hidden bg-stone-50 px-6 py-16 sm:px-10"
       aria-label="Halaman tidak ditemukan"
     >
@@ -88,7 +91,7 @@ function PublicNotFound({ namaDesa }: { namaDesa: string }) {
           </Button>
         </div>
 
-        <p className="mt-10 text-xs text-stone-400">
+        <p className="mt-10 text-xs text-stone-500">
           Atau kembali ke{' '}
           <Link
             href="/berita"
@@ -107,17 +110,7 @@ function PublicNotFound({ namaDesa }: { namaDesa: string }) {
         </p>
 
         <div className="mt-10">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="text-stone-500 hover:bg-stone-100"
-          >
-            <Link href="javascript:history.back()">
-              <ArrowLeft className="size-4" data-icon="inline-start" />
-              Halaman sebelumnya
-            </Link>
-          </Button>
+          <BackButton />
         </div>
 
         <p className="mt-12 text-[11px] text-stone-400">
@@ -131,6 +124,7 @@ function PublicNotFound({ namaDesa }: { namaDesa: string }) {
 function AdminNotFound() {
   return (
     <main
+      id="main-content"
       className="relative flex min-h-screen items-center justify-center overflow-hidden bg-sage-900 px-6 py-16 text-stone-100 sm:px-10"
       aria-label="Halaman tidak ditemukan"
     >
@@ -175,17 +169,11 @@ function AdminNotFound() {
               Ke Dashboard
             </Link>
           </Button>
-          <Button
-            asChild
-            size="lg"
+          <BackButton
             variant="outline"
+            size="lg"
             className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-          >
-            <Link href="javascript:history.back()">
-              <ArrowLeft className="size-4" data-icon="inline-start" />
-              Halaman sebelumnya
-            </Link>
-          </Button>
+          />
         </div>
 
         <p className="mt-12 text-[11px] text-stone-500">

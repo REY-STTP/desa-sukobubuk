@@ -4,12 +4,14 @@ import Image from 'next/image'
 import type { Metadata } from 'next'
 import { Newspaper, Calendar, User, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDate, stripHtml, truncate } from '@/lib/utils'
+import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
 import { Section, SectionHeader } from '@/components/ui/section'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { getBeritaPublik, PUBLIC_PAGE_SIZE } from '@/lib/cache'
+import { articleLd, ldScript, SITE } from '@/lib/structured-data'
 
 export const metadata: Metadata = {
   title: 'Berita & Pengumuman',
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Berita & Pengumuman Desa Sukobubuk',
     description: 'Kumpulan berita dan pengumuman resmi Desa Sukobubuk.',
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://desa-sukobubuk.id'}/berita`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.desa-sukobubuk.web.id'}/berita`,
   },
   keywords: ['berita Desa Sukobubuk', 'pengumuman desa', 'Kecamatan Margorejo', 'Pati'],
 }
@@ -39,6 +41,27 @@ export default async function BeritaPage({ searchParams }: Props) {
   const buildHref = (p: number) => (p === 1 ? '/berita' : `/berita?page=${p}`)
 
   const [featured, ...rest] = berita
+
+  // GEO-003 / F-219 (verification) — emit ItemList of NewsArticle on the
+  // listing page so search engines can discover every article.
+  const itemList = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: berita.slice(0, 10).map((b, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      item: {
+        ...articleLd({
+          slug: b.slug,
+          judul: b.judul,
+          deskripsi: truncate(stripHtml(b.konten), 200),
+          thumbnail: b.thumbnail,
+          tanggal: b.created_at,
+          author: b.author.name,
+        }),
+      },
+    })),
+  }
 
   return (
     <PageWrapper>
@@ -73,8 +96,10 @@ export default async function BeritaPage({ searchParams }: Props) {
                           src={featured.thumbnail}
                           alt={featured.judul}
                           fill
+                          sizes="(min-width: 768px) 66vw, 100vw"
+                          priority
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          unoptimized
+                          unoptimized={shouldSkipImageOptimization(featured.thumbnail)}
                         />
                       ) : (
                         <div className="grid size-full place-items-center">
@@ -93,9 +118,9 @@ export default async function BeritaPage({ searchParams }: Props) {
                           {featured.author.name}
                         </span>
                       </div>
-                      <h3 className="font-display text-2xl font-medium leading-tight text-stone-800 group-hover:text-sage-700 transition-colors text-balance md:text-3xl">
+                      <h2 className="font-display text-2xl font-medium leading-tight text-stone-800 group-hover:text-sage-700 transition-colors text-balance md:text-3xl">
                         {featured.judul}
-                      </h3>
+                      </h2>
                       <p className="line-clamp-3 text-sm leading-relaxed text-stone-600 md:text-base">
                         {truncate(stripHtml(featured.konten), 180)}
                       </p>
@@ -109,9 +134,9 @@ export default async function BeritaPage({ searchParams }: Props) {
 
                 {/* Sidebar recent — 1/3 */}
                 <aside className="flex flex-col gap-3">
-                  <p className="section-eyebrow text-stone-500 mb-2">
+                  <h2 className="section-eyebrow text-stone-500 mb-2">
                     Terbaru
-                  </p>
+                  </h2>
                   {rest.slice(0, 4).map((item) => (
                     <Link
                       key={item.id}
@@ -124,8 +149,9 @@ export default async function BeritaPage({ searchParams }: Props) {
                             src={item.thumbnail}
                             alt={item.judul}
                             fill
+                            sizes="64px"
                             className="object-cover"
-                            unoptimized
+                            unoptimized={shouldSkipImageOptimization(item.thumbnail)}
                           />
                         ) : (
                           <div className="grid size-full place-items-center">
@@ -164,8 +190,9 @@ export default async function BeritaPage({ searchParams }: Props) {
                             src={item.thumbnail}
                             alt={item.judul}
                             fill
+                            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                             className="object-cover transition-transform duration-500 group-hover:scale-105"
-                            unoptimized
+                            unoptimized={shouldSkipImageOptimization(item.thumbnail)}
                           />
                         ) : (
                           <div className="grid size-full place-items-center">
@@ -184,9 +211,9 @@ export default async function BeritaPage({ searchParams }: Props) {
                             {item.author.name}
                           </span>
                         </div>
-                        <h3 className="font-display text-base font-medium leading-snug text-stone-800 group-hover:text-sage-700 transition-colors line-clamp-2">
+                        <h2 className="font-display text-base font-medium leading-snug text-stone-800 group-hover:text-sage-700 transition-colors line-clamp-2">
                           {item.judul}
-                        </h3>
+                        </h2>
                         <p className="mt-2 line-clamp-2 text-sm text-stone-600">
                           {truncate(stripHtml(item.konten), 110)}
                         </p>
@@ -228,7 +255,13 @@ export default async function BeritaPage({ searchParams }: Props) {
                       variant={p === page ? 'default' : 'outline'}
                       size="icon-sm"
                     >
-                      <Link href={buildHref(p)}>{p}</Link>
+                      <Link
+                        href={buildHref(p)}
+                        aria-label={`Halaman ${p}`}
+                        aria-current={p === page ? 'page' : undefined}
+                      >
+                        {p}
+                      </Link>
                     </Button>
                   ))}
                   {page < totalPages && (
@@ -244,6 +277,12 @@ export default async function BeritaPage({ searchParams }: Props) {
           </>
         )}
       </Section>
+      {berita.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={ldScript(itemList)}
+        />
+      )}
     </PageWrapper>
   )
 }

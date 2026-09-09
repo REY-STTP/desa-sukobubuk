@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { formatDate, stripHtml, truncate } from '@/lib/utils'
 import { sanitizeRichText } from '@/lib/sanitize'
+import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import { Button } from '@/components/ui/button'
 import { Section } from '@/components/ui/section'
 import { Tag } from '@/components/ui/tag'
@@ -87,7 +88,9 @@ export default async function BeritaDetailPage({ params }: Props) {
         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-stone-600">
           <span className="inline-flex items-center gap-1.5">
             <Calendar className="size-4" />
-            {formatDate(berita.created_at)}
+            <time dateTime={new Date(berita.created_at).toISOString()}>
+              {formatDate(berita.created_at)}
+            </time>
           </span>
           <span className="inline-flex items-center gap-1.5">
             <User className="size-4" />
@@ -118,8 +121,9 @@ export default async function BeritaDetailPage({ params }: Props) {
                   src={berita.thumbnail}
                   alt={berita.judul}
                   fill
+                  sizes="(min-width: 1024px) 75vw, 100vw"
                   className="object-cover"
-                  unoptimized
+                  unoptimized={shouldSkipImageOptimization(berita.thumbnail)}
                 />
               ) : (
                 <div className="grid size-full place-items-center">
@@ -151,7 +155,7 @@ export default async function BeritaDetailPage({ params }: Props) {
           {/* Sidebar */}
           <aside className="flex flex-col gap-4 lg:sticky lg:top-28 lg:self-start">
             <div className="surface-elevated p-5">
-              <h3 className="section-eyebrow mb-4 text-stone-500">Berita Lainnya</h3>
+              <h2 className="section-eyebrow mb-4 text-stone-500">Berita Lainnya</h2>
               <div className="flex flex-col gap-3">
                 {lainnya.map((item) => (
                   <Link
@@ -165,8 +169,9 @@ export default async function BeritaDetailPage({ params }: Props) {
                           src={item.thumbnail}
                           alt={item.judul}
                           fill
+                          sizes="64px"
                           className="object-cover"
-                          unoptimized
+                          unoptimized={shouldSkipImageOptimization(item.thumbnail)}
                         />
                       ) : (
                         <div className="grid size-full place-items-center">

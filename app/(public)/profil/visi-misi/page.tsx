@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
 import { Eye, Target, CheckCircle, Quote } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+import { getProfilLengkap } from '@/lib/cache'
 import { notFound } from 'next/navigation'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
 import { Section } from '@/components/ui/section'
+import { faqLd, ldScript } from '@/lib/structured-data'
 
 export const metadata: Metadata = {
   title: 'Visi & Misi',
@@ -14,20 +16,30 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Visi & Misi Desa Sukobubuk',
     description: 'Arah dan komitmen Pemerintah Desa Sukobubuk.',
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://desa-sukobubuk.id'}/profil/visi-misi`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.desa-sukobubuk.web.id'}/profil/visi-misi`,
   },
   keywords: ['visi misi Desa Sukobubuk', 'Komitmen desa', 'Margorejo'],
 }
 
 export default async function VisiMisiPage() {
-  const profil = await prisma.profilDesa.findFirst()
+  // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
+  const profil = await getProfilLengkap()
   if (!profil) notFound()
 
-  let misi: string[] = []
-  try {
-    misi = JSON.parse(profil.misi)
-  } catch {
-    misi = []
+  // F-303 / DB-006 (Phase 06) — canonical source is the misi_items
+  // relation table. Fall back to parsing the legacy JSON column
+  // when no items have been written to the table yet.
+  const misiRows = await prisma.misiItem.findMany({
+    where: { profil_id: profil.id },
+    orderBy: { urutan: 'asc' },
+  })
+  let misi: string[] = misiRows.map((r) => r.text)
+  if (misi.length === 0) {
+    try {
+      misi = JSON.parse(profil.misi)
+    } catch {
+      misi = []
+    }
   }
 
   return (
@@ -111,6 +123,65 @@ export default async function VisiMisiPage() {
               ))}
             </ol>
           )}
+        </div>
+      </Section>
+
+      {/* SEO-005 / F-219 — FAQ block + JSON-LD */}
+      <Section variant="subtle" spacing="default">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-2 font-display text-2xl font-medium text-stone-800 text-balance">
+            Pertanyaan yang Sering Diajukan
+          </h2>
+          <p className="mb-8 text-sm text-stone-500">
+            Jawaban atas pertanyaan umum tentang visi dan misi Desa Sukobubuk.
+          </p>
+          <dl className="flex flex-col gap-4">
+            <div className="surface-elevated p-5">
+              <dt className="faq-q font-medium text-stone-800">Apa visi Desa Sukobubuk?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
+                {profil.visi}
+              </dd>
+            </div>
+            <div className="surface-elevated p-5">
+              <dt className="faq-q font-medium text-stone-800">Berapa periode visi & misi saat ini?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
+                Periode {profil.periode_visi_misi}.
+              </dd>
+            </div>
+            <div className="surface-elevated p-5">
+              <dt className="faq-q font-medium text-stone-800">Bagaimana cara menyampaikan aspirasi untuk desa?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
+                Gunakan formulir kontak di /kontak atau datang langsung ke kantor desa pada jam pelayanan.
+              </dd>
+            </div>
+          </dl>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={ldScript(
+              faqLd(
+                [
+                  {
+                    q: 'Apa visi Desa Sukobubuk?',
+                    a: profil.visi,
+                  },
+                  {
+                    q: 'Berapa periode visi & misi saat ini?',
+                    a: `Periode ${profil.periode_visi_misi}.`,
+                  },
+                  {
+                    q: 'Bagaimana cara menyampaikan aspirasi untuk desa?',
+                    a: 'Gunakan formulir kontak di /kontak atau datang langsung ke kantor desa pada jam pelayanan.',
+                  },
+                ],
+                {
+                  speakableXpath: [
+                    '/html/body//dt[contains(@class,"faq-q")]',
+                    '/html/body//dd[contains(@class,"faq-a")]',
+                  ],
+                }
+              )
+            )}
+          />
         </div>
       </Section>
     </PageWrapper>

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import { BookOpen, Calendar, ScrollText, Sparkles } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { getProfilLengkap } from '@/lib/cache'
 import { sanitizeRichText } from '@/lib/sanitize'
 import { notFound } from 'next/navigation'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
 import { Section } from '@/components/ui/section'
+import { faqLd, ldScript } from '@/lib/structured-data'
 
 export const metadata: Metadata = {
   title: 'Sejarah Desa',
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Sejarah Desa Sukobubuk',
     description: 'Asal-usul dan timeline sejarah Desa Sukobubuk.',
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://desa-sukobubuk.id'}/profil/sejarah`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.desa-sukobubuk.web.id'}/profil/sejarah`,
   },
   keywords: ['sejarah Desa Sukobubuk', 'asal-usul desa', 'Kecamatan Margorejo', 'Pati'],
 }
@@ -35,7 +36,8 @@ const TIMELINE_STATIC: TimelineItem[] = [
 ]
 
 export default async function SejarahPage() {
-  const profil = await prisma.profilDesa.findFirst()
+  // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
+  const profil = await getProfilLengkap()
   if (!profil) notFound()
 
   const timeline: TimelineItem[] = [
@@ -81,13 +83,13 @@ export default async function SejarahPage() {
           {/* Aside info ringkas */}
           <aside className="flex flex-col gap-4 lg:sticky lg:top-28 lg:self-start">
             <div className="surface-elevated p-6">
-              <p className="section-eyebrow text-sage-700 mb-3">
+              <h2 className="section-eyebrow text-sage-700 mb-3">
                 <Sparkles className="size-3.5" />
                 Warisan Desa
-              </p>
-              <h3 className="font-display text-lg font-medium text-stone-800 mb-2">
+              </h2>
+              <h2 className="font-display text-lg font-medium text-stone-800 mb-2">
                 {profil.nama_desa}
-              </h3>
+              </h2>
               <p className="text-sm leading-relaxed text-stone-600">
                 Berdiri sejak tahun{' '}
                 <span className="font-semibold text-sage-700">
@@ -197,6 +199,65 @@ export default async function SejarahPage() {
               </li>
             ))}
           </ol>
+        </div>
+      </Section>
+
+      {/* SEO-005 / F-219 — FAQ block + JSON-LD */}
+      <Section variant="subtle" spacing="default">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-2 font-display text-2xl font-medium text-stone-800 text-balance">
+            Pertanyaan yang Sering Diajukan
+          </h2>
+          <p className="mb-8 text-sm text-stone-500">
+            Jawaban atas pertanyaan umum tentang sejarah Desa Sukobubuk.
+          </p>
+          <dl className="flex flex-col gap-4">
+            <div className="surface-elevated p-5">
+              <dt className="faq-q font-medium text-stone-800">Kapan Desa Sukobubuk berdiri?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
+                Desa Sukobubuk berdiri sejak tahun {profil.tahun_berdiri}, dengan sejarah panjang sebagai bagian dari Kecamatan Margorejo, Kabupaten Pati.
+              </dd>
+            </div>
+            <div className="surface-elevated p-5">
+              <dt className="faq-q font-medium text-stone-800">Apa arti nama Sukobubuk?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
+                Nama &quot;Sukobubuk&quot; berasal dari bahasa Jawa kuno yang berarti tanah yang subur dan makmur, mencerminkan potensi agraris desa.
+              </dd>
+            </div>
+            <div className="surface-elevated p-5">
+              <dt className="faq-q font-medium text-stone-800">Di mana saya bisa membaca sejarah lengkap Desa Sukobubuk?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
+                Narasi lengkap tersedia di halaman ini (/profil/sejarah) dengan timeline kronologis. Untuk dokumen resmi, hubungi kantor desa.
+              </dd>
+            </div>
+          </dl>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={ldScript(
+              faqLd(
+                [
+                  {
+                    q: 'Kapan Desa Sukobubuk berdiri?',
+                    a: `Desa Sukobubuk berdiri sejak tahun ${profil.tahun_berdiri}, dengan sejarah panjang sebagai bagian dari Kecamatan Margorejo, Kabupaten Pati.`,
+                  },
+                  {
+                    q: 'Apa arti nama Sukobubuk?',
+                    a: 'Nama "Sukobubuk" berasal dari bahasa Jawa kuno yang berarti tanah yang subur dan makmur, mencerminkan potensi agraris desa.',
+                  },
+                  {
+                    q: 'Di mana saya bisa membaca sejarah lengkap Desa Sukobubuk?',
+                    a: 'Narasi lengkap tersedia di halaman ini (/profil/sejarah) dengan timeline kronologis. Untuk dokumen resmi, hubungi kantor desa.',
+                  },
+                ],
+                {
+                  speakableXpath: [
+                    '/html/body//dt[contains(@class,"faq-q")]',
+                    '/html/body//dd[contains(@class,"faq-a")]',
+                  ],
+                }
+              )
+            )}
+          />
         </div>
       </Section>
     </PageWrapper>

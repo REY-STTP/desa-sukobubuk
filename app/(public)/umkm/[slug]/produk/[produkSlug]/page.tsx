@@ -14,6 +14,7 @@ import {
   ShoppingBag,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import { Button } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
 import { Section, SectionHeader } from '@/components/ui/section'
@@ -26,6 +27,9 @@ import { productLd, breadcrumbLd, ldScript, SITE } from '@/lib/structured-data'
 interface Props {
   params: Promise<{ slug: string; produkSlug: string }>
 }
+
+// P2-F1: ISR 5 menit sebagai backstop (lihat catatan di umkm/[slug]/page).
+export const revalidate = 300
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { produkSlug, slug } = await params
@@ -118,8 +122,10 @@ export default async function ProdukDetailPage({ params }: Props) {
                   src={produk.foto}
                   alt={produk.nama_produk}
                   fill
+                  priority
+                  sizes="(min-width: 1024px) 60vw, 100vw"
                   className="object-contain p-6"
-                  unoptimized
+                  unoptimized={shouldSkipImageOptimization(produk.foto)}
                 />
               ) : (
                 <div className="grid size-full place-items-center">
@@ -161,9 +167,9 @@ export default async function ProdukDetailPage({ params }: Props) {
             </div>
 
             <div>
-              <h3 className="mb-2 font-display text-base font-medium text-stone-800">
+              <h2 className="mb-2 font-display text-base font-medium text-stone-800">
                 Deskripsi Produk
-              </h3>
+              </h2>
               <p className="leading-relaxed text-stone-700">{produk.deskripsi}</p>
             </div>
 
@@ -184,7 +190,7 @@ export default async function ProdukDetailPage({ params }: Props) {
                       width={40}
                       height={40}
                       className="size-full object-contain"
-                      unoptimized
+                      unoptimized={shouldSkipImageOptimization(produk.umkm.logo)}
                     />
                   ) : (
                     <Store className="size-5 text-sage-600" />
@@ -258,8 +264,9 @@ export default async function ProdukDetailPage({ params }: Props) {
                           src={item.foto}
                           alt={item.nama_produk}
                           fill
+                          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                           className="object-contain p-3 transition-transform duration-500 group-hover:scale-105"
-                          unoptimized
+                          unoptimized={shouldSkipImageOptimization(item.foto)}
                         />
                       ) : (
                         <div className="grid size-full place-items-center">

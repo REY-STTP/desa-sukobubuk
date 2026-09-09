@@ -11,9 +11,19 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   // Google Fonts (next/font/google self-hosts, but data: is used for fallbacks)
   "font-src 'self' data:",
+  // Footer mini-map embeds Google Maps — allow framing its embed domains.
+  // Tanpa ini, `default-src 'self'` membuat browser menolak iframe peta.
+  "frame-src https://www.google.com https://maps.google.com",
+  // Hero background video (<video>) — tanpa ini browser menolak media
+  // Cloudinary karena fallback ke `default-src 'self'` (poster lolos via
+  // img-src, sehingga videonya tampak diam).
+  "media-src 'self' https://res.cloudinary.com",
   // Allow fetch to Sentry and Supabase for future OBS-001 / DB
   "connect-src 'self' https://*.sentry.io https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com",
-  // No iframes allowed
+  // P2-H2: blokir plugin/Flash era lama (tak ada <object>/<embed> di kode).
+  "object-src 'none'",
+  // Hanya Google Maps yang boleh di-frame (mini-map footer). frame-ancestors
+  // di bawah tetap 'none': situs ini tak boleh di-frame pihak lain.
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -30,7 +40,7 @@ const securityHeaders = [
   },
   {
     key: 'Strict-Transport-Security',
-    value: 'max-age=31536000; includeSubDomains',
+    value: 'max-age=31536000; includeSubDomains; preload',
   },
   {
     key: 'X-Frame-Options',
@@ -56,6 +66,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   images: {
+    // F-106 / PERF-001 follow-up: enable modern formats for Cloudinary +
+    // any other remote image. Next.js will negotiate AVIF → WebP → JPEG.
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       // Cloudinary
       {
@@ -69,6 +82,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // P2-H2: IP LAN hanya untuk dev (uji via HP/tablet se-jaringan).
+  // Dibungkus NODE_ENV agar tak bocor ke config production.
+  ...(process.env.NODE_ENV === 'development'
+    ? { allowedDevOrigins: ['192.168.100.12'] }
+    : {}),
   async headers() {
     return [
       {

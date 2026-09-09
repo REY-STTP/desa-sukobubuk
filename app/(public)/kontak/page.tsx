@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import KontakForm from './KontakForm'
 import { MapPin, Phone, Mail, Clock, MessageCircle, Send } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
+import { getProfilLengkap } from '@/lib/cache'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
 import { Section } from '@/components/ui/section'
@@ -21,7 +21,8 @@ export const metadata: Metadata = {
 }
 
 export default async function KontakPage() {
-  const profil = await prisma.profilDesa.findFirst()
+  // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
+  const profil = await getProfilLengkap()
 
   const infoItems = profil
     ? [
@@ -30,24 +31,31 @@ export default async function KontakPage() {
           title: 'Alamat Kantor',
           content: profil.alamat_kantor,
           mono: false,
+          href: undefined as string | undefined,
         },
         {
           icon: Phone,
           title: 'Telepon',
           content: profil.telepon,
           mono: true,
+          // P1-U3: bisa diklik (format 0... → +62...).
+          href: profil.telepon
+            ? `tel:+62${profil.telepon.replace(/\D/g, '').replace(/^0/, '')}`
+            : undefined,
         },
         {
           icon: Mail,
           title: 'Email',
           content: profil.email,
           mono: true,
+          href: profil.email ? `mailto:${profil.email}` : undefined,
         },
         {
           icon: Clock,
           title: 'Jam Pelayanan',
           content: `Senin – Jum'at: ${profil.jam_pelayanan}`,
           mono: false,
+          href: undefined as string | undefined,
         },
       ].filter((i) => i.content)
     : []
@@ -102,13 +110,24 @@ export default async function KontakPage() {
                       <p className="text-xs font-semibold text-stone-500">
                         {item.title}
                       </p>
-                      <p
-                        className={`mt-0.5 text-sm text-stone-800 ${
-                          item.mono ? 'font-mono tabular-nums break-all' : 'leading-relaxed'
-                        }`}
-                      >
-                        {item.content}
-                      </p>
+                      {item.href ? (
+                        <a
+                          href={item.href}
+                          className={`mt-0.5 block text-sm text-sage-700 underline-offset-4 hover:underline ${
+                            item.mono ? 'font-mono tabular-nums break-all' : 'leading-relaxed'
+                          }`}
+                        >
+                          {item.content}
+                        </a>
+                      ) : (
+                        <p
+                          className={`mt-0.5 text-sm text-stone-800 ${
+                            item.mono ? 'font-mono tabular-nums break-all' : 'leading-relaxed'
+                          }`}
+                        >
+                          {item.content}
+                        </p>
+                      )}
                     </div>
                   </li>
                 )
@@ -152,24 +171,32 @@ export default async function KontakPage() {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={ldScript(
-            faqLd([
+            faqLd(
+              [
+                {
+                  q: 'Di mana alamat kantor Desa Sukobubuk?',
+                  a: 'Kantor Desa Sukobubuk beralamat di Jl. Raya Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah, kode pos 59163.',
+                },
+                {
+                  q: 'Kapan jam pelayanan kantor desa?',
+                  a: `Jam pelayanan kantor Desa Sukobubuk adalah setiap hari kerja Senin sampai Jumat pukul ${profil?.jam_pelayanan ?? '08.00 – 12.00'}.`,
+                },
+                {
+                  q: 'Bagaimana cara menghubungi Desa Sukobubuk?',
+                  a: 'Anda bisa menghubungi melalui formulir kontak di website ini, mengirim email ke admin.desa.sukobubuk@gmail.com, atau melalui WhatsApp resmi desa.',
+                },
+                {
+                  q: 'Apakah Desa Sukobubuk memiliki direktori UMKM?',
+                  a: 'Ya. Desa Sukobubuk memiliki direktori UMKM yang dapat diakses di halaman /umkm pada website ini, lengkap dengan informasi produk dan kontak pemilik.',
+                },
+              ],
               {
-                q: 'Di mana alamat kantor Desa Sukobubuk?',
-                a: 'Kantor Desa Sukobubuk beralamat di Jl. Raya Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah, kode pos 59163.',
-              },
-              {
-                q: 'Kapan jam pelayanan kantor desa?',
-                a: `Jam pelayanan kantor Desa Sukobubuk adalah setiap hari kerja Senin sampai Jumat pukul ${profil?.jam_pelayanan ?? '08.00 – 15.00'}.`,
-              },
-              {
-                q: 'Bagaimana cara menghubungi Desa Sukobubuk?',
-                a: 'Anda bisa menghubungi melalui formulir kontak di website ini, mengirim email ke admin.desa.sukobubuk@gmail.com, atau melalui WhatsApp resmi desa.',
-              },
-              {
-                q: 'Apakah Desa Sukobubuk memiliki direktori UMKM?',
-                a: 'Ya. Desa Sukobubuk memiliki direktori UMKM yang dapat diakses di halaman /umkm pada website ini, lengkap dengan informasi produk dan kontak pemilik.',
-              },
-            ])
+                speakableXpath: [
+                  '/html/body//dt[contains(@class,"faq-q")]',
+                  '/html/body//dd[contains(@class,"faq-a")]',
+                ],
+              }
+            )
           )}
         />
         <div className="mx-auto max-w-3xl">
@@ -181,29 +208,29 @@ export default async function KontakPage() {
           </p>
           <dl className="flex flex-col gap-4">
             <div className="surface-elevated p-5">
-              <dt className="font-medium text-stone-800">Di mana alamat kantor Desa Sukobubuk?</dt>
-              <dd className="mt-2 text-sm leading-relaxed text-stone-600">
+              <dt className="faq-q font-medium text-stone-800">Di mana alamat kantor Desa Sukobubuk?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
                 Kantor Desa Sukobubuk beralamat di Jl. Raya Sukobubuk, Kecamatan Margorejo,
                 Kabupaten Pati, Jawa Tengah, kode pos 59163.
               </dd>
             </div>
             <div className="surface-elevated p-5">
-              <dt className="font-medium text-stone-800">Kapan jam pelayanan kantor desa?</dt>
-              <dd className="mt-2 text-sm leading-relaxed text-stone-600">
+              <dt className="faq-q font-medium text-stone-800">Kapan jam pelayanan kantor desa?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
                 Jam pelayanan kantor Desa Sukobubuk adalah setiap hari kerja Senin sampai
-                Jumat pukul {profil?.jam_pelayanan ?? '08.00 – 15.00'}.
+                Jumat pukul {profil?.jam_pelayanan ?? '08.00 – 12.00'}.
               </dd>
             </div>
             <div className="surface-elevated p-5">
-              <dt className="font-medium text-stone-800">Bagaimana cara menghubungi Desa Sukobubuk?</dt>
-              <dd className="mt-2 text-sm leading-relaxed text-stone-600">
+              <dt className="faq-q font-medium text-stone-800">Bagaimana cara menghubungi Desa Sukobubuk?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
                 Anda bisa menghubungi melalui formulir kontak di website ini, mengirim email
                 ke admin.desa.sukobubuk@gmail.com, atau melalui WhatsApp resmi desa.
               </dd>
             </div>
             <div className="surface-elevated p-5">
-              <dt className="font-medium text-stone-800">Apakah Desa Sukobubuk memiliki direktori UMKM?</dt>
-              <dd className="mt-2 text-sm leading-relaxed text-stone-600">
+              <dt className="faq-q font-medium text-stone-800">Apakah Desa Sukobubuk memiliki direktori UMKM?</dt>
+              <dd className="faq-a mt-2 text-sm leading-relaxed text-stone-600">
                 Ya. Desa Sukobubuk memiliki direktori UMKM yang dapat diakses di halaman
                 /umkm pada website ini, lengkap dengan informasi produk dan kontak pemilik.
               </dd>

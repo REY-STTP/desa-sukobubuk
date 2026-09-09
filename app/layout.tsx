@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Fraunces, JetBrains_Mono } from 'next/font/google'
+import { Inter, Fraunces } from 'next/font/google'
+import { ldScript } from '@/lib/structured-data'
 import './globals.css'
 
 const inter = Inter({
@@ -13,18 +14,15 @@ const fraunces = Fraunces({
   display: 'swap',
   axes: ['opsz', 'SOFT'],
 })
-const jetbrains = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains',
-  display: 'swap',
-})
+// P3-I2: JetBrains_Mono dihapus (satu request font hemat) — `font-mono`
+// kini stack sistem (lihat --font-mono di globals.css).
 
 /**
  * Domain production untuk OG, sitemap, JSON-LD, canonical.
  * NEXT_PUBLIC_SITE_URL WAJIB di-set (Vercel env).
- * Fallback ke localhost untuk dev.
+ * Fallback = kanonis www (jangan localhost agar canonical/OG tak bocor).
  */
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.desa-sukobubuk.web.id').replace(/\/$/, '')
 const SITE_NAME = 'Desa Sukobubuk'
 const SITE_DESC =
   'Website resmi Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah. Kode Pos 59163. Profil desa, sejarah, visi-misi, struktur organisasi, berita, UMKM, dan layanan administrasi.'
@@ -67,7 +65,9 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   generator: 'Next.js',
   referrer: 'origin-when-cross-origin',
-  formatDetection: { email: false, address: false, telephone: false },
+  // P2-G2: telephone true agar iOS auto-link nomor (sejalan kontak tel:);
+  // email false (hindari link sembarangan pada teks ber-@).
+  formatDetection: { email: false, address: false, telephone: true },
   category: 'Government',
   classification: 'Government',
   alternates: {
@@ -88,23 +88,22 @@ export const metadata: Metadata = {
     emails: ['admin.desa.sukobubuk@gmail.com'],
     images: [
       {
-        url: '/og-image.png',
+        url: '/og-image.webp',
         width: 1200,
         height: 630,
         alt: 'Desa Sukobubuk — Portal Resmi Pemerintah Desa',
-        type: 'image/png',
+        type: 'image/webp',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@desasukobubuk',
-    creator: '@desasukobubuk',
+    // P1-D4: akun X/Twitter resmi belum ada (hanya IG/TikTok KKN) —
+    // site/creator fiktif dihapus daripada menyesatkan.
     title: 'Desa Sukobubuk – Kecamatan Margorejo, Kabupaten Pati',
     description: SITE_DESC,
-    images: ['/og-image.png'],
+    images: ['/og-image.webp'],
   },
-  facebook: { appId: 'desa-sukobubuk' },
   robots: {
     index: true,
     follow: true,
@@ -118,10 +117,8 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: [
-      { url: '/icon.png', type: 'image/png', sizes: '32x32' },
-      { url: '/icon.png', type: 'image/png', sizes: '192x192' },
-    ],
+    // P1-C1: favicon 64px teroptimasi (dulu duplikat logo 533KB).
+    icon: [{ url: '/icon.png', type: 'image/png', sizes: '64x64' }],
     apple: '/apple-icon.png',
     shortcut: '/icon.png',
   },
@@ -139,6 +136,8 @@ export const metadata: Metadata = {
   },
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION,
+    // Optional — env-driven; only included when set.
+    ...(process.env.BING_SITE_VERIFICATION ? { bing: process.env.BING_SITE_VERIFICATION } : {}),
   },
 }
 
@@ -154,11 +153,11 @@ const jsonLd = {
       url: SITE_URL,
       logo: {
         '@type': 'ImageObject',
-        url: `${SITE_URL}/icon.png`,
+        url: `${SITE_URL}/icons/icon-512.png`,
         width: 512,
         height: 512,
       },
-      image: `${SITE_URL}/og-image.png`,
+      image: `${SITE_URL}/og-image.webp`,
       description: SITE_DESC,
       email: 'admin.desa.sukobubuk@gmail.com',
       address: {
@@ -200,13 +199,15 @@ const jsonLd = {
       },
     },
     {
-      '@type': 'LocalBusiness',
+      // P1-D4: GovernmentOffice (bukan LocalBusiness) + kontak kanonis repo
+      // (WA desa dari seed, bukan nomor fiktif) + jam = seed 08.00–12.00.
+      '@type': 'GovernmentOffice',
       '@id': `${SITE_URL}#localbusiness`,
       '@parent': `${SITE_URL}#organization`,
       name: 'Kantor Desa Sukobubuk',
-      image: `${SITE_URL}/og-image.png`,
+      image: `${SITE_URL}/og-image.webp`,
       url: SITE_URL,
-      telephone: '+62-295-123456',
+      telephone: '+6281328733023',
       email: 'admin.desa.sukobubuk@gmail.com',
       priceRange: 'Gratis',
       address: {
@@ -223,7 +224,7 @@ const jsonLd = {
           '@type': 'OpeningHoursSpecification',
           dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
           opens: '08:00',
-          closes: '15:00',
+          closes: '12:00',
         },
       ],
     },
@@ -234,15 +235,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="id"
-      className={`${inter.variable} ${fraunces.variable} ${jetbrains.variable}`}
+      className={`${inter.variable} ${fraunces.variable}`}
     >
       <head>
         <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-friendly summary" />
         <link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLM-friendly full reference" />
         <script
           type="application/ld+json"
-          // schema.org JSON-LD untuk Organization + WebSite + LocalBusiness
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          // schema.org JSON-LD untuk Organization + WebSite + GovernmentOffice.
+          // P0-2: lewat ldScript agar `<` di-escape (tahan stored XSS).
+          dangerouslySetInnerHTML={ldScript(jsonLd)}
         />
       </head>
       <body className="font-sans antialiased">

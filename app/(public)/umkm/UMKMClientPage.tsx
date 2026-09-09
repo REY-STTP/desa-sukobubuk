@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useState, useMemo } from 'react'
 import { Store, Search, Filter, MapPin, ArrowRight, Package, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tag } from '@/components/ui/tag'
@@ -82,8 +83,9 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
             <Input
-              type="text"
+              type="search"
               placeholder="Cari nama usaha, pemilik, atau produk..."
+              aria-label="Cari UMKM"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-11 pl-11"
@@ -144,8 +146,12 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
                           src={featured.logo}
                           alt={featured.nama_usaha}
                           fill
+                          sizes="(min-width: 1024px) 40vw, 100vw"
+                          // P1-C3: SATU-SATUNYA priority di halaman ini —
+                          // thumbnail unggulan kandidat LCP. Sisanya lazy.
+                          priority
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          unoptimized
+                          unoptimized={shouldSkipImageOptimization(featured.logo)}
                         />
                       ) : (
                         <div className="grid size-full place-items-center">
@@ -165,9 +171,9 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
                           </Tag>
                         )}
                       </div>
-                      <h3 className="font-display text-2xl font-medium leading-tight text-stone-800 group-hover:text-sage-700 transition-colors text-balance md:text-3xl">
+                      <h2 className="font-display text-2xl font-medium leading-tight text-stone-800 group-hover:text-sage-700 transition-colors text-balance md:text-3xl">
                         {featured.nama_usaha}
-                      </h3>
+                      </h2>
                       <p className="text-sm text-stone-500">Pemilik: {featured.pemilik}</p>
                       <p className="line-clamp-3 text-sm leading-relaxed text-stone-600">
                         {featured.deskripsi}
@@ -203,8 +209,9 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
                           src={item.logo}
                           alt={item.nama_usaha}
                           fill
+                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          unoptimized
+                          unoptimized={shouldSkipImageOptimization(item.logo)}
                         />
                       ) : (
                         <div className="grid size-full place-items-center">
@@ -224,9 +231,9 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
                       </div>
                     </div>
                     <div className="flex flex-1 flex-col p-5">
-                      <h3 className="font-display text-lg font-medium leading-snug text-stone-800 group-hover:text-sage-700 transition-colors line-clamp-2">
+                      <h2 className="font-display text-lg font-medium leading-snug text-stone-800 group-hover:text-sage-700 transition-colors line-clamp-2">
                         {item.nama_usaha}
-                      </h3>
+                      </h2>
                       <p className="mt-0.5 text-xs text-stone-500 line-clamp-1">
                         {item.pemilik}
                       </p>
@@ -280,7 +287,13 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
                       variant={p === page ? 'default' : 'outline'}
                       size="icon-sm"
                     >
-                      <Link href={buildHref(p)}>{p}</Link>
+                      <Link
+                        href={buildHref(p)}
+                        aria-label={`Halaman ${p}`}
+                        aria-current={p === page ? 'page' : undefined}
+                      >
+                        {p}
+                      </Link>
                     </Button>
                   ))}
                   {page < totalPages && (

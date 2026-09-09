@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import Image from 'next/image'
 import ResetPasswordForm from './ResetPasswordForm'
 
@@ -16,7 +17,7 @@ export default function ResetPasswordPage() {
         <div className="text-center mb-8">
           <div className="size-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-primary-900/50 overflow-hidden">
             <Image
-              src="/images/logo-desa.png"
+              src="/images/logo-desa.webp"
               alt="Logo Desa"
               width={64}
               height={64}
@@ -30,7 +31,18 @@ export default function ResetPasswordPage() {
         <div className="bg-white rounded-2xl shadow-2xl shadow-black/30 p-8">
           <h2 className="font-display text-xl font-bold text-stone-800 mb-1">Buat Password Baru</h2>
           <p className="text-stone-500 text-sm mb-6">Masukkan password baru untuk akun Anda.</p>
-          <ResetPasswordForm />
+          {/* P2-G2: Suspense boundary wajib untuk useSearchParams di form */}
+          <Suspense
+            fallback={
+              <div className="animate-pulse space-y-3" aria-hidden>
+                <div className="h-10 rounded-xl bg-stone-100" />
+                <div className="h-10 rounded-xl bg-stone-100" />
+                <div className="h-11 rounded-xl bg-stone-200" />
+              </div>
+            }
+          >
+            <ResetPasswordForm />
+          </Suspense>
         </div>
       </div>
     </div>

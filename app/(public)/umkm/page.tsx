@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'UMKM Desa Sukobubuk',
     description: 'Daftar UMKM Desa Sukobubuk dengan filter kategori.',
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://desa-sukobubuk.id'}/umkm`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.desa-sukobubuk.web.id'}/umkm`,
   },
   keywords: ['UMKM Desa Sukobubuk', 'produk lokal Pati', 'UMKM Margorejo', 'UMKM Jawa Tengah', 'produk lokal desa'],
 }

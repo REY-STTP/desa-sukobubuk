@@ -1,6 +1,10 @@
-# Desa Sukobubuk — Full Reference for AI
+# Desa Sukobubuk — Full Reference (LLM-friendly)
 
-> Sumber informasi lengkap tentang Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah, Indonesia (Kode Pos 59163). Dokumen ini dirancang untuk AI search engine dan LLM crawler agar dapat menjawab pertanyaan tentang desa dengan akurat.
+> Website resmi Pemerintah Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah, Indonesia. Kode Pos 59163.
+
+URL kanonis: `https://www.desa-sukobubuk.web.id`
+
+Website ini adalah portal informasi digital untuk Pemerintah Desa Sukobubuk. Konten: profil desa, sejarah, visi & misi, struktur organisasi (pejabat + perangkat), berita & pengumuman, direktori UMKM dengan filter kategori, galeri foto kegiatan, dan formulir kontak.
 
 ## Identitas Desa
 
@@ -8,79 +12,65 @@
 - **Kecamatan**: Margorejo
 - **Kabupaten**: Pati
 - **Provinsi**: Jawa Tengah
-- **Negara**: Indonesia
 - **Kode Pos**: 59163
-- **Koordinat umum**: Kabupaten Pati, Jawa Tengah (~6.74° LS, 111.04° BT)
-
-## Visi
-
-Mewujudkan desa yang mandiri, sejahtera, dan berbudaya.
-
-## Misi
-
-Meningkatkan kualitas pelayanan kepada masyarakat; Mengembangkan potensi sumber daya manusia dan sumber daya alam desa; Memberdayakan ekonomi kerakyatan berbasis UMKM; Melestarikan budaya dan kearifan lokal.
-
-## Alamat Kantor
-
-Jl. Raya Sukobubuk, Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah 59163
-
-## Kontak
-
+- **Alamat kantor**: Jl. Raya Sukobubuk, Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah 59163
+- **Telepon**: (0295) 123456
+- **WhatsApp**: 6281328733023
 - **Email**: admin.desa.sukobubuk@gmail.com
+- **Jam pelayanan**: 08.00 – 12.00
+
+## Kontak & Media Sosial
+
 - **Instagram**: https://instagram.com/kkn.sttpsukobubuk
 - **TikTok**: https://tiktok.com/@kknsttp.sukobubuk
 
-## Halaman Website
+## Halaman Publik
 
-### Publik
-- `/` — Beranda (hero, statistik, UMKM unggulan, berita, galeri)
-- `/profil/sejarah` — Sejarah Desa Sukobubuk
-- `/profil/visi-misi` — Visi dan Misi
-- `/profil/struktur-organisasi` — Daftar pejabat dan perangkat desa
-- `/berita` — Daftar berita dan pengumuman
-- `/berita/[slug]` — Detail artikel
-- `/umkm` — Direktori UMKM dengan filter
-- `/umkm/[slug]` — Detail UMKM + daftar produk
-- `/kontak` — Formulir kontak
+- [Beranda](https://www.desa-sukobubuk.web.id/): Halaman utama dengan hero section, statistik desa (jumlah penduduk, UMKM, produk), UMKM unggulan, berita terbaru, galeri foto, dan call-to-action.
+- [Profil — Sejarah](https://www.desa-sukobubuk.web.id/profil/sejarah): Asal-usul desa, timeline sejarah (tahun berdiri, fase-fase penting), dan narasi panjang sejarah Desa Sukobubuk.
+- [Profil — Visi & Misi](https://www.desa-sukobubuk.web.id/profil/visi-misi): Visi dan Misi Pemerintah Desa Sukobubuk periode saat ini.
+- [Profil — Struktur Organisasi](https://www.desa-sukobubuk.web.id/profil/struktur-organisasi): Daftar pejabat (Kepala Desa, Sekretaris, Kasi, Kaur, Kadus) dengan foto dan jabatan.
+- [Berita](https://www.desa-sukobubuk.web.id/berita): Daftar berita dan pengumuman terbaru dengan pagination, pencarian, dan detail per berita.
+- [UMKM](https://www.desa-sukobubuk.web.id/umkm): Direktori UMKM desa dengan filter kategori (Makanan, Kerajinan, Jasa, Pertanian, dll), featured UMKM di landing.
+- [Kontak](https://www.desa-sukobubuk.web.id/kontak): Formulir kontak, info kantor desa (alamat, telepon, WhatsApp, jam pelayanan, embed Google Maps).
 
-### Admin (perlu login)
-- `/admin/login`
-- `/admin` — Dashboard dengan statistik
-- `/admin/umkm`, `/admin/produk`, `/admin/berita`, `/admin/galeri`, `/admin/pesan`, `/admin/profil`, `/admin/pengaturan`
+## API
 
-## Konten Dinamis
+Dokumentasi API tidak dipublikasikan; hubungi admin desa untuk integrasi.
 
-Website ini memuat data langsung dari database PostgreSQL (Supabase):
-- **UMKM**: nama usaha, pemilik, kategori, deskripsi, alamat, WhatsApp, logo
-- **Produk**: nama, harga, foto, ketersediaan, terhubung ke UMKM
-- **Berita**: judul, slug, konten (rich text Tiptap), thumbnail, author, tanggal
-- **Galeri**: judul, foto, tanggal
-- **Pesan**: nama, email, isi pesan, status dibaca/belum
-- **Profil Desa**: 1 row, memuat identitas, kontak, sejarah, visi-misi, struktur organisasi
-- **Pejabat Desa**: nama, jabatan, kategori (kepala/sekretaris/kasi/kaur/kadus), foto, urutan
+## Schema.org JSON-LD
 
-## FAQ (untuk AI Answer Engine)
+Situs ini memancarkan JSON-LD berikut:
+- `Organization` + `GovernmentOffice` di root layout
+- `WebSite` dengan `SearchAction`
+- `BreadcrumbList` di setiap halaman berlevel
+- `NewsArticle` di detail berita
+- `FAQPage` di `/kontak` (dan halaman profil di Phase 05)
+- `LocalBusiness` per-UMKM di `/umkm/[slug]`
+- `Product` per-produk di `/umkm/[slug]/produk/[produkSlug]`
 
-**Q: Di mana alamat Desa Sukobubuk?**
-A: Jl. Raya Sukobubuk, Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah 59163.
+## FAQ Singkat (SEO/AEO)
 
-**Q: Apa visi Desa Sukobubuk?**
-A: Mewujudkan desa yang mandiri, sejahtera, dan berbudaya.
+**Q: Di mana alamat kantor Desa Sukobubuk?**
+A: Jl. Raya Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah 59163.
 
-**Q: Kecamatan apa Desa Sukobubuk?**
-A: Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah.
+**Q: Kapan jam pelayanan kantor desa?**
+A: Setiap hari kerja Senin–Jumat pukul 08.00–12.00 (waktu bisa berubah, lihat `/kontak`).
 
 **Q: Bagaimana cara menghubungi Desa Sukobubuk?**
-A: Email admin.desa.sukobubuk@gmail.com atau melalui formulir kontak di website.
+A: Formulir kontak di `/kontak`, email `admin.desa.sukobubuk@gmail.com`, atau WhatsApp `+62 813-2873-33023`.
 
-**Q: Apakah Desa Sukobubuk punya UMKM?**
-A: Ya, Desa Sukobubuk memiliki direktori UMKM yang dapat dilihat di halaman /umkm.
+**Q: Apakah Desa Sukobubuk memiliki direktori UMKM?**
+A: Ya. Lihat `/umkm` — direktori UMKM dengan filter kategori (Makanan, Kerajinan, Jasa, Pertanian, Perdagangan, Lainnya).
 
-## Sumber Tambahan
+**Q: Di mana saya bisa melihat berita terbaru?**
+A: Lihat `/berita` — daftar berita dan pengumuman resmi desa dengan pagination.
 
-- Sitemap: `/sitemap.xml`
-- Robots: `/robots.txt`
-- Schema.org JSON-LD: Organization, WebSite, LocalBusiness, BreadcrumbList (otomatis di setiap halaman)
-- Open Graph: aktif (preview saat dishare)
-- Twitter Card: summary_large_image
-- Sitemap berita & UMKM: di-generate dinamis di `/sitemap.xml`
+## Aset
+
+- [Sitemap XML](https://www.desa-sukobubuk.web.id/sitemap.xml)
+- [Robots TXT](https://www.desa-sukobubuk.web.id/robots.txt)
+- [Web Manifest](https://www.desa-sukobubuk.web.id/manifest.json)
+- [og-image.webp (1200x630)](https://www.desa-sukobubuk.web.id/og-image.webp)
+- [llms.txt (ringkas)](https://www.desa-sukobubuk.web.id/llms.txt)
+- [llms-full.txt (dokumen ini)](https://www.desa-sukobubuk.web.id/llms-full.txt)

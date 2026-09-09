@@ -60,14 +60,55 @@ export default function KontakForm() {
           body: JSON.stringify(form),
         })
 
-        if (!res.ok) throw new Error('Gagal mengirim pesan')
+        if (!res.ok) {
+          // P2-G1: tampilkan detail validasi server per-field (bukan pesan
+          // generik) + bedakan 429 dengan info Retry-After bila ada.
+          let msg = 'Gagal mengirim pesan. Silakan coba lagi.'
+          if (res.status === 429) {
+            const retry = res.headers.get('Retry-After')
+            msg = retry
+              ? `Terlalu sering mengirim. Coba lagi dalam ${Math.ceil(Number(retry) / 60)} menit.`
+              : 'Terlalu sering mengirim. Coba lagi nanti.'
+          } else {
+            try {
+              const data = (await res.clone().json()) as {
+                error?: string
+                // parseBody: path berupa string gabungan '.' (mis. "alamat.jalan").
+                issues?: Array<{ path?: string | Array<string | number>; message?: string }>
+              }
+              const fieldErrors: FormErrors = {}
+              for (const issue of data.issues ?? []) {
+                const rawPath = issue.path
+                const key = (
+                  typeof rawPath === 'string' ? rawPath.split('.')[0] : rawPath?.[0]
+                ) as string | undefined
+                if (
+                  (key === 'nama' || key === 'email' || key === 'isi_pesan') &&
+                  issue.message &&
+                  !fieldErrors[key]
+                ) {
+                  fieldErrors[key] = issue.message
+                }
+              }
+              if (Object.keys(fieldErrors).length > 0) {
+                setErrors(fieldErrors)
+                msg = 'Periksa kembali isian Anda'
+              } else if (data.error) {
+                msg = data.error
+              }
+            } catch {
+              // Bukan JSON — pakai pesan generik di bawah.
+            }
+          }
+          throw new Error(msg)
+        }
 
         setStatus('success')
         setForm({ nama: '', email: '', isi_pesan: '' })
         setErrors({})
-      } catch {
+      } catch (e) {
         setStatus('error')
-        setErrorMsg('Gagal mengirim pesan. Silakan coba lagi.')
+        setErrorMsg(e instanceof Error ? e.message : 'Gagal mengirim pesan. Silakan coba lagi.')
       }
     })
   }
@@ -158,11 +199,11 @@ export default function KontakForm() {
             aria-describedby={errors.nama ? 'nama-error' : undefined}
             className={cn(
               errors.nama &&
-                'border-stone-400 ring-1 ring-stone-300 focus-visible:ring-stone-400/40'
+                'border-destructive ring-1 ring-destructive/40 focus-visible:ring-destructive/50'
             )}
           />
           {errors.nama && (
-            <p id="nama-error" className="mt-1 text-xs text-stone-600">
+            <p id="nama-error" className="mt-1 text-xs font-medium text-destructive">
               {errors.nama}
             </p>
           )}
@@ -189,11 +230,11 @@ export default function KontakForm() {
             aria-describedby={errors.email ? 'email-error' : undefined}
             className={cn(
               errors.email &&
-                'border-stone-400 ring-1 ring-stone-300 focus-visible:ring-stone-400/40'
+                'border-destructive ring-1 ring-destructive/40 focus-visible:ring-destructive/50'
             )}
           />
           {errors.email && (
-            <p id="email-error" className="mt-1 text-xs text-stone-600">
+            <p id="email-error" className="mt-1 text-xs font-medium text-destructive">
               {errors.email}
             </p>
           )}
@@ -223,13 +264,13 @@ export default function KontakForm() {
             className={cn(
               'resize-none',
               errors.isi_pesan &&
-                'border-stone-400 ring-1 ring-stone-300 focus-visible:ring-stone-400/40'
+                'border-destructive ring-1 ring-destructive/40 focus-visible:ring-destructive/50'
             )}
           />
           {errors.isi_pesan && (
             <p
               id="isi_pesan-error"
-              className="mt-1 text-xs text-stone-600"
+              className="mt-1 text-xs font-medium text-destructive"
             >
               {errors.isi_pesan}
             </p>

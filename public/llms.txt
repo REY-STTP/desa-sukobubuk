@@ -4,15 +4,17 @@
 
 Website ini adalah portal informasi desa: profil, sejarah, visi-misi, struktur organisasi, berita, direktori UMKM, galeri foto, dan formulir kontak.
 
+URL kanonis: `https://www.desa-sukobubuk.web.id`
+
 ## Pages
 
-- [Beranda](https://desa-sukobubuk.id/): Hero, statistik desa, UMKM unggulan, berita terbaru, galeri, CTA.
-- [Profil — Sejarah](https://desa-sukobubuk.id/profil/sejarah): Asal-usul dan timeline sejarah Desa Sukobubuk.
-- [Profil — Visi & Misi](https://desa-sukobubuk.id/profil/visi-misi): Visi dan Misi Pemerintah Desa Sukobubuk.
-- [Profil — Struktur Organisasi](https://desa-sukobubuk.id/profil/struktur-organisasi): Pejabat dan perangkat desa.
-- [Berita](https://desa-sukobubuk.id/berita): Daftar berita dan pengumuman terbaru.
-- [UMKM](https://desa-sukobubuk.id/umkm): Direktori UMKM desa dengan filter kategori.
-- [Kontak](https://desa-sukobubuk.id/kontak): Formulir kontak dan info kantor desa.
+- [Beranda](https://www.desa-sukobubuk.web.id/): Hero, statistik desa, UMKM unggulan, berita terbaru, galeri, CTA.
+- [Profil — Sejarah](https://www.desa-sukobubuk.web.id/profil/sejarah): Asal-usul dan timeline sejarah Desa Sukobubuk.
+- [Profil — Visi & Misi](https://www.desa-sukobubuk.web.id/profil/visi-misi): Visi dan Misi Pemerintah Desa Sukobubuk.
+- [Profil — Struktur Organisasi](https://www.desa-sukobubuk.web.id/profil/struktur-organisasi): Pejabat dan perangkat desa.
+- [Berita](https://www.desa-sukobubuk.web.id/berita): Daftar berita dan pengumuman terbaru.
+- [UMKM](https://www.desa-sukobubuk.web.id/umkm): Direktori UMKM desa dengan filter kategori.
+- [Kontak](https://www.desa-sukobubuk.web.id/kontak): Formulir kontak dan info kantor desa.
 
 ## Key facts
 
@@ -26,10 +28,14 @@ Website ini adalah portal informasi desa: profil, sejarah, visi-misi, struktur o
 ## Contact
 
 - **Email**: admin.desa.sukobubuk@gmail.com
+- **Telepon**: (0295) 123456
+- **WhatsApp**: +62 813-2873-3023
+- **Jam pelayanan**: Senin–Jumat 08.00–12.00
 - **Instagram**: https://instagram.com/kkn.sttpsukobubuk
 - **TikTok**: https://tiktok.com/@kknsttp.sukobubuk
 
 ## Optional
 
-- [Sitemap XML](https://desa-sukobubuk.id/sitemap.xml)
-- [RSS feed (planned)](https://desa-sukobubuk.id/feed.xml)
+- [Sitemap XML](https://www.desa-sukobubuk.web.id/sitemap.xml)
+- [Robots TXT](https://www.desa-sukobubuk.web.id/robots.txt)
+- [Web Manifest](https://www.desa-sukobubuk.web.id/manifest.json)

@@ -4,6 +4,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Store, MapPin, Phone, Package, ArrowLeft, Star, ExternalLink, Sparkles, MessageCircle, Clock } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { shouldSkipImageOptimization } from '@/lib/image-optim'
+import { localBusinessLd, breadcrumbLd, ldScript, SITE, priceRangeFor } from '@/lib/structured-data'
 import { Button } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
 import { Section, SectionHeader } from '@/components/ui/section'
@@ -11,11 +13,17 @@ import { EmptyState } from '@/components/ui/empty-state'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
 import { getUMKMDetail } from '@/lib/cache'
-import { localBusinessLd, breadcrumbLd, ldScript, SITE } from '@/lib/structured-data'
 
 interface Props {
   params: Promise<{ slug: string }>
 }
+
+// P2-F1: ISR 5 menit sebagai backstop. Alasan: invalidasi on-demand
+// (`revalidateTag(*, 'max')` = stale-while-revalidate + `revalidatePath`)
+// terbukti tak kunjung menyegarkan HTML statis halaman ini di uji lokal
+// (lihat Hasil eksekusi TASK-P2) — dengan ISR, basi terburuk = 5 menit
+// apa pun yang terjadi di lapisan on-demand.
+export const revalidate = 300
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
@@ -58,6 +66,15 @@ export default async function UMKMDetailPage({ params }: Props) {
             whatsapp: umkm.whatsapp,
             foto: umkm.logo,
             kategori: umkm.kategori,
+            kecamatan: umkm.kecamatan,
+            // GEO-002 / F-305 — derive price tier from produk.harga.
+            // getUMKMDetail already filters `is_available: true` and
+            // orders by `created_at: 'asc'`; here we map to number.
+            priceRange: priceRangeFor(
+              (umkm.produk ?? [])
+                .map((p) => Number(p.harga))
+                .filter((n) => Number.isFinite(n) && n > 0)
+            ),
           })
         )}
       />
@@ -89,7 +106,7 @@ export default async function UMKMDetailPage({ params }: Props) {
                 width={56}
                 height={56}
                 className="size-full object-contain"
-                unoptimized
+                unoptimized={shouldSkipImageOptimization(umkm.logo)}
               />
             ) : (
               <Store className="size-7 text-white" />
@@ -171,8 +188,9 @@ export default async function UMKMDetailPage({ params }: Props) {
                               src={produk.foto}
                               alt={produk.nama_produk}
                               fill
+                              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                               className="object-contain p-3 transition-transform duration-500 group-hover:scale-105"
-                              unoptimized
+                              unoptimized={shouldSkipImageOptimization(produk.foto)}
                             />
                           ) : (
                             <div className="grid size-full place-items-center">
@@ -181,9 +199,9 @@ export default async function UMKMDetailPage({ params }: Props) {
                           )}
                         </div>
                         <div className="flex flex-1 flex-col p-4">
-                          <h3 className="text-sm font-medium leading-snug text-stone-800 group-hover:text-sage-700 transition-colors line-clamp-2">
+                          <h2 className="text-sm font-medium leading-snug text-stone-800 group-hover:text-sage-700 transition-colors line-clamp-2">
                             {produk.nama_produk}
-                          </h3>
+                          </h2>
                           <p className="mt-1 font-mono text-sm font-semibold text-sage-700 tabular-nums">
                             {formatCurrency(produk.harga.toString())}
                           </p>
@@ -207,9 +225,9 @@ export default async function UMKMDetailPage({ params }: Props) {
           <aside className="flex flex-col gap-4 lg:sticky lg:top-28 lg:self-start">
             {/* WhatsApp CTA — primary action */}
             <div className="surface-elevated p-6">
-              <h3 className="font-display text-lg font-medium text-stone-800 mb-1">
+              <h2 className="font-display text-lg font-medium text-stone-800 mb-1">
                 Tertarik dengan produk ini?
-              </h3>
+              </h2>
               <p className="text-sm text-stone-500 mb-4">
                 Hubungi langsung via WhatsApp untuk informasi harga & pemesanan.
               </p>
@@ -228,9 +246,9 @@ export default async function UMKMDetailPage({ params }: Props) {
 
             {/* Info kontak */}
             <div className="surface-elevated p-6 flex flex-col gap-4">
-              <h3 className="font-display text-lg font-medium text-stone-800">
+              <h2 className="font-display text-lg font-medium text-stone-800">
                 Informasi Kontak
-              </h3>
+              </h2>
               <div className="flex items-start gap-3">
                 <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-sage-100 text-sage-700">
                   <MapPin className="size-4" />

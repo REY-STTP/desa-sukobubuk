@@ -18,7 +18,7 @@ export default function LupaPasswordPage() {
         <div className="text-center mb-8">
           <div className="size-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-primary-900/50 overflow-hidden">
             <Image
-              src="/images/logo-desa.png"
+              src="/images/logo-desa.webp"
               alt="Logo Desa"
               width={64}
               height={64}
