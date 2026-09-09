@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://desa-sukobubuk.id').replace(/\/$/, '')
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.desa-sukobubuk.web.id').replace(/\/$/, '')
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseRoutes: MetadataRoute.Sitemap = [
@@ -16,15 +16,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let beritaEntries: MetadataRoute.Sitemap = []
   let umkmEntries: MetadataRoute.Sitemap = []
+  let produkEntries: MetadataRoute.Sitemap = []
 
   try {
-    const [berita, umkm] = await Promise.all([
+    const [berita, umkm, produk] = await Promise.all([
       prisma.berita.findMany({
         select: { slug: true, created_at: true },
         orderBy: { created_at: 'desc' },
       }),
       prisma.uMKM.findMany({
         select: { slug: true, created_at: true },
+        orderBy: { created_at: 'desc' },
+      }),
+      // P1-D4: URL detail produk agar terindeks (sebelumnya hanya via link).
+      prisma.produk.findMany({
+        select: { slug: true, created_at: true, umkm: { select: { slug: true } } },
         orderBy: { created_at: 'desc' },
       }),
     ])
@@ -42,9 +48,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     }))
+
+    produkEntries = produk.map((p) => ({
+      url: `${SITE_URL}/umkm/${p.umkm.slug}/produk/${p.slug}`,
+      lastModified: p.created_at,
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    }))
   } catch {
     // DB unreachable — kembalikan base routes saja
   }
 
-  return [...baseRoutes, ...beritaEntries, ...umkmEntries]
+  return [...baseRoutes, ...beritaEntries, ...umkmEntries, ...produkEntries]
 }

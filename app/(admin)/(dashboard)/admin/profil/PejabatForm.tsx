@@ -195,7 +195,7 @@ function CropModal({ src, onConfirm, onCancel }: CropModalProps) {
           className="relative bg-sage-900 select-none overflow-hidden flex items-center justify-center"
           style={{ height: 360 }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+
           <img
             src={src}
             alt="crop"
@@ -296,8 +296,17 @@ export default function PejabatForm({ initialData }: Props) {
     setList(next)
   }
 
-  // Saat file dipilih → buka modal crop
+  // Saat file dipilih → validasi dini lalu buka modal crop.
+  // P1-B3: samakan dengan server (pejabat/foto: 3MB, JPG/PNG/WEBP).
   const handleFotoSelect = (idx: number, file: File) => {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setAlert({ type: 'error', msg: 'Format foto harus JPG, PNG, atau WEBP' })
+      return
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setAlert({ type: 'error', msg: 'Ukuran foto maksimal 3MB' })
+      return
+    }
     setCropState({ src: URL.createObjectURL(file), idx })
   }
 

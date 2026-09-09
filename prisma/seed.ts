@@ -1,20 +1,28 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Role } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 async function main() {
+  // P1-B1: seed TIDAK boleh jalan di production — berisi kredensial default
+  // dan data contoh yang akan menimpa/merusak data asli.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('P1-B1: prisma seed ditolak di NODE_ENV=production.')
+  }
   console.log('🌱 Seeding database...')
 
-  // Seed Users
+  // Seed Users. P1-B1: blok `update` sengaja dikosongkan — menjalankan seed
+  // TIDAK boleh me-reset password admin ke default ('Admin123!') bila akun
+  // sudah ada (sebelumnya update me-hash password statis setiap seed jalan).
   const admin = await prisma.user.upsert({
     where: { email: 'admin.desa.sukobubuk@gmail.com' },
-    update: { password: await bcrypt.hash('Admin123!', 12) },
+    update: {},
     create: {
       name: 'Admin Desa',
       email: 'admin.desa.sukobubuk@gmail.com',
       password: await bcrypt.hash('Admin123!', 12),
-      role: 'admin',
+      // F-208 / DB-004 (Phase 06) — Role enum, not a free-form string.
+      role: Role.ADMIN,
     },
   })
 
@@ -198,17 +206,22 @@ async function main() {
   }
 
   // Seed Galeri
-  const galeriData = [
-    { judul: 'Acara HUT Kemerdekaan RI ke-79', foto: '/images/galeri-1.jpg' },
-    { judul: 'Panen Raya Padi Organik', foto: '/images/galeri-2.jpg' },
-    { judul: 'Pelatihan Batik Generasi Muda', foto: '/images/galeri-3.jpg' },
-    { judul: 'Gotong Royong Pembersihan Desa', foto: '/images/galeri-4.jpg' },
-    { judul: 'Bazar UMKM Desa', foto: '/images/galeri-5.jpg' },
-    { judul: 'Rapat Musyawarah Desa', foto: '/images/galeri-6.jpg' },
+  // POL-001 (Phase 07) — previously used /images/galeri-*.jpg which does not exist
+  // in public/images (only logo-desa.webp). Use `null` so GaleriSection renders
+  // the gradient placeholder (hasValidFoto check). Non-destructive: only seed
+  // when table is empty to avoid wiping admin-uploaded Cloudinary images.
+  const galeriData: { judul: string; foto: string | null }[] = [
+    { judul: 'Acara HUT Kemerdekaan RI ke-79', foto: null },
+    { judul: 'Panen Raya Padi Organik', foto: null },
+    { judul: 'Pelatihan Batik Generasi Muda', foto: null },
+    { judul: 'Gotong Royong Pembersihan Desa', foto: null },
+    { judul: 'Bazar UMKM Desa', foto: null },
+    { judul: 'Rapat Musyawarah Desa', foto: null },
   ]
 
-  for (const data of galeriData) {
-    await prisma.galeri.create({ data })
+  const galeriCount = await prisma.galeri.count()
+  if (galeriCount === 0) {
+    await prisma.galeri.createMany({ data: galeriData })
   }
 
   console.log('✅ Seeding selesai!')
@@ -221,37 +234,52 @@ async function main() {
   // Seed ProfilDesa
   const profilExist = await prisma.profilDesa.findFirst()
   if (!profilExist) {
-    await prisma.profilDesa.create({
+    // P1-B1 (follow-up): pakai id profil yang baru dibuat, bukan hardcode 1
+    // (re-seed setelah hapus bisa menghasilkan id lain → P2003/FK salah).
+    const profilBaru = await prisma.profilDesa.create({
       data: {
         nama_desa: 'Desa Sukobubuk',
         nama_kecamatan: 'Kecamatan Margorejo',
         nama_kabupaten: 'Kabupaten Pati',
         nama_provinsi: 'Jawa Tengah',
         kode_pos: '59163',
+        // POL-002 (Phase 07) — canonical address/phone/WA aligned with
+        // prisma/schema.prisma defaults (was 6281234567890, now 6281328733023)
         alamat_kantor: 'Jl. Raya Sukobubuk, Desa Sukobubuk, Kec. Margorejo, Kab. Pati, Jawa Tengah 59163',
         telepon: '(0295) 123456',
         email: 'admin.desa.sukobubuk@gmail.com',
-        whatsapp: '6281234567890',
-        jam_pelayanan: '08.00 - 12.00',
+        whatsapp: '6281328733023',
+        jam_pelayanan: '08.00 – 12.00',
         maps_embed_url: 'https://www.google.com/maps?q=Desa+Sukobubuk+Margorejo+Pati&output=embed',
         maps_link: 'https://maps.google.com/?q=Desa+Sukobubuk+Margorejo+Pati',
         sejarah_konten: '<p>Desa Sukobubuk merupakan salah satu desa yang terletak di Kecamatan Margorejo, Kabupaten Pati, Provinsi Jawa Tengah. Desa ini memiliki sejarah panjang yang berkaitan erat dengan perkembangan peradaban di kawasan Pati dan sekitarnya.</p><p>Nama <strong>Sukobubuk</strong> berasal dari bahasa Jawa kuno yang berarti tanah yang subur dan makmur.</p>',
         visi: 'Terwujudnya Desa Sukobubuk yang Maju, Mandiri, Sejahtera, dan Berbudaya Berbasis Potensi Lokal pada Tahun 2028',
-        misi: JSON.stringify([
-          'Meningkatkan kualitas pelayanan publik yang transparan, akuntabel, dan berbasis teknologi informasi',
-          'Mengembangkan potensi sumber daya manusia melalui pendidikan dan pelatihan keterampilan',
-          'Mendorong pertumbuhan ekonomi desa melalui pengembangan UMKM dan sektor pertanian organik',
-          'Meningkatkan infrastruktur dasar desa yang merata dan berkualitas',
-          'Melestarikan budaya dan kearifan lokal sebagai identitas Desa Sukobubuk',
-          'Mewujudkan lingkungan desa yang bersih, sehat, dan lestari',
-          'Meningkatkan partisipasi masyarakat dalam setiap proses pembangunan desa',
-        ]),
+        // F-303 / DB-006 (Phase 06) — canonical misi items are
+        // written to the misi_items relation table below; the legacy
+        // 'misi' JSON column is left empty.
         periode_visi_misi: '2022-2028',
         jumlah_penduduk: 3500,
         tahun_berdiri: '1900',
+        // F-303 / DB-006 (Phase 06) — empty the legacy JSON 'misi' column
+        // because the canonical data is now in the misi_items relation.
+        misi: '',
       },
     })
-    console.log('🏘️  Profil Desa: seeded')
+    // F-303 / DB-006 (Phase 06) — seed misi_items relation table. The list
+    // of 7 items matches the original JSON; urutan preserves order.
+    await prisma.misiItem.deleteMany({ where: { profil: { is: { nama_desa: 'Desa Sukobubuk' } } } })
+    await prisma.misiItem.createMany({
+      data: [
+        { profil_id: profilBaru.id, text: 'Meningkatkan kualitas pelayanan publik yang transparan, akuntabel, dan berbasis teknologi informasi', urutan: 0 },
+        { profil_id: profilBaru.id, text: 'Mengembangkan potensi sumber daya manusia melalui pendidikan dan pelatihan keterampilan', urutan: 1 },
+        { profil_id: profilBaru.id, text: 'Mendorong pertumbuhan ekonomi desa melalui pengembangan UMKM dan sektor pertanian organik', urutan: 2 },
+        { profil_id: profilBaru.id, text: 'Meningkatkan infrastruktur dasar desa yang merata dan berkualitas', urutan: 3 },
+        { profil_id: profilBaru.id, text: 'Melestarikan budaya dan kearifan lokal sebagai identitas Desa Sukobubuk', urutan: 4 },
+        { profil_id: profilBaru.id, text: 'Mewujudkan lingkungan desa yang bersih, sehat, dan lestari', urutan: 5 },
+        { profil_id: profilBaru.id, text: 'Meningkatkan partisipasi masyarakat dalam setiap proses pembangunan desa', urutan: 6 },
+      ],
+    })
+    console.log('🏘️  Profil Desa: seeded (misi_items: 7)')
   }
 
   // Seed PejabatDesa

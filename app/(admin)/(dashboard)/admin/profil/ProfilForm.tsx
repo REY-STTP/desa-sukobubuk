@@ -1,14 +1,22 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle, Building2, Phone, BookOpen, Target, MapPin, Mail, Save } from 'lucide-react'
-import TiptapEditor from '@/components/admin/TiptapEditor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { FormField, FormSection, FormActions } from '@/components/admin/FormField'
 import { cn } from '@/lib/utils'
+
+// F-310 / PERF-005 — Tiptap + ProseMirror are heavy. Defer them.
+const TiptapEditor = dynamic(() => import('@/components/admin/TiptapEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[320px] animate-pulse rounded-xl bg-stone-100" />
+  ),
+})
 
 const TABS = [
   { id: 'identitas', label: 'Identitas Desa', icon: Building2 },
@@ -24,9 +32,22 @@ export default function ProfilForm({ initialData }: { initialData: any }) {
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  // P0-3: baca dari relasi kanonik `misi_items` dulu; fallback ke kolom
+  // legacy `misi` (JSON string) untuk data lama. Sebelumnya hanya baca
+  // kolom legacy yang selalu di-reset "" oleh server — sehingga daftar
+  // misi hilang dari UI setelah sekali simpan, dan simpan berikutnya
+  // menghapus seluruh baris relasi (data-loss loop).
   const parseMisi = () => {
+    const rel = initialData?.misi_items
+    if (Array.isArray(rel)) {
+      return rel
+        .map((m: { text?: unknown }) => (typeof m?.text === 'string' ? m.text : ''))
+        .filter(Boolean)
+        .join('\n')
+    }
     try {
-      return JSON.parse(initialData?.misi || '[]').join('\n')
+      const v = JSON.parse(initialData?.misi || '[]')
+      return Array.isArray(v) ? v.join('\n') : ''
     } catch {
       return ''
     }
@@ -58,19 +79,21 @@ export default function ProfilForm({ initialData }: { initialData: any }) {
     if (errors[key]) setErrors((p) => ({ ...p, [key]: '' }))
   }
 
-  const handleSave = async () => {
+  const handleSave = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
     // Light validation per tab
-    const e: Record<string, string> = {}
+    const errs: Record<string, string> = {}
     if (tab === 'identitas') {
-      if (!form.nama_desa.trim()) e.nama_desa = 'Nama desa wajib diisi'
-      if (!form.nama_kecamatan.trim()) e.nama_kecamatan = 'Kecamatan wajib diisi'
-      if (!form.nama_kabupaten.trim()) e.nama_kabupaten = 'Kabupaten wajib diisi'
+      if (!form.nama_desa.trim()) errs.nama_desa = 'Nama desa wajib diisi'
+      if (!form.nama_kecamatan.trim()) errs.nama_kecamatan = 'Kecamatan wajib diisi'
+      if (!form.nama_kabupaten.trim()) errs.nama_kabupaten = 'Kabupaten wajib diisi'
     }
     if (tab === 'visimisi') {
-      if (!form.visi.trim()) e.visi = 'Visi wajib diisi'
+      if (!form.visi.trim()) errs.visi = 'Visi wajib diisi'
     }
-    if (Object.keys(e).length > 0) {
-      setErrors(e)
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs)
       return
     }
 
@@ -107,8 +130,10 @@ export default function ProfilForm({ initialData }: { initialData: any }) {
           return (
             <button
               key={t.id}
+              id={`tab-${t.id}`}
               role="tab"
               aria-selected={active}
+              aria-controls={`panel-${t.id}`}
               onClick={() => {
                 setTab(t.id)
                 setErrors({})
@@ -127,7 +152,7 @@ export default function ProfilForm({ initialData }: { initialData: any }) {
         })}
       </div>
 
-      <div className="flex flex-col gap-5 p-5 md:p-6">
+      <form onSubmit={handleSave} className="flex flex-col gap-5 p-5 md:p-6">
         {alert && (
           <div
             role="status"
@@ -148,114 +173,146 @@ export default function ProfilForm({ initialData }: { initialData: any }) {
         )}
 
         {/* TAB: Identitas */}
-        {tab === 'identitas' && (
-          <FormSection title="Identitas Desa" description="Nama, wilayah administratif, dan kode pos.">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField label="Nama Desa" required error={errors.nama_desa} icon={<Building2 className="size-4" />}>
-                <Input type="text" value={form.nama_desa} onChange={(e) => set('nama_desa', e.target.value)} disabled={loading} />
-              </FormField>
-              <FormField label="Kecamatan" required error={errors.nama_kecamatan}>
-                <Input type="text" value={form.nama_kecamatan} onChange={(e) => set('nama_kecamatan', e.target.value)} disabled={loading} />
-              </FormField>
-              <FormField label="Kabupaten" required error={errors.nama_kabupaten}>
-                <Input type="text" value={form.nama_kabupaten} onChange={(e) => set('nama_kabupaten', e.target.value)} disabled={loading} />
-              </FormField>
-              <FormField label="Provinsi" icon={<MapPin className="size-4" />}>
-                <Input type="text" value={form.nama_provinsi} onChange={(e) => set('nama_provinsi', e.target.value)} disabled={loading} />
-              </FormField>
-              <FormField label="Kode Pos">
-                <Input type="text" value={form.kode_pos} onChange={(e) => set('kode_pos', e.target.value)} disabled={loading} className="font-mono tabular-nums" />
-              </FormField>
-              <FormField label="Tahun Berdiri">
-                <Input type="text" value={form.tahun_berdiri} onChange={(e) => set('tahun_berdiri', e.target.value)} disabled={loading} className="font-mono tabular-nums" placeholder="Contoh: 1925" />
-              </FormField>
-              <FormField label="Jumlah Penduduk" hint="Angka saja, tanpa titik/koma">
-                <Input type="number" value={form.jumlah_penduduk} onChange={(e) => set('jumlah_penduduk', e.target.value)} disabled={loading} className="font-mono tabular-nums" />
-              </FormField>
-              <FormField label="Periode Visi Misi" hint="Contoh: 2022–2028">
-                <Input type="text" value={form.periode_visi_misi} onChange={(e) => set('periode_visi_misi', e.target.value)} disabled={loading} placeholder="2022–2028" />
-              </FormField>
-            </div>
-          </FormSection>
-        )}
+        <div
+          role="tabpanel"
+          id="panel-identitas"
+          aria-labelledby="tab-identitas"
+          hidden={tab !== 'identitas'}
+          aria-hidden={tab !== 'identitas'}
+        >
+          {tab === 'identitas' && (
+            <FormSection title="Identitas Desa" description="Nama, wilayah administratif, dan kode pos.">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormField label="Nama Desa" required error={errors.nama_desa} icon={<Building2 className="size-4" />}>
+                  <Input type="text" value={form.nama_desa} onChange={(e) => set('nama_desa', e.target.value)} disabled={loading} />
+                </FormField>
+                <FormField label="Kecamatan" required error={errors.nama_kecamatan}>
+                  <Input type="text" value={form.nama_kecamatan} onChange={(e) => set('nama_kecamatan', e.target.value)} disabled={loading} />
+                </FormField>
+                <FormField label="Kabupaten" required error={errors.nama_kabupaten}>
+                  <Input type="text" value={form.nama_kabupaten} onChange={(e) => set('nama_kabupaten', e.target.value)} disabled={loading} />
+                </FormField>
+                <FormField label="Provinsi" icon={<MapPin className="size-4" />}>
+                  <Input type="text" value={form.nama_provinsi} onChange={(e) => set('nama_provinsi', e.target.value)} disabled={loading} />
+                </FormField>
+                <FormField label="Kode Pos">
+                  <Input type="text" value={form.kode_pos} onChange={(e) => set('kode_pos', e.target.value)} disabled={loading} className="font-mono tabular-nums" />
+                </FormField>
+                <FormField label="Tahun Berdiri">
+                  <Input type="text" value={form.tahun_berdiri} onChange={(e) => set('tahun_berdiri', e.target.value)} disabled={loading} className="font-mono tabular-nums" placeholder="Contoh: 1925" />
+                </FormField>
+                <FormField label="Jumlah Penduduk" hint="Angka saja, tanpa titik/koma">
+                  <Input type="number" value={form.jumlah_penduduk} onChange={(e) => set('jumlah_penduduk', e.target.value)} disabled={loading} className="font-mono tabular-nums" />
+                </FormField>
+                <FormField label="Periode Visi Misi" hint="Contoh: 2022–2028">
+                  <Input type="text" value={form.periode_visi_misi} onChange={(e) => set('periode_visi_misi', e.target.value)} disabled={loading} placeholder="2022–2028" />
+                </FormField>
+              </div>
+            </FormSection>
+          )}
+        </div>
 
         {/* TAB: Kontak */}
-        {tab === 'kontak' && (
-          <FormSection title="Kontak & Lokasi" description="Telepon, email, alamat kantor, dan tautan peta.">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField label="Telepon" icon={<Phone className="size-4" />}>
-                <Input type="text" value={form.telepon} onChange={(e) => set('telepon', e.target.value)} disabled={loading} placeholder="(0295) 123456" />
+        <div
+          role="tabpanel"
+          id="panel-kontak"
+          aria-labelledby="tab-kontak"
+          hidden={tab !== 'kontak'}
+          aria-hidden={tab !== 'kontak'}
+        >
+          {tab === 'kontak' && (
+            <FormSection title="Kontak & Lokasi" description="Telepon, email, alamat kantor, dan tautan peta.">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormField label="Telepon" icon={<Phone className="size-4" />}>
+                  <Input type="text" value={form.telepon} onChange={(e) => set('telepon', e.target.value)} disabled={loading} placeholder="(0295) 123456" />
+                </FormField>
+                <FormField label="Email" icon={<Mail className="size-4" />}>
+                  <Input type="text" value={form.email} onChange={(e) => set('email', e.target.value)} disabled={loading} placeholder="desa@gmail.com" />
+                </FormField>
+                <FormField label="WhatsApp" hint="Format: 6281234567890 (tanpa + atau 0)">
+                  <Input type="text" value={form.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} disabled={loading} placeholder="6281234567890" className="font-mono tabular-nums" />
+                </FormField>
+                <FormField label="Jam Pelayanan">
+                  <Input type="text" value={form.jam_pelayanan} onChange={(e) => set('jam_pelayanan', e.target.value)} disabled={loading} placeholder="08.00 – 12.00" />
+                </FormField>
+              </div>
+              <FormField label="Alamat Kantor" icon={<MapPin className="size-4" />}>
+                <Textarea value={form.alamat_kantor} onChange={(e) => set('alamat_kantor', e.target.value)} disabled={loading} className="min-h-[80px] resize-none" />
               </FormField>
-              <FormField label="Email" icon={<Mail className="size-4" />}>
-                <Input type="text" value={form.email} onChange={(e) => set('email', e.target.value)} disabled={loading} placeholder="desa@gmail.com" />
+              <FormField label="Google Maps — Embed URL" hint='Buka Google Maps → Bagikan → Sematkan peta → Salin URL dari src="..."'>
+                <Textarea
+                  value={form.maps_embed_url}
+                  onChange={(e) => set('maps_embed_url', e.target.value)}
+                  disabled={loading}
+                  className="min-h-[80px] resize-none font-mono text-xs"
+                  placeholder="https://www.google.com/maps/embed?pb=..."
+                />
               </FormField>
-              <FormField label="WhatsApp" hint="Format: 6281234567890 (tanpa + atau 0)">
-                <Input type="text" value={form.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} disabled={loading} placeholder="6281234567890" className="font-mono tabular-nums" />
+              <FormField label="Google Maps — Link">
+                <Input type="text" value={form.maps_link} onChange={(e) => set('maps_link', e.target.value)} disabled={loading} placeholder="https://maps.google.com/?q=..." />
               </FormField>
-              <FormField label="Jam Pelayanan">
-                <Input type="text" value={form.jam_pelayanan} onChange={(e) => set('jam_pelayanan', e.target.value)} disabled={loading} placeholder="08.00 – 12.00" />
-              </FormField>
-            </div>
-            <FormField label="Alamat Kantor" icon={<MapPin className="size-4" />}>
-              <Textarea value={form.alamat_kantor} onChange={(e) => set('alamat_kantor', e.target.value)} disabled={loading} className="min-h-[80px] resize-none" />
-            </FormField>
-            <FormField label="Google Maps — Embed URL" hint='Buka Google Maps → Bagikan → Sematkan peta → Salin URL dari src="..."'>
-              <Textarea
-                value={form.maps_embed_url}
-                onChange={(e) => set('maps_embed_url', e.target.value)}
-                disabled={loading}
-                className="min-h-[80px] resize-none font-mono text-xs"
-                placeholder="https://www.google.com/maps/embed?pb=..."
-              />
-            </FormField>
-            <FormField label="Google Maps — Link">
-              <Input type="text" value={form.maps_link} onChange={(e) => set('maps_link', e.target.value)} disabled={loading} placeholder="https://maps.google.com/?q=..." />
-            </FormField>
-          </FormSection>
-        )}
+            </FormSection>
+          )}
+        </div>
 
         {/* TAB: Sejarah */}
-        {tab === 'sejarah' && (
-          <FormSection title="Konten Sejarah" description="Gunakan toolbar untuk memformat teks.">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-stone-700">Sejarah Desa</label>
-              <div className="rounded-xl border border-stone-200">
-                <TiptapEditor
-                  value={form.sejarah_konten}
-                  onChange={(html) => set('sejarah_konten', html)}
-                  placeholder="Tulis sejarah desa di sini..."
-                />
+        <div
+          role="tabpanel"
+          id="panel-sejarah"
+          aria-labelledby="tab-sejarah"
+          hidden={tab !== 'sejarah'}
+          aria-hidden={tab !== 'sejarah'}
+        >
+          {tab === 'sejarah' && (
+            <FormSection title="Konten Sejarah" description="Gunakan toolbar untuk memformat teks.">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-stone-700">Sejarah Desa</label>
+                <div className="rounded-xl border border-stone-200">
+                  <TiptapEditor
+                    value={form.sejarah_konten}
+                    onChange={(html) => set('sejarah_konten', html)}
+                    placeholder="Tulis sejarah desa di sini..."
+                  />
+                </div>
               </div>
-            </div>
-          </FormSection>
-        )}
+            </FormSection>
+          )}
+        </div>
 
         {/* TAB: Visi Misi */}
-        {tab === 'visimisi' && (
-          <FormSection title="Visi & Misi" description="Visi adalah kalimat tunggal; misi satu baris per poin.">
-            <FormField label="Visi" required error={errors.visi} hint="Satu kalimat visi utama">
-              <Textarea
-                value={form.visi}
-                onChange={(e) => set('visi', e.target.value)}
-                disabled={loading}
-                className="min-h-[96px] resize-none"
-                placeholder="Terwujudnya Desa ... yang ..."
-              />
-            </FormField>
-            <FormField label="Misi" hint="Satu baris = satu poin misi">
-              <Textarea
-                value={form.misi_text}
-                onChange={(e) => set('misi_text', e.target.value)}
-                disabled={loading}
-                className="min-h-[200px] resize-y"
-                placeholder={`Meningkatkan kualitas pelayanan...${'\n'}Mengembangkan potensi SDM...${'\n'}dst.`}
-              />
-            </FormField>
-          </FormSection>
-        )}
+        <div
+          role="tabpanel"
+          id="panel-visimisi"
+          aria-labelledby="tab-visimisi"
+          hidden={tab !== 'visimisi'}
+          aria-hidden={tab !== 'visimisi'}
+        >
+          {tab === 'visimisi' && (
+            <FormSection title="Visi & Misi" description="Visi adalah kalimat tunggal; misi satu baris per poin.">
+              <FormField label="Visi" required error={errors.visi} hint="Satu kalimat visi utama">
+                <Textarea
+                  value={form.visi}
+                  onChange={(e) => set('visi', e.target.value)}
+                  disabled={loading}
+                  className="min-h-[96px] resize-none"
+                  placeholder="Terwujudnya Desa ... yang ..."
+                />
+              </FormField>
+              <FormField label="Misi" hint="Satu baris = satu poin misi">
+                <Textarea
+                  value={form.misi_text}
+                  onChange={(e) => set('misi_text', e.target.value)}
+                  disabled={loading}
+                  className="min-h-[200px] resize-y"
+                  placeholder={`Meningkatkan kualitas pelayanan...${'\n'}Mengembangkan potensi SDM...${'\n'}dst.`}
+                />
+              </FormField>
+            </FormSection>
+          )}
+        </div>
 
         <FormActions>
-          <Button onClick={handleSave} disabled={loading}>
+          <Button type="submit" disabled={loading}>
             {loading ? (
               <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
             ) : (
@@ -264,7 +321,7 @@ export default function ProfilForm({ initialData }: { initialData: any }) {
             {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
           </Button>
         </FormActions>
-      </div>
+      </form>
     </div>
   )
 }

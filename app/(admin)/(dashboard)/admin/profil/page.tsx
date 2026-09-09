@@ -28,7 +28,10 @@ const PejabatForm = dynamic(() => import('./PejabatForm'), {
 
 export default async function AdminProfilPage() {
   const [profil, pejabat] = await Promise.all([
-    prisma.profilDesa.findFirst(),
+    // P0-3: sertakan relasi misi agar form baca sumber kanonik.
+    prisma.profilDesa.findFirst({
+      include: { misi_items: { orderBy: { urutan: 'asc' } } },
+    }),
     prisma.pejabatDesa.findMany({ orderBy: [{ kategori: 'asc' }, { urutan: 'asc' }] }),
   ])
 
