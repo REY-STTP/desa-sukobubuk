@@ -47,6 +47,31 @@ export async function deleteFromCloudinary(public_id: string): Promise<void> {
 }
 
 /**
+ * P2-E2: hapus aset Cloudinary dari sebuah URL gambar lama, hanya bila
+ * URL tersebut (a) benar-benar milik Cloudinary project ini dan (b) tidak
+ * dipakai row lain. Best-effort — tak pernah throw (caller boleh mengabaikan
+ * hasil; kegagalan dicatat bila perlu).
+ *
+ * @returns true bila penghapusan dilakukan.
+ */
+export async function deleteUnusedCloudinaryUrl(
+  url: string | null | undefined,
+  isUsedElsewhere: () => Promise<boolean>
+): Promise<boolean> {
+  if (!url || !url.includes('res.cloudinary.com')) return false
+  const publicId = getPublicIdFromUrl(url)
+  if (!publicId) return false
+  try {
+    // Fail-closed: bila tak bisa memastikan eksklusivitas, jangan hapus.
+    if (await isUsedElsewhere()) return false
+  } catch {
+    return false
+  }
+  await deleteFromCloudinary(publicId) // internal try/catch, tak throw
+  return true
+}
+
+/**
  * Ambil public_id dari URL Cloudinary.
  * Contoh: "https://res.cloudinary.com/demo/image/upload/v123/desa-sukobubuk/berita/abc.jpg"
  * → "desa-sukobubuk/berita/abc"

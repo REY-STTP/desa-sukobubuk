@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # 🏡 Desa Sukobubuk
 
@@ -9,7 +9,7 @@ Kecamatan Margorejo · Kabupaten Pati · Jawa Tengah · 59163
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
-[![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?logo=prisma)](https://www.prisma.io/)
+[![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma)](https://www.prisma.io/)
 [![License](https://img.shields.io/badge/License-Private-red)]()
 
 </div>
@@ -53,7 +53,7 @@ Portal informasi digital untuk Desa Sukobubuk yang menyediakan akses publik ke p
 
 | Fitur | Deskripsi |
 |---|---|
-| **Autentikasi** | Login admin dengan NextAuth.js (JWT + Credentials) dan fitur reset password via email |
+| **Autentikasi** | Login admin dengan Auth.js v5 (JWT + Credentials) dan fitur reset password via email |
 | **Manajemen Berita** | CRUD berita dengan rich text editor (Tiptap), upload thumbnail ke Cloudinary |
 | **Manajemen UMKM** | CRUD data UMKM dan produk, crop & upload logo/foto produk |
 | **Manajemen Galeri** | CRUD foto galeri dengan upload ke Cloudinary |
@@ -63,12 +63,11 @@ Portal informasi digital untuk Desa Sukobubuk yang menyediakan akses publik ke p
 
 ### 🎨 UI/UX
 
-- Desain responsif (mobile-first) dengan tema **Earth-Sage** & aksen **Ember**
-- Dark mode otomatis (`next-themes`)
+- Desain responsif (mobile-first) dengan tema tunggal **Earth-Sage** & aksen **Ember** (tanpa dark-mode, sesuai kebutuhan situs pemerintah)
 - Animasi halus dengan Framer Motion (scroll reveal, stagger, counter)
 - Loading screen & skeleton states
 - Komponen shadcn/ui (New York style)
-- Typography Inter + Fraunces + JetBrains Mono (Google Fonts)
+- Typography Inter + Fraunces (Google Fonts; monospace pakai stack sistem)
 
 ## 🛠 Tech Stack
 
@@ -80,15 +79,16 @@ Portal informasi digital untuk Desa Sukobubuk yang menyediakan akses publik ke p
 | **Styling** | [Tailwind CSS 4](https://tailwindcss.com/) + CSS Variables |
 | **UI Components** | [shadcn/ui](https://ui.shadcn.com/) (New York) + [Radix UI](https://radix-ui.com/) |
 | **Animation** | [Framer Motion](https://www.framer.com/motion/) |
-| **Icons** | [Lucide React](https://lucide.dev/) + [React Icons](https://react-icons.github.io/react-icons/) |
+| **Icons** | [Lucide React](https://lucide.dev/) + inline SVG |
 | **Database** | [PostgreSQL](https://www.postgresql.org/) (via [Supabase](https://supabase.com/)) |
-| **ORM** | [Prisma 5](https://www.prisma.io/) |
-| **Auth** | [NextAuth.js v4](https://next-auth.js.org/) (JWT + Credentials) |
-| **Rich Text Editor** | [Tiptap](https://tiptap.dev/) |
+| **ORM** | [Prisma 6.19.3](https://www.prisma.io/) |
+| **Auth** | [Auth.js v5](https://authjs.dev/) (JWT + Credentials) |
+| **Rich Text Editor** | [Tiptap 3](https://tiptap.dev/) |
 | **Image Storage** | [Cloudinary](https://cloudinary.com/) |
-| **Email** | [Nodemailer](https://nodemailer.com/) (SMTP Gmail) |
-| **Image Processing** | [Sharp](https://sharp.pixelplumbing.com/) |
-| **Notifications** | [Sonner](https://sonner.emilkowal.dev/) (toast) |
+| **Email** | [Nodemailer 9](https://nodemailer.com/) (SMTP Gmail) |
+| **Image Processing** | [Sharp 0.35.4](https://sharp.pixelplumbing.com/) |
+| **Validation** | [Zod 3](https://zod.dev/) + [sanitize-html](https://github.com/apostrophec/sanitize-html) |
+| **Lint** | ESLint 9 (flat `eslint.config.mjs`) |
 | **Deployment** | [Vercel](https://vercel.com/) |
 
 ## 📁 Arsitektur & Struktur Folder
@@ -99,26 +99,31 @@ desa-sukobubuk/
 │   ├── (public)/              # Route group — halaman publik
 │   │   ├── page.tsx           # Beranda
 │   │   ├── layout.tsx         # Layout publik (Navbar + Footer)
+│   │   ├── loading.tsx        # Skeleton rute publik
 │   │   ├── berita/            # Berita listing & detail (/berita, /berita/[slug])
+│   │   ├── kebijakan-privasi/ # Halaman kebijakan privasi
+│   │   ├── kontak/            # Formulir kontak
 │   │   ├── profil/
 │   │   │   ├── sejarah/       # /profil/sejarah
 │   │   │   ├── visi-misi/     # /profil/visi-misi
 │   │   │   └── struktur-organisasi/
-│   │   ├── umkm/              # UMKM listing & detail (/umkm, /umkm/[slug])
-│   │   └── kontak/            # Formulir kontak
+│   │   ├── syarat-ketentuan/  # Halaman syarat & ketentuan
+│   │   └── umkm/              # UMKM listing & detail (/umkm, /umkm/[slug])
 │   ├── (admin)/
 │   │   ├── (auth)/            # Login & reset password (tanpa sidebar)
 │   │   └── (dashboard)/       # Dashboard admin (dengan sidebar)
 │   │       └── admin/         # /admin, /admin/berita, /admin/umkm, dll.
 │   ├── api/                   # API Route Handlers
-│   │   ├── auth/              # NextAuth endpoints
+│   │   ├── auth/              # Auth.js endpoints
 │   │   ├── admin/             # Admin management APIs
-│   │   ├── berita/            # Berita CRUD
-│   │   ├── umkm/              # UMKM CRUD
-│   │   ├── produk/            # Produk CRUD
-│   │   ├── galeri/            # Galeri CRUD
+│   │   ├── berita/            # List berita publik (GET)
+│   │   ├── umkm/              # List UMKM publik (GET)
+│   │   ├── produk/            # List produk publik (GET)
+│   │   ├── galeri/            # List galeri publik (GET)
 │   │   └── pesan/             # Pesan (kontak form)
 │   ├── globals.css            # Tailwind v4 theme + global styles
+│   ├── icon.png               # Favicon 64px (via sharp)
+│   ├── apple-icon.png         # 180×180 iOS (SEO-002, via sharp)
 │   ├── layout.tsx             # Root layout (fonts, metadata, JSON-LD)
 │   ├── not-found.tsx          # Custom 404
 │   ├── robots.ts              # Dynamic robots.txt
@@ -130,36 +135,51 @@ desa-sukobubuk/
 │   ├── sections/              # Section homepage (Hero, Stats, UMKM, Berita, Galeri, CTA)
 │   └── ui/                    # shadcn/ui primitives (27 komponen)
 ├── lib/
-│   ├── auth.ts                # NextAuth config (JWT + Credentials)
-│   ├── prisma.ts              # Prisma client singleton
-│   ├── cache.ts               # Data fetching + caching utilities
+│   ├── auth.ts                # Auth.js v5 config (JWT + Credentials + rate-limit + lockout)
+│   ├── admin-guard.ts         # requireAdmin() helper (F-101)
+│   ├── audit.ts               # logAdminAction + getClientIp (ARCH-001)
+│   ├── auth-lockout.ts        # FailedLogin lockout
+│   ├── rate-limit.ts          # Token-bucket rate limiter
+│   ├── prisma.ts              # Prisma client singleton + timeout injection
+│   ├── cache.ts               # Data fetching + caching (revalidateTag)
 │   ├── cloudinary.ts          # Cloudinary upload helper
 │   ├── mail.ts                # Nodemailer SMTP config
-│   ├── structured-data.ts     # JSON-LD schema generators
-│   └── utils.ts               # Utility functions (cn, formatDate, dll.)
+│   ├── sanitize.ts            # sanitizeRichText + escapeHtml
+│   ├── structured-data.ts     # JSON-LD schema generators (SEO-GEO)
+│   ├── logger.ts              # Structured logger + request-id (OBS-002)
+│   ├── db-retry.ts            # Prisma retry P1001/P1017
+│   ├── parse-body.ts          # parseBody + zod error mapping
+│   ├── schemas/               # zod schemas per entity (SEC-005)
+│   └── utils.ts               # cn, formatDate, slugify (NFD), truncate, clampPage/Limit, detectImageType
 ├── prisma/
-│   ├── schema.prisma          # Database schema (9 model)
-│   └── seed.ts                # Seeder data awal
+│   ├── schema.prisma          # Database schema (12 model: User, FailedLogin, PasswordReset, UMKM, Produk, Berita, Galeri, Pesan, ProfilDesa, MisiItem, PejabatDesa, AuditLog + Role enum)
+│   ├── seed.ts                # Seeder idempotent (POL-001/002)
+│   └── migrations/            # 10 migrations (trigram, session_version, kecamatan, singletons, role enum, misi_items, audit_logs, dll.)
 ├── public/
-│   ├── images/                # Aset gambar statis (logo desa)
-│   ├── og-image.png           # Open Graph image
-│   ├── llms.txt               # LLM-friendly site summary
-│   └── llms-full.txt          # LLM-friendly full reference
+│   ├── images/                # logo-desa.webp (galeri placeholder gradient, POL-001)
+│   ├── og-image.webp           # 1200×630 <300KB (SEO-003)
+│   ├── apple-icon.png         # 180×180 iOS (SEO-002, via sharp)
+│   ├── manifest.json          # PWA manifest (SEO-001)
+│   ├── llms.txt               # LLM-friendly summary (SEO-004)
+│   └── llms-full.txt          # LLM-full reference
+├── error.tsx                # Global error boundary (Indonesia)
+├── proxy.ts                 # Auth gate + redirect kanonis + request-id
 ├── types/
-│   └── next-auth.d.ts         # NextAuth type augmentation
-├── .env.example               # Template environment variables
+│   └── next-auth.d.ts         # NextAuth type augmentation (Role enum)
+├── .env.example               # Template env vars
 ├── components.json            # shadcn/ui configuration
-├── next.config.ts             # Next.js configuration
+├── eslint.config.mjs          # ESLint flat config (DEPS-004)
+├── next.config.ts             # Next.js + security headers (SEC-003) + image formats avif/webp
 ├── tailwind.config.ts         # Tailwind fallback/docs config
 ├── tsconfig.json              # TypeScript configuration
-└── package.json
+└── package.json               # engines.node >=20.0.0
 ```
 
 ## 📋 Prasyarat
 
 Pastikan sudah terinstal di mesin lokal:
 
-- **Node.js** ≥ 18.x — [Download](https://nodejs.org/)
+- **Node.js** ≥ 20.x — [Download](https://nodejs.org/)
 - **npm** ≥ 9.x (bawaan Node.js)
 - **Git** — [Download](https://git-scm.com/)
 
@@ -190,10 +210,10 @@ npm install
 ### 3. Setup Environment Variables
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Buka `.env.local` dan isi semua variabel sesuai panduan di bawah.
+Buka `.env` dan isi semua variabel sesuai panduan di bawah.
 
 ### 4. Setup Database
 
@@ -221,45 +241,49 @@ Buka [http://localhost:3000](http://localhost:3000) di browser.
 
 ## 🔐 Environment Variables
 
-Salin `.env.example` → `.env.local`, lalu isi setiap variabel:
+Salin `.env.example` → `.env`, lalu isi setiap variabel:
 
 | Variable | Deskripsi | Contoh |
 |---|---|---|
 | `DATABASE_URL` | Connection string PostgreSQL (pooler, port 6543) | `postgresql://postgres.[ref]:[pass]@...pooler.supabase.com:6543/postgres?pgbouncer=true` |
 | `DIRECT_URL` | Direct connection untuk Prisma migrate (port 5432) | `postgresql://postgres.[ref]:[pass]@...pooler.supabase.com:5432/postgres` |
-| `NEXTAUTH_SECRET` | Secret key untuk NextAuth JWT | Generate: `openssl rand -base64 32` |
-| `NEXT_PUBLIC_SITE_URL` | Domain production (untuk OG, sitemap, canonical) | `https://desa-sukobubuk.id` |
+| `AUTH_SECRET` | Secret key untuk Auth.js v5 JWT (wajib generate baru saat migrasi v4→v5) | `openssl rand -base64 32` |
+| `AUTH_URL` | Base URL auth (opsional, fallback SITE_URL untuk link email) | `https://www.desa-sukobubuk.web.id` |
+| `NEXT_PUBLIC_SITE_URL` | Canonical domain (OG, sitemap, llms) | `https://www.desa-sukobubuk.web.id` |
 | `SMTP_HOST` | SMTP host | `smtp.gmail.com` |
 | `SMTP_PORT` | SMTP port | `587` |
 | `SMTP_USER` | Email pengirim | `emaildesa@gmail.com` |
-| `SMTP_PASS` | App password Gmail (bukan password akun) | `xxxx xxxx xxxx xxxx` |
-| `SMTP_FROM` | Display name pengirim | `Desa Sukobubuk <emaildesa@gmail.com>` |
-| `CLOUDINARY_CLOUD_NAME` | Nama cloud Cloudinary | `nama-cloud-kamu` |
-| `CLOUDINARY_API_KEY` | API key Cloudinary | `123456789012345` |
-| `CLOUDINARY_API_SECRET` | API secret Cloudinary | `xxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| `SMTP_PASS` | App password Gmail | `xxxx xxxx xxxx xxxx` |
+| `SMTP_FROM` | Display name | `Desa Sukobubuk <emaildesa@gmail.com>` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud | `nama-cloud-kamu` |
+| `CLOUDINARY_API_KEY` | Cloudinary key | `123456789012345` |
+| `CLOUDINARY_API_SECRET` | Cloudinary secret | `xxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| `BING_SITE_VERIFICATION` | Bing Webmaster (opsional) | `xxxxxxxxxxxxxxxx` |
+| `GOOGLE_SITE_VERIFICATION` | Google Search Console (opsional) | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
 
-> **⚠️ Penting:** Jangan commit file `.env.local` ke repository. File ini sudah ada di `.gitignore`.
+> **⚠️ Penting:** Jangan commit file `.env` ke repository. File ini sudah ada di `.gitignore`.
 
 ## 🗄 Database
 
-### Schema (9 Model)
+### Schema (12 Model + 1 Enum)
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
 │     User     │───→│    Berita     │    │    Galeri     │
-│              │    │  (has author) │    │              │
+│  Role ADMIN  │    │  (has author) │    │              │
 │              │───→│ PasswordReset │    └──────────────┘
+│              │───→│ FailedLogin  │    ┌──────────────┐
+│              │───→│ AuditLog     │    │    Pesan      │
+└──────────────┘    └──────────────┘    │  (kontak)    │
+                                        └──────────────┘
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│     UMKM     │───→│    Produk     │    │ PejabatDesa  │
+│  kecamatan?  │    │  (has umkm)  │    │              │
+└──────────────┘    └──────────────┘    └──────────────┘
+┌──────────────┐    ┌──────────────┐
+│  ProfilDesa  │───→│  MisiItem    │
+│  (singleton) │    │  (has profil)│
 └──────────────┘    └──────────────┘
-                                         ┌──────────────┐
-┌──────────────┐    ┌──────────────┐    │    Pesan      │
-│     UMKM     │───→│    Produk     │    │  (kontak)    │
-│              │    │  (has umkm)  │    └──────────────┘
-└──────────────┘    └──────────────┘
-                                         ┌──────────────┐
-┌──────────────┐                        │ PejabatDesa  │
-│  ProfilDesa  │                        │              │
-│  (singleton) │                        └──────────────┘
-└──────────────┘
 ```
 
 ### NPM Scripts Database
@@ -292,7 +316,7 @@ npm run build        # prisma generate && next build
 npm run start        # next start
 
 # Linting
-npm run lint         # next lint
+npx eslint .             # ESLint langsung (`next lint` dihapus di Next.js 16)
 ```
 
 ## 🗺 Halaman & Routing
@@ -309,20 +333,27 @@ npm run lint         # next lint
 | `/berita/[slug]` | Detail Berita | Halaman detail berita |
 | `/umkm` | UMKM | Direktori UMKM dengan filter kategori |
 | `/umkm/[slug]` | Detail UMKM | Detail usaha & daftar produk |
+| `/umkm/[slug]/produk/[produkSlug]` | Detail Produk | Detail produk per UMKM |
 | `/kontak` | Kontak | Form kontak & peta lokasi |
+| `/kebijakan-privasi` | Kebijakan Privasi | Kebijakan privasi situs |
+| `/syarat-ketentuan` | Syarat & Ketentuan | Syarat penggunaan situs |
 
 ### Halaman Admin
 
 | Path | Halaman | Deskripsi |
 |---|---|---|
 | `/admin/login` | Login | Halaman autentikasi admin |
+| `/admin/lupa-password` | Lupa Password | Minta link reset via email |
+| `/admin/reset-password` | Reset Password | Buat password baru via token |
 | `/admin` | Dashboard | Ringkasan statistik & shortcut |
 | `/admin/berita` | Kelola Berita | CRUD berita (list, tambah, edit, hapus) |
 | `/admin/umkm` | Kelola UMKM | CRUD UMKM |
 | `/admin/produk` | Kelola Produk | CRUD produk per UMKM |
 | `/admin/galeri` | Kelola Galeri | CRUD foto galeri |
 | `/admin/pesan` | Inbox Pesan | Lihat & kelola pesan masuk |
-| `/admin/admin` | Pengaturan | Edit profil desa, identitas, pejabat |
+| `/admin/profil` | Profil Desa | Edit identitas, kontak, sejarah, visi-misi, pejabat |
+| `/admin/pengaturan` | Pengaturan Akun | Ganti nama/email/password |
+| `/admin/audit-log` | Audit Log | Forensik aktivitas admin (ARCH-001) |
 
 ## 🔌 API Routes
 
@@ -330,27 +361,39 @@ Semua endpoint menggunakan Next.js Route Handlers (App Router).
 
 | Method | Endpoint | Akses | Deskripsi |
 |---|---|---|---|
-| `*` | `/api/auth/[...nextauth]` | Public | NextAuth.js endpoints |
-| `*` | `/api/auth/*` | Public | Login, reset password |
-| `GET/POST` | `/api/berita` | Public / Admin | List & create berita |
-| `GET/PUT/DELETE` | `/api/berita/[id]` | Admin | Detail, update, delete berita |
-| `GET/POST` | `/api/umkm` | Public / Admin | List & create UMKM |
-| `GET/PUT/DELETE` | `/api/umkm/[id]` | Admin | Detail, update, delete UMKM |
-| `GET/POST` | `/api/produk` | Public / Admin | List & create produk |
-| `GET/PUT/DELETE` | `/api/produk/[id]` | Admin | Detail, update, delete produk |
-| `GET/POST` | `/api/galeri` | Public / Admin | List & create galeri |
-| `DELETE` | `/api/galeri/[id]` | Admin | Delete foto galeri |
-| `POST` | `/api/pesan` | Public | Kirim pesan kontak |
-| `GET/PUT` | `/api/pesan/[id]` | Admin | Baca & update status pesan |
-| `GET/PUT` | `/api/admin/*` | Admin | Pengaturan profil desa & pejabat |
+| `*` | `/api/auth/[...nextauth]` | Public | Auth.js v5 (JWT) |
+| `POST` | `/api/pesan` | Public | Kirim pesan kontak (rate-limited) |
+| `GET` | `/api/berita` | Public | List berita (pagination) |
+| `GET` | `/api/umkm` | Public | List UMKM (pagination) |
+| `GET` | `/api/produk` | Public | List produk (pagination) |
+| `GET` | `/api/galeri` | Public | List galeri |
+| `POST/PUT` | `/api/admin/reset-password` | Public | Request & confirm reset password (rate-limited) |
+| `GET` | `/api/health` | Public | Health + DB check |
+| `POST` | `/api/admin/berita` | Admin | Create berita |
+| `PUT/DELETE` | `/api/admin/berita/[id]` | Admin | Update/delete berita |
+| `POST` | `/api/admin/umkm` | Admin | Create UMKM |
+| `PUT/DELETE` | `/api/admin/umkm/[id]` | Admin | Update/delete UMKM |
+| `POST` | `/api/admin/produk` | Admin | Create produk |
+| `PUT/DELETE` | `/api/admin/produk/[id]` | Admin | Update/delete produk |
+| `POST` | `/api/admin/galeri` | Admin | Upload galeri (Cloudinary) |
+| `DELETE` | `/api/admin/galeri/[id]` | Admin | Delete galeri |
+| `GET` | `/api/admin/pesan` | Admin | List pesan (PII-protected) |
+| `PATCH/DELETE` | `/api/admin/pesan/[id]` | Admin | Tandai dibaca / hapus pesan |
+| `GET/PUT` | `/api/admin/profil` | Admin | Get/update ProfilDesa |
+| `PUT` | `/api/admin/profil/pejabat` | Admin | Replace pejabat (transactional) |
+| `POST` | `/api/admin/profil/pejabat/foto` | Admin | Upload foto pejabat |
+| `PATCH` | `/api/admin/pengaturan` | Admin | Ganti nama/email/password |
+| `POST` | `/api/admin/upload` | Admin | Upload generic (berita/umkm/produk) |
+| `GET` | `/api/admin/stats` | Admin | Dashboard stats |
+| `GET` | `/api/admin/audit-log` | Admin | Audit log (ARCH-001) |
 
 ## 🧩 Komponen
 
-### UI Primitives (`components/ui/`) — 27 komponen
+### UI Primitives (`components/ui/`) — 28 komponen
 
 Berbasis [shadcn/ui](https://ui.shadcn.com/) (New York variant):
 
-`alert` · `avatar` · `badge` · `button` · `card` · `checkbox` · `container` · `dialog` · `dropdown-menu` · `empty-state` · `input` · `label` · `pagination` · `section` · `select` · `separator` · `sheet` · `skeleton` · `sonner` · `stack` · `stat-tile` · `switch` · `table` · `tabs` · `tag` · `textarea` · `tooltip`
+`alert` · `avatar` · `back-button` · `badge` · `button` · `card` · `checkbox` · `container` · `dialog` · `dropdown-menu` · `empty-state` · `input` · `label` · `pagination` · `section` · `select` · `separator` · `sheet` · `skeleton` · `stack` · `stat-tile` · `switch` · `table` · `tabs` · `tag` · `textarea` · `tooltip`
 
 ### Section Components (`components/sections/`)
 
@@ -362,7 +405,7 @@ Berbasis [shadcn/ui](https://ui.shadcn.com/) (New York variant):
 
 ### Layout Components (`components/layout/`)
 
-`Navbar` · `NavbarClient` · `Footer` · `PageHeader`
+`Navbar` · `NavbarClient` · `Footer` · `PageHeader` · `ClientMain`
 
 ### Animation Components (`components/animations/`)
 
@@ -373,8 +416,8 @@ Berbasis [shadcn/ui](https://ui.shadcn.com/) (New York variant):
 Optimisasi SEO dan performa sudah terimplementasi:
 
 - ✅ **Dynamic Metadata** — Title, description, OG tags per halaman
-- ✅ **JSON-LD Structured Data** — Organization, WebSite, LocalBusiness, Article, Product
-- ✅ **Dynamic `sitemap.xml`** — Auto-generate dari database (berita & UMKM slugs)
+- ✅ **JSON-LD Structured Data** — Organization, WebSite, GovernmentOffice, Article, Product
+- ✅ **Dynamic `sitemap.xml`** — Auto-generate dari database (berita, UMKM & produk slugs)
 - ✅ **Dynamic `robots.txt`** — Konfigurasi crawler
 - ✅ **Open Graph & Twitter Cards** — Preview saat di-share ke social media
 - ✅ **Canonical URLs** — Mencegah duplicate content
@@ -430,13 +473,14 @@ chore:    maintenance, update dependencies
 
 Project ini bersifat **private** dan dikembangkan untuk Pemerintah Desa Sukobubuk, Kecamatan Margorejo, Kabupaten Pati, Jawa Tengah.
 
+Lihat [LICENSE](./LICENSE) untuk detail hak cipta. Dilarang mendistribusikan tanpa izin tertulis.
+
 ---
 
 <div align="center">
 
 Dibuat dengan ❤️ untuk Desa Sukobubuk
 
-**[desa-sukobubuk.id](https://desa-sukobubuk.id)**
+**[www.desa-sukobubuk.web.id](https://www.desa-sukobubuk.web.id)**
 
 </div>
-]]>

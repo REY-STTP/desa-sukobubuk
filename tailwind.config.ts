@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import typography from '@tailwindcss/typography'
 
 /**
  * Catatan: Project ini menggunakan Tailwind v4 dengan theme inline
@@ -75,7 +76,7 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['var(--font-fraunces)', 'ui-serif', 'Georgia', 'serif'],
-        mono: ['var(--font-jetbrains)', 'ui-monospace', 'monospace'],
+        mono: ['ui-monospace', 'monospace'],
       },
       backgroundImage: {
         'hero-pattern': "url('/images/hero-bg.jpg')",
@@ -119,7 +120,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [typography],
 }
 
 export default config

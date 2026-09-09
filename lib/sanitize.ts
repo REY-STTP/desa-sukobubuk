@@ -91,3 +91,17 @@ export function sanitizeRichText(html: string | null | undefined): string {
   if (!html) return ''
   return sanitizeHtml(html, baseOptions)
 }
+
+/**
+ * P1-F2: escape 5 karakter HTML untuk interpolasi ke template string
+ * (mis. nama penerima di email). Beda dari `stripHtml` (yang menghapus
+ * tag tapi menyisakan `&<>"`) — ini meng-encode agar tampil sebagai teks.
+ */
+export function escapeHtml(text: string | null | undefined): string {
+  return (text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}

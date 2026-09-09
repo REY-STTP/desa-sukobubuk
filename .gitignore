@@ -63,7 +63,11 @@ npm-debug.log*
 .DS_Store
 .AppleDouble
 .LSOverride
+# macOS Finder icon file (harafiah "Icon" + 1 karakter).
+# CATATAN: pola ini case-insensitive di Windows sehingga ikut menelan
+# folder bernama "icons" — kecualikan kembali folder ikon PWA kita:
 Icon?
+!public/icons/
 ehthumbs.db
 ehthumbs_vista.db
 .Trashes

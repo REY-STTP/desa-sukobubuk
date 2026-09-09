@@ -2,48 +2,45 @@ import type { Metadata } from 'next'
 import HeroSection from '@/components/sections/HeroSection'
 import FeaturedUMKM from '@/components/sections/FeaturedUMKM'
 import LatestBerita from '@/components/sections/LatestBerita'
-import GaleriSection from '@/components/sections/GaleriSection'
 import CTASection from '@/components/sections/CTASection'
 import StatsSection from '@/components/sections/StatsSection'
-import { prisma } from '@/lib/prisma'
 import { getHomeData } from '@/lib/cache'
+import GaleriSectionLazy from './_lazy-galeri'
 
 export const metadata: Metadata = {
   title: 'Beranda',
 }
 
-// Hindari static prerender — halaman ini banyak query DB
-export const dynamic = 'force-dynamic'
+// P1-C2: ISR 5 menit (ganti force-dynamic). Data via getHomeData yang
+// sudah revalidate:300 + revalidateTag per mutasi — TTFB jauh lebih baik
+// dan konten tetap segar. DB down saat build: getHomeData mengembalikan
+// default kosong (soft failure), build tetap sukses.
+export const revalidate = 300
 
 export default async function HomePage() {
-  // Graceful degradation: DB down = tampilkan homepage dengan data kosong, bukan 500
-  const [homeData, profilResult, umkmCountResult, produkCountResult] =
-    await Promise.allSettled([
-      getHomeData(),
-      prisma.profilDesa.findFirst({
-        select: { jumlah_penduduk: true, tahun_berdiri: true },
-      }),
-      prisma.uMKM.count(),
-      prisma.produk.count(),
-    ])
-
-  const home =
-    homeData.status === 'fulfilled'
-      ? homeData.value
-      : { umkmFeatured: [], beritaTerbaru: [], galeri: [] }
-
-  const profil =
-    profilResult.status === 'fulfilled' ? profilResult.value : null
-
-  const totalUMKM =
-    umkmCountResult.status === 'fulfilled' ? umkmCountResult.value : 0
-
-  const totalProduk =
-    produkCountResult.status === 'fulfilled' ? produkCountResult.value : 0
+  // PERF-006: one round-trip via `getHomeData()` (cached). The cache key
+  // includes all relevant filters, and the function now also returns the
+  // UMKM count, produk count, and profil snippet that the Stats section
+  // needs. If the DB is unreachable, the cached function returns the
+  // empty defaults; we treat that as a soft failure and render zeros.
+  const home = await getHomeData()
+  const profil = home.profilSnippet
+  const totalUMKM = home.umkmCount ?? 0
+  const totalProduk = home.produkCount ?? 0
 
   return (
     <>
-      <HeroSection />
+      <HeroSection
+        namaDesa={profil?.nama_desa ?? 'Desa Sukobubuk'}
+        namaKecamatan={profil?.nama_kecamatan ?? 'Kecamatan Margorejo'}
+        namaKabupaten={profil?.nama_kabupaten ?? 'Kabupaten Pati'}
+        namaProvinsi={profil?.nama_provinsi ?? 'Jawa Tengah'}
+        kodePos={profil?.kode_pos ?? '59163'}
+        jumlahPenduduk={profil?.jumlah_penduduk ?? 0}
+        tahunBerdiri={profil?.tahun_berdiri?.toString() ?? ''}
+        totalUMKM={totalUMKM}
+        totalProduk={totalProduk}
+      />
       <StatsSection
         totalUMKM={totalUMKM}
         totalProduk={totalProduk}
@@ -56,7 +53,11 @@ export default async function HomePage() {
       />
       <FeaturedUMKM umkm={home.umkmFeatured} />
       <LatestBerita berita={home.beritaTerbaru} />
-      <GaleriSection galeri={home.galeri} />
+      {/* F-310 / PERF-005 — GaleriSection is the heaviest client component
+          on this page (framer-motion + lightbox). Lazy-loading it via a
+          client wrapper means the chunk loads after the rest of the page
+          is interactive. */}
+      <GaleriSectionLazy galeri={home.galeri} />
       <CTASection />
     </>
   )
