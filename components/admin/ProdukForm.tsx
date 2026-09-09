@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle, Save, ArrowLeft, Package, Link2, Store, Tag, DollarSign, Check } from 'lucide-react'
 import { slugify } from '@/lib/utils'
-import ImageCropUpload from './ImageCropUpload'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -12,6 +12,14 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FormField, FormSection, FormActions } from '@/components/admin/FormField'
 import { cn } from '@/lib/utils'
+
+// F-310 / PERF-005 — canvas + file API is heavy. Defer it.
+const ImageCropUpload = dynamic(() => import('./ImageCropUpload'), {
+  ssr: false,
+  loading: () => (
+    <div className="aspect-square w-full animate-pulse rounded-xl bg-stone-100" />
+  ),
+})
 
 interface ProdukFormData {
   nama_produk: string
@@ -49,15 +57,17 @@ export default function ProdukForm({ initialData, mode, umkmList }: Props) {
     if (errors.nama_produk) setErrors((p) => ({ ...p, nama_produk: '' }))
   }
 
-  const handleSubmit = async () => {
-    const e: Record<string, string> = {}
-    if (!form.nama_produk.trim()) e.nama_produk = 'Nama produk wajib diisi'
-    if (!form.deskripsi.trim()) e.deskripsi = 'Deskripsi wajib diisi'
-    if (!form.harga.trim()) e.harga = 'Harga wajib diisi'
-    else if (isNaN(Number(form.harga)) || Number(form.harga) <= 0) e.harga = 'Harga harus angka valid > 0'
-    if (!form.umkm_id) e.umkm_id = 'Pilih UMKM pemilik produk'
-    setErrors(e)
-    if (Object.keys(e).length > 0) return
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
+    const errs: Record<string, string> = {}
+    if (!form.nama_produk.trim()) errs.nama_produk = 'Nama produk wajib diisi'
+    if (!form.deskripsi.trim()) errs.deskripsi = 'Deskripsi wajib diisi'
+    if (!form.harga.trim()) errs.harga = 'Harga wajib diisi'
+    else if (isNaN(Number(form.harga)) || Number(form.harga) <= 0) errs.harga = 'Harga harus angka valid > 0'
+    if (!form.umkm_id) errs.umkm_id = 'Pilih UMKM pemilik produk'
+    setErrors(errs)
+    if (Object.keys(errs).length > 0) return
 
     setLoading(true)
     setAlert(null)
@@ -82,7 +92,7 @@ export default function ProdukForm({ initialData, mode, umkmList }: Props) {
 
   return (
     <div className="surface-elevated p-5 md:p-6">
-      <div className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {alert && (
           <div
             role="status"
@@ -203,11 +213,11 @@ export default function ProdukForm({ initialData, mode, umkmList }: Props) {
         </FormSection>
 
         <FormActions>
-          <Button variant="outline" onClick={() => router.back()} disabled={loading}>
+          <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
             <ArrowLeft className="size-4" data-icon="inline-start" />
             Batal
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button type="submit" disabled={loading}>
             {loading ? (
               <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
             ) : (
@@ -216,7 +226,7 @@ export default function ProdukForm({ initialData, mode, umkmList }: Props) {
             {loading ? 'Menyimpan...' : mode === 'edit' ? 'Simpan Perubahan' : 'Tambah Produk'}
           </Button>
         </FormActions>
-      </div>
+      </form>
     </div>
   )
 }

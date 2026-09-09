@@ -1,15 +1,30 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle, Save, ArrowLeft, FileText, Link2 } from 'lucide-react'
 import { slugify } from '@/lib/utils'
-import ImageCropUpload from './ImageCropUpload'
-import TiptapEditor from './TiptapEditor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FormField, FormSection, FormActions } from '@/components/admin/FormField'
 import { cn } from '@/lib/utils'
+
+// F-310 / PERF-005 — Tiptap + ProseMirror + canvas crop are heavy. Defer
+// them until the form is rendered. The form is only mounted on the
+// admin page, so the deferred bundles never load on public pages.
+const TiptapEditor = dynamic(() => import('./TiptapEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[320px] animate-pulse rounded-xl bg-stone-100" />
+  ),
+})
+const ImageCropUpload = dynamic(() => import('./ImageCropUpload'), {
+  ssr: false,
+  loading: () => (
+    <div className="aspect-video w-full animate-pulse rounded-xl bg-stone-100" />
+  ),
+})
 
 interface BeritaFormData {
   judul: string
@@ -40,12 +55,14 @@ export default function BeritaForm({ initialData, mode }: Props) {
     if (errors.judul) setErrors((p) => ({ ...p, judul: '' }))
   }
 
-  const handleSubmit = async () => {
-    const e: Record<string, string> = {}
-    if (!form.judul.trim()) e.judul = 'Judul wajib diisi'
-    if (!form.konten || form.konten === '<p></p>' || !form.konten.trim()) e.konten = 'Konten wajib diisi'
-    setErrors(e)
-    if (Object.keys(e).length > 0) return
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
+    const errs: Record<string, string> = {}
+    if (!form.judul.trim()) errs.judul = 'Judul wajib diisi'
+    if (!form.konten || form.konten === '<p></p>' || !form.konten.trim()) errs.konten = 'Konten wajib diisi'
+    setErrors(errs)
+    if (Object.keys(errs).length > 0) return
 
     setLoading(true)
     setAlert(null)
@@ -70,7 +87,7 @@ export default function BeritaForm({ initialData, mode }: Props) {
 
   return (
     <div className="surface-elevated p-5 md:p-6">
-      <div className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {alert && (
           <div
             role="status"
@@ -163,11 +180,11 @@ export default function BeritaForm({ initialData, mode }: Props) {
         </FormSection>
 
         <FormActions>
-          <Button variant="outline" onClick={() => router.back()} disabled={loading}>
+          <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
             <ArrowLeft className="size-4" data-icon="inline-start" />
             Batal
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button type="submit" disabled={loading}>
             {loading ? (
               <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
             ) : (
@@ -176,7 +193,7 @@ export default function BeritaForm({ initialData, mode }: Props) {
             {loading ? 'Menyimpan...' : mode === 'edit' ? 'Simpan Perubahan' : 'Publish Berita'}
           </Button>
         </FormActions>
-      </div>
+      </form>
     </div>
   )
 }

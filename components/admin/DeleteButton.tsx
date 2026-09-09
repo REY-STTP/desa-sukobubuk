@@ -159,6 +159,12 @@ export default function DeleteButton({ id, type, nama, variant = 'icon', classNa
             <p className="mt-2 text-center text-sm text-stone-500">
               Anda akan menghapus <span className="font-semibold text-stone-800">&ldquo;{nama}&rdquo;</span>. Tindakan ini tidak dapat dibatalkan.
             </p>
+            {type === 'umkm' && (
+              <p className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+                <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
+                Semua produk milik usaha ini juga akan dihapus.
+              </p>
+            )}
             <div className="mt-6 flex gap-3">
               <Button variant="outline" onClick={() => setShowConfirm(false)} className="flex-1">
                 Batal

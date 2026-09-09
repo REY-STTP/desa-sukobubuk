@@ -33,7 +33,9 @@ export default function PengaturanForm({ user }: { user: UserData }) {
     setTimeout(() => setAlert(null), 4000)
   }
 
-  const handleSaveNama = async () => {
+  const handleSaveNama = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
     setErrors({})
     if (!nama.trim()) {
       setErrors({ nama: 'Nama tidak boleh kosong' })
@@ -54,13 +56,15 @@ export default function PengaturanForm({ user }: { user: UserData }) {
     setLoading(false)
   }
 
-  const handleSaveEmail = async () => {
-    const e: Record<string, string> = {}
-    if (!email.baru) e.emailBaru = 'Email baru wajib diisi'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.baru)) e.emailBaru = 'Format email tidak valid'
-    if (!email.passwordKonfirmasi) e.passwordKonfirmasi = 'Password konfirmasi wajib diisi'
-    setErrors(e)
-    if (Object.keys(e).length > 0) return
+  const handleSaveEmail = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
+    const errs: Record<string, string> = {}
+    if (!email.baru) errs.emailBaru = 'Email baru wajib diisi'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.baru)) errs.emailBaru = 'Format email tidak valid'
+    if (!email.passwordKonfirmasi) errs.passwordKonfirmasi = 'Password konfirmasi wajib diisi'
+    setErrors(errs)
+    if (Object.keys(errs).length > 0) return
 
     setLoading(true)
     try {
@@ -79,15 +83,17 @@ export default function PengaturanForm({ user }: { user: UserData }) {
     setLoading(false)
   }
 
-  const handleSavePassword = async () => {
-    const e: Record<string, string> = {}
-    if (!password.lama) e.lama = 'Password lama wajib diisi'
-    if (!password.baru) e.baru = 'Password baru wajib diisi'
-    else if (password.baru.length < 8) e.baru = 'Minimal 8 karakter'
-    if (!password.konfirmasi) e.konfirmasi = 'Konfirmasi wajib diisi'
-    else if (password.konfirmasi !== password.baru) e.konfirmasi = 'Konfirmasi tidak cocok'
-    setErrors(e)
-    if (Object.keys(e).length > 0) return
+  const handleSavePassword = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
+    const errs: Record<string, string> = {}
+    if (!password.lama) errs.lama = 'Password lama wajib diisi'
+    if (!password.baru) errs.baru = 'Password baru wajib diisi'
+    else if (password.baru.length < 8) errs.baru = 'Minimal 8 karakter'
+    if (!password.konfirmasi) errs.konfirmasi = 'Konfirmasi wajib diisi'
+    else if (password.konfirmasi !== password.baru) errs.konfirmasi = 'Konfirmasi tidak cocok'
+    setErrors(errs)
+    if (Object.keys(errs).length > 0) return
 
     setLoading(true)
     try {
@@ -104,6 +110,14 @@ export default function PengaturanForm({ user }: { user: UserData }) {
       showAlert('error', e.message)
     }
     setLoading(false)
+  }
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
+    if (activeTab === 'profil') return handleSaveNama()
+    if (activeTab === 'email') return handleSaveEmail()
+    return handleSavePassword()
   }
 
   const tabs: { key: Tab; label: string; icon: typeof User }[] = [
@@ -141,7 +155,7 @@ export default function PengaturanForm({ user }: { user: UserData }) {
         })}
       </div>
 
-      <div className="flex flex-col gap-5 p-5 md:p-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-5 md:p-6">
         {/* Alert */}
         {alert && (
           <div
@@ -181,7 +195,7 @@ export default function PengaturanForm({ user }: { user: UserData }) {
               />
             </FormField>
             <FormActions>
-              <Button onClick={handleSaveNama} disabled={loading}>
+              <Button type="submit" disabled={loading}>
                 {loading ? (
                   <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
                 ) : (
@@ -242,7 +256,7 @@ export default function PengaturanForm({ user }: { user: UserData }) {
               />
             </FormField>
             <FormActions>
-              <Button onClick={handleSaveEmail} disabled={loading}>
+              <Button type="submit" disabled={loading}>
                 {loading ? (
                   <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
                 ) : (
@@ -320,7 +334,7 @@ export default function PengaturanForm({ user }: { user: UserData }) {
               </FormField>
             ))}
             <FormActions>
-              <Button onClick={handleSavePassword} disabled={loading}>
+              <Button type="submit" disabled={loading}>
                 {loading ? (
                   <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
                 ) : (
@@ -331,7 +345,7 @@ export default function PengaturanForm({ user }: { user: UserData }) {
             </FormActions>
           </FormSection>
         )}
-      </div>
+      </form>
     </div>
   )
 }

@@ -22,7 +22,22 @@ export default async function EditUMKMPage({ params }: { params: Promise<{ id: s
         <p className="text-stone-500 text-sm mt-1">Perbarui informasi {umkm.nama_usaha}</p>
       </div>
       <div className="surface-elevated p-5 md:p-6">
-        <UMKMForm mode="edit" initialData={{ ...umkm, id: umkm.id }} />
+        <UMKMForm
+          mode="edit"
+          initialData={{
+            nama_usaha: umkm.nama_usaha,
+            slug: umkm.slug,
+            pemilik: umkm.pemilik,
+            kategori: umkm.kategori,
+            deskripsi: umkm.deskripsi,
+            alamat: umkm.alamat,
+            kecamatan: umkm.kecamatan ?? 'Margorejo',
+            whatsapp: umkm.whatsapp,
+            is_featured: umkm.is_featured,
+            logo: umkm.logo,
+            id: umkm.id,
+          }}
+        />
       </div>
     </div>
   )

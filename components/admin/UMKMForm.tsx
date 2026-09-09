@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle, AlertCircle, Save, ArrowLeft, Store, Link2, User, Phone, MapPin, Tag, Sparkles } from 'lucide-react'
 import { slugify } from '@/lib/utils'
-import ImageCropUpload from './ImageCropUpload'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,6 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FormField, FormSection, FormActions } from '@/components/admin/FormField'
 import { cn } from '@/lib/utils'
 
+// F-310 / PERF-005 — canvas + file API is heavy. Defer it.
+const ImageCropUpload = dynamic(() => import('./ImageCropUpload'), {
+  ssr: false,
+  loading: () => (
+    <div className="aspect-square w-full animate-pulse rounded-xl bg-stone-100" />
+  ),
+})
+
 interface UMKMFormData {
   nama_usaha: string
   slug: string
@@ -21,6 +29,7 @@ interface UMKMFormData {
   kategori: string
   deskripsi: string
   alamat: string
+  kecamatan: string
   whatsapp: string
   is_featured: boolean
   logo: string | null
@@ -42,6 +51,7 @@ export default function UMKMForm({ initialData, mode }: Props) {
     kategori: initialData?.kategori ?? 'Makanan',
     deskripsi: initialData?.deskripsi ?? '',
     alamat: initialData?.alamat ?? '',
+    kecamatan: (initialData as unknown as { kecamatan?: string })?.kecamatan ?? 'Margorejo',
     whatsapp: initialData?.whatsapp ?? '',
     is_featured: initialData?.is_featured ?? false,
     logo: initialData?.logo ?? null,
@@ -55,17 +65,19 @@ export default function UMKMForm({ initialData, mode }: Props) {
     if (errors.nama_usaha) setErrors((p) => ({ ...p, nama_usaha: '' }))
   }
 
-  const handleSubmit = async () => {
-    const e: Record<string, string> = {}
-    if (!form.nama_usaha.trim()) e.nama_usaha = 'Nama usaha wajib diisi'
-    if (!form.pemilik.trim()) e.pemilik = 'Nama pemilik wajib diisi'
-    if (!form.kategori) e.kategori = 'Kategori wajib dipilih'
-    if (!form.deskripsi.trim()) e.deskripsi = 'Deskripsi wajib diisi'
-    if (!form.alamat.trim()) e.alamat = 'Alamat wajib diisi'
-    if (!form.whatsapp.trim()) e.whatsapp = 'No. WhatsApp wajib diisi'
-    else if (!/^62\d{8,}$/.test(form.whatsapp.trim())) e.whatsapp = 'Format 628xxx (tanpa + atau 0)'
-    setErrors(e)
-    if (Object.keys(e).length > 0) return
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (loading) return
+    const errs: Record<string, string> = {}
+    if (!form.nama_usaha.trim()) errs.nama_usaha = 'Nama usaha wajib diisi'
+    if (!form.pemilik.trim()) errs.pemilik = 'Nama pemilik wajib diisi'
+    if (!form.kategori) errs.kategori = 'Kategori wajib dipilih'
+    if (!form.deskripsi.trim()) errs.deskripsi = 'Deskripsi wajib diisi'
+    if (!form.alamat.trim()) errs.alamat = 'Alamat wajib diisi'
+    if (!form.whatsapp.trim()) errs.whatsapp = 'No. WhatsApp wajib diisi'
+    else if (!/^62\d{8,}$/.test(form.whatsapp.trim())) errs.whatsapp = 'Format 628xxx (tanpa + atau 0)'
+    setErrors(errs)
+    if (Object.keys(errs).length > 0) return
 
     setLoading(true)
     setAlert(null)
@@ -90,7 +102,7 @@ export default function UMKMForm({ initialData, mode }: Props) {
 
   return (
     <div className="surface-elevated p-5 md:p-6">
-      <div className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {alert && (
           <div
             role="status"
@@ -199,6 +211,15 @@ export default function UMKMForm({ initialData, mode }: Props) {
                 disabled={loading}
               />
             </FormField>
+            <FormField label="Kecamatan" hint="Default Margorejo (opsional)" icon={<MapPin className="size-4" />}>
+              <Input
+                type="text"
+                value={form.kecamatan}
+                onChange={(e) => setForm({ ...form, kecamatan: e.target.value })}
+                placeholder="Margorejo"
+                disabled={loading}
+              />
+            </FormField>
           </div>
         </FormSection>
 
@@ -245,11 +266,11 @@ export default function UMKMForm({ initialData, mode }: Props) {
         </FormSection>
 
         <FormActions>
-          <Button variant="outline" onClick={() => router.back()} disabled={loading}>
+          <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
             <ArrowLeft className="size-4" data-icon="inline-start" />
             Batal
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button type="submit" disabled={loading}>
             {loading ? (
               <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
             ) : (
@@ -258,7 +279,7 @@ export default function UMKMForm({ initialData, mode }: Props) {
             {loading ? 'Menyimpan...' : mode === 'edit' ? 'Simpan Perubahan' : 'Tambah UMKM'}
           </Button>
         </FormActions>
-      </div>
+      </form>
     </div>
   )
 }

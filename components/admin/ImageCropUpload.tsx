@@ -215,7 +215,7 @@ function CropModal({ src, aspect, onConfirm, onCancel }: CropModalProps) {
             ref={containerRef}
             className="absolute inset-0 flex items-center justify-center"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+
             <img
               src={src}
               alt="Crop preview"
@@ -340,13 +340,14 @@ export default function ImageCropUpload({
 
   const handleFile = (file: File) => {
     setError(null)
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    // P1-B3: samakan dengan server (/api/admin/upload: 5MB, JPG/PNG/WEBP).
+    const allowed = ['image/jpeg', 'image/png', 'image/webp']
     if (!allowed.includes(file.type)) {
-      setError('Format harus JPG, PNG, WEBP, atau GIF')
+      setError('Format harus JPG, PNG, atau WEBP')
       return
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Ukuran file maksimal 10MB')
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Ukuran file maksimal 5MB')
       return
     }
     const url = URL.createObjectURL(file)
@@ -402,7 +403,13 @@ export default function ImageCropUpload({
         {value ? (
           <div className="relative group">
             <div className={`relative w-full ${aspectClass} rounded-xl overflow-hidden bg-stone-100 border border-stone-200`}>
-              <Image src={value} alt={label} fill className="object-cover" unoptimized />
+              <Image
+                src={value}
+                alt={label}
+                fill
+                className="object-cover"
+                unoptimized={value.startsWith('blob:') || value.startsWith('/uploads/')}
+              />
             </div>
             <button
               type="button"
@@ -436,7 +443,7 @@ export default function ImageCropUpload({
             <p className="text-sm font-medium text-stone-600">
               {loading ? 'Mengupload...' : 'Klik atau drag & drop'}
             </p>
-            <p className="text-xs text-stone-400 mt-0.5">JPG, PNG, WEBP — Maks. 10MB</p>
+            <p className="text-xs text-stone-400 mt-0.5">JPG, PNG, WEBP — Maks. 5MB</p>
             {!loading && (
               <span className="mt-2 flex items-center gap-1 text-xs text-primary-500 font-medium">
                 <Crop className="size-3" /> Akan dibuka editor crop
@@ -450,7 +457,7 @@ export default function ImageCropUpload({
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
+          accept="image/jpeg,image/png,image/webp"
           className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
         />

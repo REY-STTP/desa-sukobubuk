@@ -2,6 +2,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// F-208 / DB-004 (Phase 06) — User.role typed as Prisma enum.
+// Currently only one role, but the enum keeps the door open for
+// future roles (editor, viewer) without a schema migration.
+enum Role {
+  ADMIN
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
@@ -13,12 +20,37 @@ model User {
   name              String
   email             String             @unique
   password          String
-  role              String             @default("admin")
+  // F-208 / DB-004 (Phase 06) — role is now a Prisma enum (only ADMIN
+  // for now). Migration: `UPDATE "users" SET "role" = 'ADMIN' WHERE
+  // "role" NOT IN ('ADMIN'); ALTER COLUMN ... TYPE "Role" USING
+  // "role"::text::"Role";`
+  role              Role               @default(ADMIN)
+  // F-209 / AUTH-003: bumped on every logout. Compared against
+  // `session.sessionVersion` in the JWT to invalidate all sessions.
+  // When the user logs out, we increment this; existing JWTs whose
+  // `sessionVersion` is < the new value are rejected.
+  session_version   Int                @default(0)
   created_at        DateTime           @default(now())
   berita            Berita[]
   password_resets   PasswordReset[]
+  failed_logins     FailedLogin[]
 
   @@map("users")
+}
+
+model FailedLogin {
+  id         Int      @id @default(autoincrement())
+  user_id    Int?
+  email      String
+  ip         String
+  // F-209 / AUTH-002: failed-login attempts are kept for 15 minutes;
+  // entries older than that are pruned by `lib/auth-lockout.ts`.
+  created_at DateTime @default(now())
+  user       User?    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([email, created_at])
+  @@index([ip, created_at])
+  @@map("failed_logins")
 }
 
 model PasswordReset {
@@ -41,6 +73,10 @@ model UMKM {
   kategori    String
   deskripsi   String
   alamat      String
+  // GEO-001 / F-212 — per-UMKM kecamatan. Optional; falls back to
+  // 'Margorejo' (the canonical kecamatan for Desa Sukobubuk) in
+  // `lib/structured-data.ts:localBusinessLd` when null.
+  kecamatan  String?
   whatsapp    String
   logo        String?
   is_featured Boolean   @default(false)
@@ -75,7 +111,9 @@ model Berita {
   thumbnail  String?
   author_id  Int
   created_at DateTime @default(now())
-  author     User     @relation(fields: [author_id], references: [id])
+  // F-302 / DB-005 — single-admin system, cascade delete keeps the
+  // berita<->user graph consistent. Existing rows unaffected.
+  author     User     @relation(fields: [author_id], references: [id], onDelete: Cascade)
 
   @@index([created_at])
   @@map("berita")
@@ -84,7 +122,10 @@ model Berita {
 model Galeri {
   id         Int      @id @default(autoincrement())
   judul      String
-  foto       String
+  // POL-001 (Phase 07) — allow null so seed can use placeholder gradient
+  // when no Cloudinary URL is available. GaleriSection handles null/empty
+  // by showing the gradient placeholder.
+  foto       String?
   created_at DateTime @default(now())
 
   @@index([created_at])
@@ -105,6 +146,11 @@ model Pesan {
 
 model ProfilDesa {
   id                  Int      @id @default(autoincrement())
+  // F-205 / DB-002 — singleton: every row is forced to singleton=0, so
+  // a `@@unique([singleton])` index guarantees only one row can exist.
+  // Existing rows get singleton=0 in the migration. Application code
+  // does not need to set this field.
+  singleton           Int       @default(0)
   // Identitas Desa
   nama_desa           String   @default("Desa Sukobubuk")
   logo_url            String?  // path ke file logo, null = pakai inisial
@@ -135,7 +181,28 @@ model ProfilDesa {
   struktur_organisasi String   @default("") @db.Text
   updated_at          DateTime @updatedAt
 
+  // F-303 / DB-006 (Phase 06) — normalized Misi table. Each item is one
+  // row; the JSON-encoded `misi` text column above is kept as a fallback
+  // for legacy reads. New writes should populate `misi_items` and leave
+  // `misi` empty.
+  misi_items          MisiItem[]
+
+  @@unique([singleton])
   @@map("profil_desa")
+}
+
+model MisiItem {
+  id          Int      @id @default(autoincrement())
+  // FK + opposite-relation back to ProfilDesa. Cascade delete so
+  // removing a ProfilDesa row clears its misi items.
+  profil_id   Int
+  profil      ProfilDesa @relation(fields: [profil_id], references: [id], onDelete: Cascade)
+  text        String   @db.Text
+  urutan      Int       @default(0)
+  created_at  DateTime  @default(now())
+
+  @@index([profil_id, urutan])
+  @@map("misi_items")
 }
 
 model PejabatDesa {
@@ -147,4 +214,24 @@ model PejabatDesa {
   foto_url String?
 
   @@map("pejabat_desa")
+}
+
+// ARCH-001 / F-109 — admin audit log. Every mutating admin route
+// writes one row via `lib/audit.ts:logAdminAction`. `payload` is
+// JSON and should never contain passwords or tokens (redacted).
+// Retention: keep 90 days via cron or manual `DELETE WHERE createdAt < now() - 90d`.
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  userEmail String?
+  action    String   // CREATE | UPDATE | DELETE | PATCH | UPLOAD
+  entity    String   // berita | umkm | produk | galeri | pesan | profil | pejabat | pengaturan | upload | auth
+  entityId  String?
+  payload   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, createdAt])
+  @@map("audit_logs")
 }

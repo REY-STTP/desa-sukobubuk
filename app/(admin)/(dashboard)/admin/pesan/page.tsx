@@ -32,7 +32,7 @@ export default async function AdminPesanPage({ searchParams }: Props) {
           <h1 className="font-display text-2xl font-medium text-stone-800">Pesan Masuk</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-stone-500">
             {search ? (
-              <span>{total} hasil untuk "{search}"</span>
+              <span>{total} hasil untuk &quot;{search}&quot;</span>
             ) : (
               <>
                 <span>

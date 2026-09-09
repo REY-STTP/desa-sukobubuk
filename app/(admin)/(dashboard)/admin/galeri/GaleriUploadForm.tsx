@@ -165,7 +165,7 @@ function CropModal({ src, onConfirm, onCancel }: CropModalProps) {
           className="relative bg-sage-900 select-none overflow-hidden flex items-center justify-center"
           style={{ height: 380 }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+
           <img
             src={src}
             alt="crop"
@@ -266,8 +266,14 @@ export default function GaleriUploadForm() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    if (f.size > 10 * 1024 * 1024) {
-      setAlert({ type: 'error', msg: 'Ukuran file maksimal 10MB' })
+    // P1-B3: samakan dengan server (galeri/route.ts: 5MB, JPG/PNG/WEBP) —
+    // tolak dini sebelum modal crop agar tak selalu 400.
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
+      setAlert({ type: 'error', msg: 'Format harus JPG, PNG, atau WEBP' })
+      return
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setAlert({ type: 'error', msg: 'Ukuran file maksimal 5MB' })
       return
     }
     setCropSrc(URL.createObjectURL(f))
@@ -346,14 +352,14 @@ export default function GaleriUploadForm() {
                 <>
                   <ImagePlus className="size-10 text-stone-400 mb-2" />
                   <p className="text-sm text-stone-400">Klik untuk pilih foto</p>
-                  <p className="text-xs text-stone-400 mt-1">JPG, PNG, WEBP maks. 10MB</p>
+                  <p className="text-xs text-stone-400 mt-1">JPG, PNG, WEBP maks. 5MB</p>
                   <span className="mt-2 text-xs text-primary-500 font-medium flex items-center gap-1">
                     <Crop className="size-3" /> Editor crop 1:1 akan terbuka
                   </span>
                 </>
               )}
             </div>
-            <input ref={inputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+            <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} className="hidden" />
           </label>
 
           {/* Form fields */}

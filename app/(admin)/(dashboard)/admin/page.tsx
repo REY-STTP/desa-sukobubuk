@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { getDashboardStats } from '@/lib/cache'
-import DashboardLive from '@/components/admin/DashboardLive'
+import DashboardLiveLazy from './_lazy-dashboard'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
@@ -42,7 +42,7 @@ export default async function AdminDashboardPage() {
         <p className="mt-1 text-sm text-stone-500">Berikut ringkasan data website Desa Sukobubuk hari ini.</p>
       </header>
 
-      <DashboardLive initialStats={initialStats} />
+      <DashboardLiveLazy initialStats={initialStats} />
     </div>
   )
 }
