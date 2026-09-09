@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-guard'
+import { parseBody } from '@/lib/parse-body'
+import { pengaturanSchema } from '@/lib/schemas/pengaturan'
+import { logAdminAction, getClientIp } from '@/lib/audit'
 import bcrypt from 'bcryptjs'
 
 export async function PATCH(req: NextRequest) {
@@ -8,36 +11,67 @@ export async function PATCH(req: NextRequest) {
   if ('error' in guard) return guard.error
   const { session } = guard
 
-  const body = await req.json()
-  const { type } = body
+  const parsed = await parseBody(req, pengaturanSchema)
+  if (parsed instanceof NextResponse) return parsed
 
   try {
     const user = await prisma.user.findUnique({ where: { email: session.user.email } })
     if (!user) return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
 
-    if (type === 'nama') {
-      if (!body.nama?.trim()) return NextResponse.json({ error: 'Nama tidak boleh kosong' }, { status: 400 })
-      await prisma.user.update({ where: { id: user.id }, data: { name: body.nama.trim() } })
+    if (parsed.data.type === 'nama') {
+      await prisma.user.update({ where: { id: user.id }, data: { name: parsed.data.nama } })
+      await logAdminAction({
+        userId: user.id,
+        userEmail: session.user.email,
+        action: 'UPDATE',
+        entity: 'pengaturan',
+        entityId: user.id,
+        payload: { type: 'nama', nama: parsed.data.nama },
+        ip: getClientIp(req),
+      })
       return NextResponse.json({ success: true })
     }
 
-    if (type === 'email') {
-      if (!body.email || !body.password) return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
-      const isValid = await bcrypt.compare(body.password, user.password)
+    if (parsed.data.type === 'email') {
+      const isValid = await bcrypt.compare(parsed.data.password, user.password)
       if (!isValid) return NextResponse.json({ error: 'Password salah' }, { status: 400 })
-      const exists = await prisma.user.findUnique({ where: { email: body.email } })
+      const exists = await prisma.user.findUnique({ where: { email: parsed.data.email } })
       if (exists) return NextResponse.json({ error: 'Email sudah digunakan' }, { status: 400 })
-      await prisma.user.update({ where: { id: user.id }, data: { email: body.email } })
+      await prisma.user.update({
+        where: { id: user.id },
+        // P1-A1: ganti email = identitas baru → matikan semua sesi lain.
+        data: { email: parsed.data.email, session_version: { increment: 1 } },
+      })
+      await logAdminAction({
+        userId: user.id,
+        userEmail: session.user.email,
+        action: 'UPDATE',
+        entity: 'pengaturan',
+        entityId: user.id,
+        payload: { type: 'email', email: parsed.data.email },
+        ip: getClientIp(req),
+      })
       return NextResponse.json({ success: true })
     }
 
-    if (type === 'password') {
-      if (!body.passwordLama || !body.passwordBaru) return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
-      if (body.passwordBaru.length < 8) return NextResponse.json({ error: 'Password minimal 8 karakter' }, { status: 400 })
-      const isValid = await bcrypt.compare(body.passwordLama, user.password)
+    if (parsed.data.type === 'password') {
+      const isValid = await bcrypt.compare(parsed.data.passwordLama, user.password)
       if (!isValid) return NextResponse.json({ error: 'Password lama salah' }, { status: 400 })
-      const hashed = await bcrypt.hash(body.passwordBaru, 12)
-      await prisma.user.update({ where: { id: user.id }, data: { password: hashed } })
+      const hashed = await bcrypt.hash(parsed.data.passwordBaru, 12)
+      // P1-A1: ganti password mematikan semua sesi lain (termasuk sesi curian).
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashed, session_version: { increment: 1 } },
+      })
+      await logAdminAction({
+        userId: user.id,
+        userEmail: session.user.email,
+        action: 'UPDATE',
+        entity: 'pengaturan',
+        entityId: user.id,
+        payload: { type: 'password', changed: true },
+        ip: getClientIp(req),
+      })
       return NextResponse.json({ success: true })
     }
 

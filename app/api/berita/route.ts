@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { clampLimit, clampPage } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const page = parseInt(searchParams.get('page') || '1')
+    // P1-B2: clamp agar ?limit=abc / ?limit=1000000 / ?page=-5 tak jadi 500/DoS.
+    const limit = clampLimit(searchParams.get('limit'))
+    const page = clampPage(searchParams.get('page'))
     const skip = (page - 1) * limit
 
     const [berita, total] = await Promise.all([

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-guard'
 import { deleteFromCloudinary, getPublicIdFromUrl } from '@/lib/cloudinary'
 import { CACHE_TAGS } from '@/lib/cache'
+import { logAdminAction, getClientIp } from '@/lib/audit'
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireAdmin()
@@ -18,6 +19,16 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     // Look up the row first so we can attempt to delete the underlying file.
     const row = await prisma.galeri.findUnique({ where: { id } })
     await prisma.galeri.delete({ where: { id } })
+
+    await logAdminAction({
+      userId: guard.session.user.id,
+      userEmail: guard.session.user.email,
+      action: 'DELETE',
+      entity: 'galeri',
+      entityId: id,
+      payload: { judul: row?.judul },
+      ip: getClientIp(req),
+    })
 
     // Best-effort: remove the underlying Cloudinary asset.
     if (row?.foto) {

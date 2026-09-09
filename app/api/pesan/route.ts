@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { parseBody } from '@/lib/parse-body'
+import { pesanCreateSchema } from '@/lib/schemas/pesan'
+import { rateLimit, clientKey } from '@/lib/rate-limit'
 
 // F-107: API-002 — the public GET was removed (PII leak).
 // Admin listing of messages now lives at /api/admin/pesan (see
@@ -8,20 +11,20 @@ import { prisma } from '@/lib/prisma'
 // Only POST remains here for the public contact form.
 
 export async function POST(req: NextRequest) {
+  // F-103: SEC-008 — limit contact-form submissions to 10 / hour / IP.
+  const rl = rateLimit({ key: clientKey(req, 'contact'), limit: 10, windowSec: 3600 })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Terlalu banyak permintaan. Coba lagi nanti.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } }
+    )
+  }
+
+  const parsed = await parseBody(req, pesanCreateSchema)
+  if (parsed instanceof NextResponse) return parsed
+  const { nama, email, isi_pesan } = parsed.data
+
   try {
-    const body = await req.json()
-    const { nama, email, isi_pesan } = body
-
-    if (!nama || !email || !isi_pesan) {
-      return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 })
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: 'Format email tidak valid' }, { status: 400 })
-    }
-
     const pesan = await prisma.pesan.create({
       data: { nama, email, isi_pesan },
     })

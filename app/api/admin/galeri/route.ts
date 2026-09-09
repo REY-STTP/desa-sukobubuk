@@ -3,7 +3,10 @@ import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-guard'
 import { uploadToCloudinary } from '@/lib/cloudinary'
+import { detectImageType } from '@/lib/utils'
+import { galeriCreateSchema } from '@/lib/schemas/galeri'
 import { CACHE_TAGS } from '@/lib/cache'
+import { logAdminAction, getClientIp } from '@/lib/audit'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
@@ -14,10 +17,18 @@ export async function POST(req: NextRequest) {
 
   try {
     const formData = await req.formData()
-    const judul = formData.get('judul') as string | null
+    const judulRaw = formData.get('judul')
     const foto = formData.get('foto') as File | null
 
-    if (!judul) return NextResponse.json({ error: 'Judul wajib diisi' }, { status: 400 })
+    const judulParse = galeriCreateSchema.safeParse({ judul: judulRaw })
+    if (!judulParse.success) {
+      return NextResponse.json(
+        { error: 'Judul wajib diisi', issues: judulParse.error.issues },
+        { status: 400 }
+      )
+    }
+    const judul = judulParse.data.judul
+
     if (!foto) return NextResponse.json({ error: 'Foto wajib diupload' }, { status: 400 })
 
     if (foto.size > MAX_SIZE) {
@@ -30,12 +41,27 @@ export async function POST(req: NextRequest) {
     // F-104: switch from local filesystem to Cloudinary so the upload survives
     // Vercel's read-only filesystem and ephemeral deployments.
     const buffer = Buffer.from(await foto.arrayBuffer())
+    // P1-B4: verifikasi magic bytes — MIME dari klien bisa dipalsu.
+    const detectedFoto = detectImageType(buffer)
+    if (!detectedFoto || !ALLOWED_TYPES.includes(detectedFoto)) {
+      return NextResponse.json({ error: 'File bukan gambar JPG, PNG, atau WEBP yang valid' }, { status: 400 })
+    }
     const { url } = await uploadToCloudinary(buffer, 'galeri', {
       transformation: [{ quality: 'auto', fetch_format: 'auto' }],
     })
 
     const galeri = await prisma.galeri.create({
       data: { judul, foto: url },
+    })
+
+    await logAdminAction({
+      userId: guard.session.user.id,
+      userEmail: guard.session.user.email,
+      action: 'CREATE',
+      entity: 'galeri',
+      entityId: galeri.id,
+      payload: { judul },
+      ip: getClientIp(req),
     })
 
     revalidateTag(CACHE_TAGS.galeri, 'max')
