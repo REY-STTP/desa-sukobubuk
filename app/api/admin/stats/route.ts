@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-guard'
+import { toPesanSnippet } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +10,7 @@ export async function GET() {
   if ('error' in guard) return guard.error
 
   try {
-    const [totalUMKM, totalProduk, totalBerita, totalGaleri, totalPesan, pesanBelumDibaca, pesanTerbaru] =
+    const [totalUMKM, totalProduk, totalBerita, totalGaleri, totalPesan, pesanBelumDibaca, pesanTerbaruRows] =
       await Promise.all([
         prisma.uMKM.count(),
         prisma.produk.count(),
@@ -17,8 +18,18 @@ export async function GET() {
         prisma.galeri.count(),
         prisma.pesan.count(),
         prisma.pesan.count({ where: { is_read: false } }),
-        prisma.pesan.findMany({ take: 5, orderBy: { created_at: 'desc' } }),
+        // F1 (T-11): select eksplisit + cuplikan — tidak ada lagi
+        // `SELECT *`/`isi_pesan` penuh di JSON stats. Route ini kini
+        // jarang dihit (polling client dihapus, lihat DashboardLive);
+        // dipertahankan untuk debug/inspeksi manual + didokumentasikan
+        // di README.
+        prisma.pesan.findMany({
+          take: 5,
+          orderBy: { created_at: 'desc' },
+          select: { id: true, nama: true, email: true, isi_pesan: true, is_read: true, created_at: true },
+        }),
       ])
+    const pesanTerbaru = pesanTerbaruRows.map(toPesanSnippet)
 
     return NextResponse.json(
       { totalUMKM, totalProduk, totalBerita, totalGaleri, totalPesan, pesanBelumDibaca, pesanTerbaru },

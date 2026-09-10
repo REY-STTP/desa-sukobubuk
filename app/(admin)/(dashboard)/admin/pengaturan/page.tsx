@@ -7,6 +7,12 @@ import PengaturanForm from './PengaturanForm'
 export const metadata: Metadata = { title: 'Pengaturan Akun' }
 
 export default async function PengaturanPage() {
+  // F2 (T-22): `auth()` di sini disengaja, bukan duplikasi yang bisa
+  // dihapus — layout tidak bisa meneruskan sesi lewat `{children}`
+  // (opaque) dan `SessionProvider` hanya terbaca komponen client.
+  // Yang dihemat adalah cek DB-nya: via cache T-21 (`session_version`
+  // keyed-by-version, 45s), pemanggilan kedua dalam jendela ini = hit
+  // memori, bukan RTT pooler. Jangan "bersihkan" baris ini.
   const session = await auth()
   const user = await prisma.user.findUnique({
     where: { email: session!.user.email },

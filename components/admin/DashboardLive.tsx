@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { Store, Package, Newspaper, Images, MessageSquare, Mail, ArrowRight, Plus, MailOpen } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { StatTile, StatNumber, StatLabel } from '@/components/ui/stat-tile'
@@ -16,6 +15,9 @@ type Stats = {
   totalGaleri: number
   totalPesan: number
   pesanBelumDibaca: number
+  // F1 (T-11/T-12): `isi_pesan` di sini adalah cuplikan ±140 char yang
+  // dipotong di server (`lib/cache.ts:getDashboardStats`), bukan teks
+  // penuh — cukup untuk `line-clamp-2` di kartu pesan terbaru.
   pesanTerbaru: { id: number; nama: string; email: string; isi_pesan: string; is_read: boolean; created_at: string }[]
 }
 
@@ -23,58 +25,47 @@ function cn(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(' ')
 }
 
+/**
+ * Sidik ringan untuk mendeteksi perubahan data tanpa
+ * `JSON.stringify` atas seluruh payload (mahal di main thread).
+ * Angka kartu + id/is_read pesan terbaru sudah cukup: pesan baru
+ * mengubah total, pesan dibaca mengubah `pesanBelumDibaca`/flag.
+ */
+function statsSignature(s: Stats): string {
+  const recent = s.pesanTerbaru.map((p) => `${p.id}:${p.is_read ? 1 : 0}`).join(',')
+  return `${s.totalUMKM}|${s.totalProduk}|${s.totalBerita}|${s.totalGaleri}|${s.totalPesan}|${s.pesanBelumDibaca}|${recent}`
+}
+
 export default function DashboardLive({ initialStats }: { initialStats: Stats }) {
-  const router = useRouter()
   const [stats, setStats] = useState<Stats>(initialStats)
   const [live, setLive] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const lastRefreshRef = useRef(0)
+  const sigRef = useRef(statsSignature(initialStats))
+  const pulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchStats = useCallback(async (showLive = true) => {
-    try {
-      const res = await fetch('/api/admin/stats', { cache: 'no-store' })
-      if (!res.ok) return
-      const data: Stats = await res.json()
-      setStats((prev) => {
-        const changed = JSON.stringify(prev) !== JSON.stringify(data)
-        if (changed && showLive) {
-          setLive(true)
-          setTimeout(() => setLive(false), 1800)
-          // keep sidebar badge in sync — debounced agar tidak tabrakan dengan AdminLiveRefresh
-          const now = Date.now()
-          if (now - lastRefreshRef.current > 2500) {
-            lastRefreshRef.current = now
-            router.refresh()
-          }
-        }
-        return data
-      })
-    } catch {
-      // silent — polling will retry
-    }
-  }, [router])
-
+  // F1 (T-10/T-11): PASIF — tidak ada fetch polling, interval, atau
+  // listener di sini. `AdminLiveRefresh` adalah pemilik tunggal refresh:
+  // ia memanggil `router.refresh()` saat `admin:mutated`/fokus/tab
+  // terlihat → RSC `admin/page.tsx` me-render ulang `getDashboardStats`
+  // yang ter-cache → prop `initialStats` baru mengalir ke sini.
+  // Efek di bawah menyinkronkan prop ke state + menyalakan indikator
+  // "Diperbarui" hanya bila sidik data benar-benar berubah.
   useEffect(() => {
-    const onFocus = () => fetchStats(false)
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') fetchStats(false)
+    const sig = statsSignature(initialStats)
+    if (sig !== sigRef.current) {
+      sigRef.current = sig
+      setStats(initialStats)
+      setLive(true)
+      if (pulseTimer.current) clearTimeout(pulseTimer.current)
+      pulseTimer.current = setTimeout(() => setLive(false), 1800)
     }
-    const onAdminMutated = () => fetchStats(true)
+  }, [initialStats])
 
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('admin:mutated' as any, onAdminMutated)
-
-    // polling — 30s (sebelumnya 8s, terlalu sering + tabrakan dengan AdminLiveRefresh)
-    timerRef.current = setInterval(() => fetchStats(true), 30000)
-
-    return () => {
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('admin:mutated' as any, onAdminMutated)
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [fetchStats])
+  useEffect(
+    () => () => {
+      if (pulseTimer.current) clearTimeout(pulseTimer.current)
+    },
+    []
+  )
 
   const cards = [
     { label: 'UMKM', value: stats.totalUMKM, icon: <Store className="size-5" />, tone: 'sage' as const, href: '/admin/umkm' },

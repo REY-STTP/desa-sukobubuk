@@ -3,10 +3,11 @@
 /**
  * F-310 / PERF-005 — lazy-loaded wrapper for DashboardLive.
  *
- * DashboardLive runs a fetch-polling loop that updates the dashboard
- * every few seconds. The first paint of the dashboard does not need
- * the live updates immediately — render a static placeholder and stream
- * the live data in once the chunk arrives.
+ * F1 (T-10/T-11): DashboardLive kini PASIF — ia hanya menyinkronkan
+ * prop RSC `initialStats` ke state (tanpa fetch polling/interval).
+ * Data baru datang via `router.refresh()` dari AdminLiveRefresh
+ * (pemilik tunggal refresh) + `revalidateTag('dashboard')` saat mutasi.
+ * Chunk tetap di-lazy agar first paint dasbor tidak menunggu JS ini.
  */
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'

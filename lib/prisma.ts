@@ -1,7 +1,26 @@
 import { PrismaClient } from '@prisma/client'
 
+/**
+ * F2-Fase5 / T-50 — timing observabilitas: dievaluasi `$extends`, DITOLAK.
+ * `$extends({ query: { $allOperations } })` terbukti jalan di plain node
+ * namun hook-nya TIDAK PERNAH dieksekusi di runtime Turbopack dev (bahkan
+ * dengan body tanpa syarat — diverifikasi via probe 2026-09-11), sehingga
+ * timing dipindah ke call-site via `timed()` di `lib/cache.ts` (VERIFIED).
+ */
+function createClient() {
+  return new PrismaClient({
+    // Log query mentah hanya bila eksplisit (default bersih).
+    log: process.env.DEBUG_PRISMA === '1' ? ['query'] : ['error'],
+    datasources: {
+      db: {
+        url: withTimeout(process.env.DATABASE_URL),
+      },
+    },
+  })
+}
+
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+  prisma: ReturnType<typeof createClient> | undefined
 }
 
 /**
@@ -27,15 +46,6 @@ function withTimeout(url: string | undefined): string | undefined {
   }
 }
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'production' ? ['error'] : ['query'],
-    datasources: {
-      db: {
-        url: withTimeout(process.env.DATABASE_URL),
-      },
-    },
-  })
+export const prisma = globalForPrisma.prisma ?? createClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

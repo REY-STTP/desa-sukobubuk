@@ -65,6 +65,16 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // F2-Fase4 / T-42 — rampingkan impor barrel ikon (tiap file admin impor
+  // 6-15 ikon dari 'lucide-react'). Hanya lucide-react dulu; `radix-ui`
+  // meta-package dievaluasi terpisah (risiko tree-shaking, lihat TASKS).
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
+  // Hapus console.* produksi kecuali error/warn (logger error tetap hidup).
+  compiler: {
+    removeConsole: { exclude: ['error', 'warn'] },
+  },
   images: {
     // F-106 / PERF-001 follow-up: enable modern formats for Cloudinary +
     // any other remote image. Next.js will negotiate AVIF → WebP → JPEG.

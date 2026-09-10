@@ -3,10 +3,10 @@
 /**
  * F-310 / PERF-005 — lazy-loaded wrapper for AdminLiveRefresh.
  *
- * AdminLiveRefresh subscribes to a window 'focus' and 'pageshow' event
- * and re-fetches the dashboard data when the user returns. Defer it
- * so the admin layout renders immediately and the polling/focus
- * subscription is added once the chunk arrives.
+ * AdminLiveRefresh adalah pemilik tunggal `router.refresh()` di admin:
+ * ia listen `admin:mutated` + `focus` + `visibilitychange` (throttle 2s).
+ * Defer agar layout admin render dulu, subscription dipasang sesudah
+ * chunk tiba.
  */
 import dynamic from 'next/dynamic'
 

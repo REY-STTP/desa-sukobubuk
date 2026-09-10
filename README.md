@@ -59,7 +59,7 @@ Portal informasi digital untuk Desa Sukobubuk yang menyediakan akses publik ke p
 | **Manajemen Galeri** | CRUD foto galeri dengan upload ke Cloudinary |
 | **Inbox Pesan** | Manajemen pesan masuk dari formulir kontak dengan status baca/belum dibaca |
 | **Pengaturan Profil Desa** | Edit identitas, kontak, jam pelayanan, sejarah, visi-misi, dan data pejabat desa |
-| **Live Dashboard** | Statistik real-time jumlah berita, UMKM, galeri, dan pesan |
+| **Live Dashboard** | Statistik + refresh otomatis saat ada perubahan (event-driven, tanpa polling) |
 
 ### 🎨 UI/UX
 
@@ -135,12 +135,13 @@ desa-sukobubuk/
 │   ├── sections/              # Section homepage (Hero, Stats, UMKM, Berita, Galeri, CTA)
 │   └── ui/                    # shadcn/ui primitives (27 komponen)
 ├── lib/
-│   ├── auth.ts                # Auth.js v5 config (JWT + Credentials + rate-limit + lockout)
+│   ├── auth.ts                # Auth.js v5 config (JWT + Credentials + rate-limit + lockout + session-version cache 45s)
 │   ├── admin-guard.ts         # requireAdmin() helper (F-101)
-│   ├── audit.ts               # logAdminAction + getClientIp (ARCH-001)
+│   ├── audit.ts               # logAdminAction + getClientIp (ARCH-001, invalidasi tag audit-log)
 │   ├── auth-lockout.ts        # FailedLogin lockout
+│   ├── session-version-cache.ts # Cache cek session_version 45s (keyed by version, fail-closed)
 │   ├── rate-limit.ts          # Token-bucket rate limiter
-│   ├── prisma.ts              # Prisma client singleton + timeout injection
+│   ├── prisma.ts              # Prisma client singleton + timeout injection (log query via DEBUG_PRISMA=1)
 │   ├── cache.ts               # Data fetching + caching (revalidateTag)
 │   ├── cloudinary.ts          # Cloudinary upload helper
 │   ├── mail.ts                # Nodemailer SMTP config
@@ -154,7 +155,7 @@ desa-sukobubuk/
 ├── prisma/
 │   ├── schema.prisma          # Database schema (12 model: User, FailedLogin, PasswordReset, UMKM, Produk, Berita, Galeri, Pesan, ProfilDesa, MisiItem, PejabatDesa, AuditLog + Role enum)
 │   ├── seed.ts                # Seeder idempotent (POL-001/002)
-│   └── migrations/            # 10 migrations (trigram, session_version, kecamatan, singletons, role enum, misi_items, audit_logs, dll.)
+│   └── migrations/            # 11 migrations (trigram, session_version, kecamatan, singletons, role enum, misi_items, audit_logs, index performa admin, dll.)
 ├── public/
 │   ├── images/                # logo-desa.webp (galeri placeholder gradient, POL-001)
 │   ├── og-image.webp           # 1200×630 <300KB (SEO-003)
@@ -169,7 +170,7 @@ desa-sukobubuk/
 ├── .env.example               # Template env vars
 ├── components.json            # shadcn/ui configuration
 ├── eslint.config.mjs          # ESLint flat config (DEPS-004)
-├── next.config.ts             # Next.js + security headers (SEC-003) + image formats avif/webp
+├── next.config.ts             # Next.js + security headers (SEC-003) + image formats avif/webp + optimizePackageImports lucide + removeConsole prod
 ├── tailwind.config.ts         # Tailwind fallback/docs config
 ├── tsconfig.json              # TypeScript configuration
 └── package.json               # engines.node >=20.0.0
@@ -260,6 +261,7 @@ Salin `.env.example` → `.env`, lalu isi setiap variabel:
 | `CLOUDINARY_API_SECRET` | Cloudinary secret | `xxxxxxxxxxxxxxxxxxxxxxxxxx` |
 | `BING_SITE_VERIFICATION` | Bing Webmaster (opsional) | `xxxxxxxxxxxxxxxx` |
 | `GOOGLE_SITE_VERIFICATION` | Google Search Console (opsional) | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| `DEBUG_PRISMA` | Log query + timing ms per query di dev (opsional, default mati) | `1` |
 
 > **⚠️ Penting:** Jangan commit file `.env` ke repository. File ini sudah ada di `.gitignore`.
 
@@ -295,6 +297,12 @@ Salin `.env.example` → `.env`, lalu isi setiap variabel:
 | `npm run db:migrate` | `prisma migrate dev` | Buat & jalankan migration |
 | `npm run db:seed` | `prisma db seed` | Isi data awal |
 | `npm run db:studio` | `prisma studio` | Buka GUI database (port 5555) |
+
+> **⚠️ Catatan migrasi:** `prisma migrate dev` gagal di database ini karena replay
+> shadow DB rusak oleh migrasi lama (`P1014` pada `20260829_add_created_at_indexes`).
+> Untuk migrasi SQL baru yang idempoten, gunakan alur:
+> `prisma db execute --file ./prisma/migrations/<nama>/migration.sql --schema ./prisma/schema.prisma`
+> lalu `prisma migrate resolve --applied <nama>` agar histori konsisten.
 
 ### Akun Admin Default (Seed)
 
@@ -366,7 +374,7 @@ Semua endpoint menggunakan Next.js Route Handlers (App Router).
 | `GET` | `/api/berita` | Public | List berita (pagination) |
 | `GET` | `/api/umkm` | Public | List UMKM (pagination) |
 | `GET` | `/api/produk` | Public | List produk (pagination) |
-| `GET` | `/api/galeri` | Public | List galeri |
+| `GET` | `/api/galeri` | Public | List galeri (pagination `?page=&limit=`, maks 50) |
 | `POST/PUT` | `/api/admin/reset-password` | Public | Request & confirm reset password (rate-limited) |
 | `GET` | `/api/health` | Public | Health + DB check |
 | `POST` | `/api/admin/berita` | Admin | Create berita |
@@ -377,7 +385,7 @@ Semua endpoint menggunakan Next.js Route Handlers (App Router).
 | `PUT/DELETE` | `/api/admin/produk/[id]` | Admin | Update/delete produk |
 | `POST` | `/api/admin/galeri` | Admin | Upload galeri (Cloudinary) |
 | `DELETE` | `/api/admin/galeri/[id]` | Admin | Delete galeri |
-| `GET` | `/api/admin/pesan` | Admin | List pesan (PII-protected) |
+| `GET` | `/api/admin/pesan` | Admin | List pesan (paginasi `?page=&limit=`, PII-protected) |
 | `PATCH/DELETE` | `/api/admin/pesan/[id]` | Admin | Tandai dibaca / hapus pesan |
 | `GET/PUT` | `/api/admin/profil` | Admin | Get/update ProfilDesa |
 | `PUT` | `/api/admin/profil/pejabat` | Admin | Replace pejabat (transactional) |
@@ -385,7 +393,7 @@ Semua endpoint menggunakan Next.js Route Handlers (App Router).
 | `PATCH` | `/api/admin/pengaturan` | Admin | Ganti nama/email/password |
 | `POST` | `/api/admin/upload` | Admin | Upload generic (berita/umkm/produk) |
 | `GET` | `/api/admin/stats` | Admin | Dashboard stats |
-| `GET` | `/api/admin/audit-log` | Admin | Audit log (ARCH-001) |
+| `GET` | `/api/admin/audit-log` | Admin | Audit log (filter `?page=&entity=&action=&q=`, ARCH-001) |
 
 ## 🧩 Komponen
 
@@ -399,9 +407,9 @@ Berbasis [shadcn/ui](https://ui.shadcn.com/) (New York variant):
 
 `HeroSection` · `StatsSection` · `FeaturedUMKM` · `LatestBerita` · `GaleriSection` · `CTASection`
 
-### Admin Components (`components/admin/`) — 16 komponen
+### Admin Components (`components/admin/`) — 18 komponen
 
-`AdminHeader` · `AdminSidebar` · `AdminLiveRefresh` · `BeritaForm` · `UMKMForm` · `ProdukForm` · `DashboardLive` · `DeleteButton` · `FormField` · `ImageCropUpload` · `Pagination` · `SearchInput` · `SessionProvider` · `SidebarContext` · `Table` · `TiptapEditor`
+`AdminHeader` · `AdminSidebar` · `AdminShellMeta` · `AdminLiveRefresh` · `BeritaForm` · `UMKMForm` · `ProdukForm` · `DashboardLive` · `DeleteButton` · `FormField` · `ImageCropUpload` · `CropModal` · `Pagination` · `SearchInput` · `SessionProvider` · `SidebarContext` · `Table` · `TiptapEditor`
 
 ### Layout Components (`components/layout/`)
 

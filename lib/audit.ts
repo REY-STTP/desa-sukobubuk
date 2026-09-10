@@ -11,7 +11,6 @@
 
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'PATCH' | 'UPLOAD' | string
 export type AuditEntity =
   | 'berita'
@@ -73,6 +72,18 @@ export async function logAdminAction(params: AuditParams): Promise<void> {
         ip: ip ?? null,
       },
     })
+    // F2-Fase3 / T-32 — segarkan list audit-log ter-cache (60s). Di dalam
+    // try/catch sendiri: kontrak best-effort (never throws) tidak boleh
+    // jebol bila dipanggil di luar konteks request Next.
+    try {
+      const { revalidateTag } = await import('next/cache')
+      const { CACHE_TAGS } = await import('@/lib/cache')
+      // Profil 'max' (SWR) seperti mayoritas route mutasi — cukup karena
+      // list audit-log juga ter-cache 60s dan tulis selalu menginvalidasi.
+      revalidateTag(CACHE_TAGS.auditLog, 'max')
+    } catch {
+      // abaikan — TTL 60s tetap membatasi basi.
+    }
   } catch (err) {
     // Best-effort: log but do not fail the caller.
     logger.error('audit log write failed', {

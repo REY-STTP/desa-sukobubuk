@@ -173,21 +173,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return { ...token, id: '', role: 'ADMIN', sessionVersion: -1 }
         }
         try {
-          // F-217: PERF-007 — wrap in `withDbRetry` so a transient
-          // Supabase pooler error gets one retry before we fail closed.
-          const { withDbRetry } = await import('@/lib/db-retry')
-          const u = await withDbRetry(() =>
-            prisma.user.findUnique({
-              where: { id: Number(token.id) },
-              select: { session_version: true },
-            })
-          )
-          if (!u || u.session_version !== token.sessionVersion) {
-            // Return an empty (inert) token. Catatan P0-1: Auth.js TIDAK
-            // otomatis menganggap ini logout — yang membuatnya tidak
-            // berdaya adalah guard yang menolak `id` kosong
-            // (`requireAdmin` + `authorized`). Jangan hapus cek id di sana.
-            return { ...token, id: '', role: 'ADMIN', sessionVersion: -1 }
+          // F2 (T-21): lewati query bila pasangan userId+version ini sudah
+          // terbukti segar <45s lalu. Key mencakup VERSION sehingga
+          // logout/bump version (version berubah) tak pernah cache-hit —
+          // revoke tetap berlaku seketika. Hanya hasil positif di-cache;
+          // mismatch → poison di bawah, DB error → poison di catch.
+          const { isSessionVersionFresh, rememberSessionVersion } = await import('@/lib/session-version-cache')
+          const userId = String(token.id)
+          if (!isSessionVersionFresh(userId, token.sessionVersion)) {
+            // F-217: PERF-007 — wrap in `withDbRetry` so a transient
+            // Supabase pooler error gets one retry before we fail closed.
+            const { withDbRetry } = await import('@/lib/db-retry')
+            const u = await withDbRetry(() =>
+              prisma.user.findUnique({
+                where: { id: Number(token.id) },
+                select: { session_version: true },
+              })
+            )
+            if (!u || u.session_version !== token.sessionVersion) {
+              // Return an empty (inert) token. Catatan P0-1: Auth.js TIDAK
+              // otomatis menganggap ini logout — yang membuatnya tidak
+              // berdaya adalah guard yang menolak `id` kosong
+              // (`requireAdmin` + `authorized`). Jangan hapus cek id di sana.
+              return { ...token, id: '', role: 'ADMIN', sessionVersion: -1 }
+            }
+            rememberSessionVersion(userId, token.sessionVersion)
           }
         } catch (err) {
           // DB unavailable: fail closed — reject the session rather than

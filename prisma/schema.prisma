@@ -84,6 +84,9 @@ model UMKM {
   produk      Produk[]
 
   @@index([created_at])
+  // F2-Fase3 / T-30 — home `is_featured` + filter/distinct `kategori`.
+  @@index([is_featured, created_at], map: "umkm_is_featured_created_at_idx")
+  @@index([kategori], map: "umkm_kategori_idx")
   @@map("umkm")
 }
 
@@ -100,6 +103,8 @@ model Produk {
   umkm         UMKM     @relation(fields: [umkm_id], references: [id], onDelete: Cascade)
 
   @@index([created_at])
+  // F2-Fase3 / T-30 — join `include umkm` di list admin + filter publik.
+  @@index([umkm_id, created_at], map: "produk_umkm_id_created_at_idx")
   @@map("produk")
 }
 
@@ -116,6 +121,8 @@ model Berita {
   author     User     @relation(fields: [author_id], references: [id], onDelete: Cascade)
 
   @@index([created_at])
+  // F2-Fase3 / T-30 — join + search `author.name` di list admin.
+  @@index([author_id], map: "berita_author_id_idx")
   @@map("berita")
 }
 
@@ -141,6 +148,8 @@ model Pesan {
   created_at DateTime @default(now())
 
   @@index([created_at])
+  // F2-Fase3 / T-30 — badge unread + dashboard dihitung per navigasi.
+  @@index([is_read, created_at], map: "pesan_is_read_created_at_idx")
   @@map("pesan")
 }
 
@@ -213,6 +222,8 @@ model PejabatDesa {
   kategori String @default("kepala") // kepala | sekretaris | kasi | kaur | kadus
   foto_url String?
 
+  // F2-Fase3 / T-30 — `orderBy kategori, urutan` di halaman profil admin.
+  @@index([kategori, urutan], map: "pejabat_desa_kategori_urutan_idx")
   @@map("pejabat_desa")
 }
 
@@ -233,5 +244,8 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([entity, createdAt])
+  // F2-Fase3 / T-30 — filter dropdown entity/action di halaman audit-log.
+  @@index([action, createdAt], map: "audit_logs_action_created_at_idx")
+  @@index([entity, action, createdAt], map: "audit_logs_entity_action_created_at_idx")
   @@map("audit_logs")
 }

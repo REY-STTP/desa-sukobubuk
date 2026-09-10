@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { prisma } from '@/lib/prisma'
+import { getAuditLogPage, AUDIT_LOG_MAX_QUERY_LEN } from '@/lib/cache'
 import { formatDate } from '@/lib/utils'
 import { Tag as UTag } from '@/components/ui/tag'
 import Pagination from '@/components/admin/Pagination'
@@ -17,6 +17,21 @@ import { ShieldCheck, Clock, User, FileText } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Audit Log' }
 
+/**
+ * F2-Fase3 / T-32: list hanya membawa cuplikan payload (≤300 char, lihat
+ * `getAuditLogPage`), bukan JSON penuh. Cuplikan pendek ditampilkan
+ * pretty seperti sebelumnya; yang terpotong ditandai eksplisit.
+ */
+function formatPayloadPreview(preview: string | null, truncated: boolean): string | null {
+  if (!preview) return null
+  if (truncated) return preview + '… (dipotong)'
+  try {
+    return JSON.stringify(JSON.parse(preview), null, 2)
+  } catch {
+    return preview
+  }
+}
+
 interface Props {
   searchParams: Promise<{ page?: string; q?: string; entity?: string; action?: string }>
 }
@@ -24,36 +39,14 @@ interface Props {
 export default async function AdminAuditLogPage({ searchParams }: Props) {
   const { page: pageParam, q, entity, action } = await searchParams
   const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
-  const search = q?.trim() ?? ''
+  // F2-Fase3 / T-32: panjang q dibatasi + query lewat cache bersama
+  // `getAuditLogPage` (60s, tag `audit-log`, invalidasi tiap tulis).
+  // Halaman ini sebelumnya query langsung tiap render/filter.
+  const search = (q?.trim() ?? '').slice(0, AUDIT_LOG_MAX_QUERY_LEN)
   const entityFilter = entity?.trim() || undefined
   const actionFilter = action?.trim() || undefined
 
-  const take = 20
-  const skip = (page - 1) * take
-
-  const where: Record<string, unknown> = {}
-  if (entityFilter) (where as Record<string, string>).entity = entityFilter
-  if (actionFilter) (where as Record<string, string>).action = actionFilter
-  if (search) {
-    ;(where as Record<string, unknown>).OR = [
-      { entityId: { contains: search, mode: 'insensitive' } },
-      { userEmail: { contains: search, mode: 'insensitive' } },
-      { action: { contains: search, mode: 'insensitive' } },
-      { entity: { contains: search, mode: 'insensitive' } },
-    ]
-  }
-
-  const [rows, total] = await Promise.all([
-    prisma.auditLog.findMany({
-      where: where as never,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take,
-    }),
-    prisma.auditLog.count({ where: where as never }),
-  ])
-
-  const totalPages = Math.max(1, Math.ceil(total / take))
+  const { data: rows, total, totalPages } = await getAuditLogPage(page, search, entityFilter, actionFilter)
 
   // Build basePath preserving filters
   const qp = new URLSearchParams()
@@ -161,9 +154,9 @@ export default async function AdminAuditLogPage({ searchParams }: Props) {
                   <User className="size-3" />
                   {row.userEmail ?? `user #${row.userId ?? '-'}`} {row.ip ? `· ${row.ip}` : ''}
                 </p>
-                {row.payload ? (
+                {row.payloadPreview ? (
                   <pre className="mt-2 max-h-20 overflow-auto rounded-lg bg-stone-50 p-2 text-xs font-mono text-stone-600">
-                    {JSON.stringify(row.payload, null, 2)}
+                    {formatPayloadPreview(row.payloadPreview, row.payloadTruncated)}
                   </pre>
                 ) : null}
               </div>
@@ -216,9 +209,9 @@ export default async function AdminAuditLogPage({ searchParams }: Props) {
                       {row.ip ? <span className="text-stone-400 ml-1">· {row.ip}</span> : null}
                     </AdminTableCell>
                     <AdminTableCell className="max-w-xs">
-                      {row.payload ? (
+                      {row.payloadPreview ? (
                         <pre className="max-h-16 overflow-auto text-xs font-mono text-stone-600 bg-stone-50 rounded p-1">
-                          {JSON.stringify(row.payload).slice(0, 200)}
+                          {formatPayloadPreview(row.payloadPreview, row.payloadTruncated)}
                         </pre>
                       ) : (
                         <span className="text-xs text-stone-400">—</span>

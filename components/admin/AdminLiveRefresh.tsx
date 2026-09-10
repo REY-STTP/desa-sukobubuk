@@ -4,10 +4,16 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 /**
- * Global live refresh untuk semua halaman admin.
- * - Polling router.refresh() tiap 10s → list berita/umkm/produk/pesan/dll ter-update tanpa F5
+ * Global live refresh untuk semua halaman admin — PEMILIK TUNGGAL refresh.
+ *
+ * F1 (T-10): sebelumnya `DashboardLive` (khusus `/admin`) memasang
+ * listener yang sama + polling `fetch /api/admin/stats` tiap 30s,
+ * sehingga 1 event = 2x `router.refresh()` + 1x fetch. Sekarang
+ * `DashboardLive` pasif (sinkron via prop RSC), dan komponen ini
+ * satu-satunya yang memanggil `router.refresh()`:
  * - Instant refresh saat ada CRUD (event admin:mutated dari form/delete)
- * - Refresh saat tab kembali fokus
+ * - Refresh saat tab kembali fokus / terlihat
+ * Throttle 2s agar event beruntun tidak menumpuk RSC refetch.
  */
 export default function AdminLiveRefresh() {
   const router = useRouter()

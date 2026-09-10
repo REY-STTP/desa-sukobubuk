@@ -1,16 +1,23 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
   Users, Plus, Trash2, Loader2, CheckCircle, AlertCircle,
   ChevronDown, ChevronUp, Camera, UserCircle2, Save, GripVertical,
-  Crop, Check, X, RotateCcw,
+  Crop,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+// F2-Fase4 / T-40 — modal crop bersama (chunk terpisah, hanya diunduh
+// saat dibuka): square 512×512 + pratinjau lingkaran, tanpa zoom.
+const CropModal = dynamic(() => import('@/components/admin/CropModal').then((m) => m.CropModal), {
+  ssr: false,
+})
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,235 +50,6 @@ const newPejabat = (kategori = 'kepala', urutan = 0): Pejabat => ({
   nama: '', jabatan: '', kategori, urutan,
   foto_url: null, _fotoFile: null, _fotoPreview: null,
 })
-
-// ─── Utility: crop + resize → Blob ───────────────────────────────────────────
-function cropAndResize(
-  img: HTMLImageElement,
-  crop: { x: number; y: number; width: number; height: number },
-  outW: number, outH: number,
-): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas')
-    canvas.width = outW; canvas.height = outH
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return reject(new Error('Canvas not supported'))
-    ctx.drawImage(img, crop.x, crop.y, crop.width, crop.height, 0, 0, outW, outH)
-    canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/webp', 0.88)
-  })
-}
-
-// ─── CropModal (1:1 square, output 512×512) ───────────────────────────────────
-interface CropModalProps { src: string; onConfirm: (blob: Blob) => void; onCancel: () => void }
-
-function CropModal({ src, onConfirm, onCancel }: CropModalProps) {
-  const imgRef       = useRef<HTMLImageElement | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  type Rect = { x: number; y: number; width: number; height: number }
-
-  // box = koordinat dalam ruang CONTAINER (px dari pojok kiri atas container)
-  const [box,       setBox]       = useState<Rect | null>(null)
-  // imgRect = posisi & ukuran gambar yang SEBENARNYA tampil di dalam container
-  const [imgRect,   setImgRect]   = useState({ x: 0, y: 0, w: 0, h: 0 })
-  const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 })
-  const [dragging,  setDragging]  = useState<'move' | 'resize' | null>(null)
-  const [dragStart, setDragStart] = useState({ mx: 0, my: 0, bx: 0, by: 0, bs: 0 })
-  const [isLoaded,  setIsLoaded]  = useState(false)
-  const [processing,setProcessing]= useState(false)
-
-  // Hitung posisi gambar dalam container (gambar di-letterbox oleh object-contain)
-  const measureImg = useCallback(() => {
-    const img  = imgRef.current
-    const cont = containerRef.current
-    if (!img || !cont) return null
-    const cRect = cont.getBoundingClientRect()
-    const iRect = img.getBoundingClientRect()
-    return {
-      x: iRect.left - cRect.left,
-      y: iRect.top  - cRect.top,
-      w: iRect.width,
-      h: iRect.height,
-    }
-  }, [])
-
-  const initBox = useCallback(() => {
-    const r = measureImg()
-    if (!r) return
-    setImgRect(r)
-    // Kotak crop default = 85% dari sisi terpendek gambar, di tengah GAMBAR
-    const s = Math.round(Math.min(r.w, r.h) * 0.85)
-    setBox({
-      x: Math.round(r.x + (r.w - s) / 2),
-      y: Math.round(r.y + (r.h - s) / 2),
-      width: s, height: s,
-    })
-  }, [measureImg])
-
-  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget
-    imgRef.current = img
-    setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight })
-    // Tunggu satu frame agar browser selesai layout gambar
-    requestAnimationFrame(() => { initBox(); setIsLoaded(true) })
-  }
-
-  const onMouseDown = (e: React.MouseEvent, mode: 'move' | 'resize') => {
-    e.preventDefault(); if (!box) return
-    setDragging(mode)
-    setDragStart({ mx: e.clientX, my: e.clientY, bx: box.x, by: box.y, bs: box.width })
-  }
-
-  useEffect(() => {
-    if (!dragging || !box) return
-    const mv = (e: MouseEvent) => {
-      const dx = e.clientX - dragStart.mx
-      const dy = e.clientY - dragStart.my
-      if (dragging === 'move') {
-        // Batasi agar box tidak keluar dari area GAMBAR
-        const newX = Math.max(imgRect.x, Math.min(imgRect.x + imgRect.w - box.width,  dragStart.bx + dx))
-        const newY = Math.max(imgRect.y, Math.min(imgRect.y + imgRect.h - box.height, dragStart.by + dy))
-        setBox(b => b ? { ...b, x: Math.round(newX), y: Math.round(newY) } : b)
-      } else {
-        // Resize: jaga kotak tetap square & dalam batas gambar
-        let s = Math.max(40, dragStart.bs + Math.max(dx, dy))
-        s = Math.min(s, imgRect.w, imgRect.h)
-        if (dragStart.bx + s > imgRect.x + imgRect.w) s = imgRect.x + imgRect.w - dragStart.bx
-        if (dragStart.by + s > imgRect.y + imgRect.h) s = imgRect.y + imgRect.h - dragStart.by
-        setBox(b => b ? { ...b, width: Math.round(s), height: Math.round(s) } : b)
-      }
-    }
-    const up = () => setDragging(null)
-    window.addEventListener('mousemove', mv)
-    window.addEventListener('mouseup', up)
-    return () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up) }
-  }, [dragging, dragStart, box, imgRect])
-
-  const handleConfirm = async () => {
-    if (!imgRef.current || !box) return
-    setProcessing(true)
-    try {
-      // Konversi koordinat box (relatif container) → koordinat dalam gambar tampil
-      const boxInImg = {
-        x: box.x - imgRect.x,
-        y: box.y - imgRect.y,
-        width:  box.width,
-        height: box.height,
-      }
-      // Scale ke piksel natural
-      const scaleX = naturalSize.w / imgRect.w
-      const scaleY = naturalSize.h / imgRect.h
-      const natCrop = {
-        x:      Math.round(boxInImg.x      * scaleX),
-        y:      Math.round(boxInImg.y      * scaleY),
-        width:  Math.round(boxInImg.width  * scaleX),
-        height: Math.round(boxInImg.height * scaleY),
-      }
-      const blob = await cropAndResize(imgRef.current, natCrop, 512, 512)
-      onConfirm(blob)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setProcessing(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onCancel}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
-          <div>
-            <h3 className="font-semibold text-stone-800 flex items-center gap-2">
-              <Crop className="size-4 text-primary-500" /> Crop Foto Pejabat
-            </h3>
-            <p className="text-xs text-stone-500 mt-0.5">Output: 512 × 512 px (1:1) · WebP</p>
-          </div>
-          <button onClick={onCancel} className="p-1.5 hover:bg-stone-100 rounded-lg"><X className="size-4 text-stone-500" /></button>
-        </div>
-
-        {/* Image area */}
-        <div
-          ref={containerRef}
-          className="relative bg-sage-900 select-none overflow-hidden flex items-center justify-center"
-          style={{ height: 360 }}
-        >
-
-          <img
-            src={src}
-            alt="crop"
-            onLoad={handleLoad}
-            className="max-w-full max-h-full object-contain"
-            style={{ userSelect: 'none', display: 'block' }}
-            draggable={false}
-          />
-
-          {isLoaded && box && (
-            <>
-              {/* Overlay gelap di luar kotak crop */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute bg-black/55" style={{ top: 0, left: 0, right: 0, height: box.y }} />
-                <div className="absolute bg-black/55" style={{ top: box.y + box.height, left: 0, right: 0, bottom: 0 }} />
-                <div className="absolute bg-black/55" style={{ top: box.y, left: 0, width: box.x, height: box.height }} />
-                <div className="absolute bg-black/55" style={{ top: box.y, left: box.x + box.width, right: 0, height: box.height }} />
-              </div>
-
-              {/* Preview lingkaran */}
-              <div className="absolute pointer-events-none rounded-full border-2 border-white/50 border-dashed"
-                style={{ left: box.x, top: box.y, width: box.width, height: box.height }} />
-
-              {/* Kotak crop (draggable) */}
-              <div
-                className="absolute border-2 border-white cursor-move"
-                style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
-                onMouseDown={e => onMouseDown(e, 'move')}
-              >
-                {/* Corner handles */}
-                {(['tl','tr','bl'] as const).map(c => (
-                  <div key={c} className={`absolute size-3 bg-white border-2 border-stone-400 rounded-sm
-                    ${c === 'tl' ? 'top-0 left-0 -translate-x-1/2 -translate-y-1/2' :
-                      c === 'tr' ? 'top-0 right-0 translate-x-1/2 -translate-y-1/2' :
-                                   'bottom-0 left-0 -translate-x-1/2 translate-y-1/2'}`} />
-                ))}
-                {/* Resize handle (br) */}
-                <div
-                  className="absolute bottom-0 right-0 size-4 bg-white border-2 border-stone-400 rounded-sm cursor-se-resize translate-x-1/2 translate-y-1/2"
-                  onMouseDown={e => { e.stopPropagation(); onMouseDown(e, 'resize') }}
-                />
-              </div>
-            </>
-          )}
-
-          {!isLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="size-8 animate-spin text-white" />
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-4 bg-stone-50 border-t border-stone-200">
-          <button onClick={initBox} className="flex items-center gap-1.5 text-sm text-stone-600 hover:text-stone-800 transition-colors">
-            <RotateCcw className="w-3.5 h-3.5" /> Reset
-          </button>
-          <p className="text-xs text-stone-400 italic">Lingkaran = tampilan di web</p>
-          <div className="flex gap-2">
-            <button onClick={onCancel} className="px-4 py-2 text-sm text-stone-600 hover:bg-stone-200 rounded-lg transition-colors">Batal</button>
-            <button
-              onClick={handleConfirm}
-              disabled={!isLoaded || processing}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-sage-500 hover:bg-sage-700 text-white rounded-lg disabled:opacity-60 transition-colors"
-            >
-              {processing
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Memproses...</>
-                : <><Check className="w-3.5 h-3.5" /> Terapkan</>
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ─── Komponen Utama ───────────────────────────────────────────────────────────
 
@@ -378,7 +156,21 @@ export default function PejabatForm({ initialData }: Props) {
   return (
     <>
       {cropState && (
-        <CropModal src={cropState.src} onConfirm={handleCropConfirm} onCancel={handleCropCancel} />
+        <CropModal
+          src={cropState.src}
+          title="Crop Foto Pejabat"
+          sizeLabel="512 × 512 px (1:1)"
+          outputWidth={512}
+          outputHeight={512}
+          initialFill={0.85}
+          overlay="circle-box"
+          footerHint="Lingkaran = tampilan di web"
+          footerBar
+          resetLabel="Reset"
+          confirmLabel="Terapkan"
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
       )}
 
       <div className="surface-elevated p-5 md:p-6">

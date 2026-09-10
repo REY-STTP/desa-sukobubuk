@@ -37,40 +37,44 @@ export async function PUT(req: NextRequest) {
     }
 
     const existing = await prisma.profilDesa.findFirst()
-    const profil = existing
-      ? await prisma.profilDesa.update({ where: { id: existing.id }, data })
-      : await prisma.profilDesa.create({ data })
+
+    // F2-Fase3 / T-33: kolom legacy `misi` langsung ditulis "" di tulis
+    // utama (update kedua khusus reset dihapus — end-state identik).
+    // `data` adalah objek yang sama dengan yang sudah disanitasi di atas.
+    data.misi = ''
 
     // F-303 / DB-006 (Phase 06) — also persist misi_items relation table.
     // The legacy `misi` JSON column is kept as a fallback. New writes
     // populate the relation and reset the JSON column to empty string.
     // P0-3: sinkronisasi relasi berlaku untuk cabang create MAUPUN update
     // (sebelumnya hanya update — profil pertama dibuat tanpa misi).
-    const incomingMisi = typeof data.misi === 'string' ? data.misi : ''
-    let parsed: string[] = []
+    const incomingMisi = typeof parsed.data.misi === 'string' ? parsed.data.misi : ''
+    let parsedMisi: string[] = []
     if (incomingMisi.trim().startsWith('[')) {
       try {
         const v = JSON.parse(incomingMisi)
         if (Array.isArray(v) && v.every((x) => typeof x === 'string')) {
-          parsed = v.filter((s) => s.trim().length > 0)
+          parsedMisi = v.filter((s) => s.trim().length > 0)
         }
       } catch {
-        parsed = []
+        parsedMisi = []
       }
     }
-    if (parsed.length > 0) {
-      await prisma.misiItem.deleteMany({ where: { profil_id: profil.id } })
-      await prisma.misiItem.createMany({
-        data: parsed.map((text, urutan) => ({ profil_id: profil.id, text, urutan })),
-      })
-    } else {
-      // Mirror empty input to empty rows so the canonical read path is
-      // the relation; the legacy JSON column stays for backward read.
-      await prisma.misiItem.deleteMany({ where: { profil_id: profil.id } })
-    }
-    await prisma.profilDesa.update({
-      where: { id: profil.id },
-      data: { misi: '' },
+    // F2-Fase3 / T-33: tulis profil + relasi atomik. Tanpa ini kegagalan
+    // di tengah (mis. createMany) menyisakan profil tanpa misi.
+    // `logAdminAction` + `revalidateTag` tetap di luar transaksi (di bawah)
+    // agar tak menahan koneksi pooler.
+    const profil = await prisma.$transaction(async (tx) => {
+      const row = existing
+        ? await tx.profilDesa.update({ where: { id: existing.id }, data })
+        : await tx.profilDesa.create({ data })
+      await tx.misiItem.deleteMany({ where: { profil_id: row.id } })
+      if (parsedMisi.length > 0) {
+        await tx.misiItem.createMany({
+          data: parsedMisi.map((text, urutan) => ({ profil_id: row.id, text, urutan })),
+        })
+      }
+      return row
     })
 
     await logAdminAction({

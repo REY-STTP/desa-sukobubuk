@@ -24,14 +24,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Slug tidak valid dari nama produk' }, { status: 400 })
     }
     // P2-E1: pastikan UMKM ada (bukan P2003 → 500).
-    const umkmAda = await prisma.uMKM.findUnique({
-      where: { id: umkm_id },
-      select: { id: true },
-    })
+    // F2-Fase3 / T-34: dua pra-cek independen → paralel (2 RTT → 1).
+    const [umkmAda, existing] = await Promise.all([
+      prisma.uMKM.findUnique({
+        where: { id: umkm_id },
+        select: { id: true },
+      }),
+      prisma.produk.findUnique({ where: { slug: finalSlug }, select: { id: true } }),
+    ])
     if (!umkmAda) {
       return NextResponse.json({ error: 'UMKM tidak ditemukan' }, { status: 404 })
     }
-    const existing = await prisma.produk.findUnique({ where: { slug: finalSlug } })
     if (existing) return NextResponse.json({ error: 'Slug sudah digunakan' }, { status: 400 })
 
     const produk = await prisma.produk.create({

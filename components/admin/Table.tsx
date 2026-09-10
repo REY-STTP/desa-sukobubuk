@@ -1,5 +1,3 @@
-'use client'
-
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
@@ -9,6 +7,10 @@ import { cn } from '@/lib/utils'
  * - Dense rows (py-2.5)
  * - Subtle row hover
  * - Rounded container dengan border
+ *
+ * F2-Fase4 / T-41: server component (sebelumnya 'use client' tanpa
+ * keperluan — murni presentasional, tanpa hooks/event). Halaman list
+ * server tak lagi terseret ke client chunk karena tabel ini.
  */
 interface AdminTableProps {
   children: React.ReactNode

@@ -26,10 +26,12 @@ export async function POST(req: NextRequest) {
     if (!finalSlug) {
       return NextResponse.json({ error: 'Slug tidak valid dari judul' }, { status: 400 })
     }
-    const existing = await prisma.berita.findUnique({ where: { slug: finalSlug } })
+    // F2-Fase3 / T-34: dua pra-cek independen → paralel (2 RTT → 1).
+    const [existing, user] = await Promise.all([
+      prisma.berita.findUnique({ where: { slug: finalSlug }, select: { id: true } }),
+      prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } }),
+    ])
     if (existing) return NextResponse.json({ error: 'Slug sudah digunakan' }, { status: 400 })
-
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
     if (!user) return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
 
     const berita = await prisma.berita.create({
