@@ -130,8 +130,8 @@ desa-sukobubuk/
 │   └── sitemap.ts             # Dynamic sitemap.xml
 ├── components/
 │   ├── admin/                 # Komponen dashboard (forms, table, sidebar, dll.)
-│   ├── animations/            # Framer Motion wrappers (ScrollReveal, Stagger, dll.)
-│   ├── layout/                # Navbar, Footer, PageHeader
+│   ├── animations/            # Animation wrappers (PageWrapper CSS-fade, Stagger, Counter, Loading)
+│   ├── layout/                # Navbar, Footer (+ MapsFacade klik-untuk-muat), PageHeader
 │   ├── sections/              # Section homepage (Hero, Stats, UMKM, Berita, Galeri, CTA)
 │   └── ui/                    # shadcn/ui primitives (27 komponen)
 ├── lib/
@@ -155,7 +155,7 @@ desa-sukobubuk/
 ├── prisma/
 │   ├── schema.prisma          # Database schema (12 model: User, FailedLogin, PasswordReset, UMKM, Produk, Berita, Galeri, Pesan, ProfilDesa, MisiItem, PejabatDesa, AuditLog + Role enum)
 │   ├── seed.ts                # Seeder idempotent (POL-001/002)
-│   └── migrations/            # 11 migrations (trigram, session_version, kecamatan, singletons, role enum, misi_items, audit_logs, index performa admin, dll.)
+│   └── migrations/            # 12 migrations (trigram, session_version, kecamatan, singletons, role enum, misi_items, audit_logs, index performa, dll.)
 ├── public/
 │   ├── images/                # logo-desa.webp (galeri placeholder gradient, POL-001)
 │   ├── og-image.webp           # 1200×630 <300KB (SEO-003)
@@ -372,7 +372,7 @@ Semua endpoint menggunakan Next.js Route Handlers (App Router).
 | `*` | `/api/auth/[...nextauth]` | Public | Auth.js v5 (JWT) |
 | `POST` | `/api/pesan` | Public | Kirim pesan kontak (rate-limited) |
 | `GET` | `/api/berita` | Public | List berita (pagination) |
-| `GET` | `/api/umkm` | Public | List UMKM (pagination) |
+| `GET` | `/api/umkm` | Public | List UMKM (pagination + filter `?search=&kategori=&featured=`) |
 | `GET` | `/api/produk` | Public | List produk (pagination) |
 | `GET` | `/api/galeri` | Public | List galeri (pagination `?page=&limit=`, maks 50) |
 | `POST/PUT` | `/api/admin/reset-password` | Public | Request & confirm reset password (rate-limited) |
@@ -417,7 +417,7 @@ Berbasis [shadcn/ui](https://ui.shadcn.com/) (New York variant):
 
 ### Animation Components (`components/animations/`)
 
-`AnimatedCounter` · `LoadingScreen` · `PageWrapper` · `ScrollReveal` · `StaggerContainer`
+`AnimatedCounter` · `LoadingScreen` · `PageWrapper` · `StaggerContainer`
 
 ## 🔍 SEO & Performa
 

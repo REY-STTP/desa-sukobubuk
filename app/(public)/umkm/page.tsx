@@ -17,14 +17,21 @@ export const metadata: Metadata = {
 }
 
 interface Props {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; q?: string; kategori?: string }>
 }
 
 export default async function UMKMPage({ searchParams }: Props) {
-  const { page: pageParam } = await searchParams
+  const { page: pageParam, q, kategori } = await searchParams
   const page = Math.max(1, parseInt(pageParam ?? '1') || 1)
+  const search = q?.trim() ?? ''
+  const kategoriFilter = kategori?.trim() || 'Semua'
 
-  const { data: umkm, total, totalPages, kategoriList } = await getUMKMPublik(page)
+  // F2-FaseP2 / T-P22: filter di SQL (bukan in-memory per halaman) —
+  // item halaman 2 kini ketemu dari halaman 1.
+  const { data: umkm, total, totalPages, kategoriList } = await getUMKMPublik(page, {
+    q: search,
+    kategori: kategoriFilter === 'Semua' ? undefined : kategoriFilter,
+  })
 
   if (page > totalPages && totalPages > 0) notFound()
 
@@ -35,6 +42,8 @@ export default async function UMKMPage({ searchParams }: Props) {
       page={page}
       total={total}
       totalPages={totalPages}
+      search={search}
+      kategori={kategoriFilter}
     />
   )
 }

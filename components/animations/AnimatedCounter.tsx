@@ -1,7 +1,6 @@
 'use client'
 
-import { motion, useInView, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   value: number
@@ -11,37 +10,69 @@ interface Props {
   format?: boolean
 }
 
-export default function AnimatedCounter({
-  value,
-  suffix = '',
-  prefix = '',
-  duration = 1.5,
-  format = true
-}: Props) {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true })
-  // P1-A3: angka final langsung, tanpa spring, saat prefers-reduced-motion.
-  // (Semua hook tetap dipanggil di atas — early return hanya untuk render.)
-  const shouldReduceMotion = useReducedMotion()
+/**
+ * F2-FaseP1 / T-P12 — count-up tanpa framer-motion.
+ *
+ * Sebelumnya `useSpring + useTransform + useMotionValue` (≈ engine fisika
+ * untuk menganimasikan 3–4 angka). Pengganti: `rAF` + easing `easeOutCubic`
+ * + `Intl.NumberFormat('id-ID')` — API props dan format output identik,
+ * termasuk nilai final langsung saat `prefers-reduced-motion` dan start
+ * sekali saat masuk viewport (`IntersectionObserver once`).
+ */
+function formatNum(n: number, prefix: string, suffix: string, format: boolean): string {
+  const num = Math.round(n)
+  const text = format ? num.toLocaleString('id-ID') : String(num)
+  return `${prefix}${text}${suffix}`
+}
 
-  const motionValue = useMotionValue(0)
-  const spring = useSpring(motionValue, { duration: duration * 1000, bounce: 0 })
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
 
-  const display = useTransform(spring, (v) => {
-    const num = Math.round(v)
-    const formatted = format ? num.toLocaleString('id-ID') : num
-    return `${prefix}${formatted}${suffix}`
-  })
+export default function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1.5, format = true }: Props) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [reduced, setReduced] = useState<boolean>(prefersReducedMotion)
+  const [text, setText] = useState(() => formatNum(0, prefix, suffix, format))
+  const instant = reduced || duration <= 0
 
   useEffect(() => {
-    if (isInView) motionValue.set(value)
-  }, [isInView, value, motionValue])
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => setReduced(mq.matches)
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
-  if (shouldReduceMotion) {
-    const num = Math.round(value)
-    const formatted = format ? num.toLocaleString('id-ID') : num
-    return <span ref={ref}>{`${prefix}${formatted}${suffix}`}</span>
-  }
+  useEffect(() => {
+    const el = ref.current
+    if (!el || instant) return
+    let raf = 0
+    let started = false
+    let cancelled = false
+    const totalMs = duration * 1000
+    const tick = (t0: number) => (now: number) => {
+      if (cancelled) return
+      const p = Math.min(1, (now - t0) / totalMs)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setText(formatNum(value * eased, prefix, suffix, format))
+      if (p < 1) raf = requestAnimationFrame(tick(t0))
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && !started) {
+          started = true
+          io.disconnect()
+          raf = requestAnimationFrame(tick(performance.now()))
+        }
+      },
+      { threshold: 0.3 }
+    )
+    io.observe(el)
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+      io.disconnect()
+    }
+  }, [value, prefix, suffix, duration, format, instant])
 
-  return <motion.span ref={ref}>{display}</motion.span>
+  return <span ref={ref}>{instant ? formatNum(value, prefix, suffix, format) : text}</span>
 }

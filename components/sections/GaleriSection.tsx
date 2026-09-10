@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { Images, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Galeri } from '@prisma/client'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
@@ -22,53 +23,60 @@ const placeholderGradients = [
   'linear-gradient(135deg, #aebc8e 0%, #5a7548 100%)',
 ]
 
+/**
+ * F2-FaseP1 / T-P11 — sisipkan transformasi kompresi Cloudinary.
+ * `w_{width},q_auto,f_auto` (AVIF→WebP→JPEG negotiation) memangkas
+ * transfer berkali lipat vs file asli. URL yang sudah bertransformasi
+ * atau non-Cloudinary (lokal `/uploads/`) dibiarkan apa adanya.
+ */
+function cloudinarySized(src: string, width: number): string {
+  const marker = '/upload/'
+  if (!src.startsWith('https://res.cloudinary.com/')) return src
+  const i = src.indexOf(marker)
+  if (i < 0) return src
+  const after = src.slice(i + marker.length)
+  const first = after.split('/')[0] ?? ''
+  if (first.includes('_') || first.includes(',')) return src // sudah ada transformasi
+  return `${src.slice(0, i + marker.length)}w_${width},q_auto,f_auto/${after}`
+}
+
 function GaleriMedia({
   item,
   index,
   className = 'size-full object-cover',
+  sizes = '(max-width: 640px) 75vw, (max-width: 1024px) 33vw, 420px',
+  width = 640,
 }: {
   item: Galeri
   index: number
   className?: string
+  sizes?: string
+  width?: number
 }) {
   const gradient = placeholderGradients[index % placeholderGradients.length]
+  const [failed, setFailed] = useState(false)
   // F-104: SEC-006 — accept both legacy local paths (pre-Cloudinary) and
   // absolute Cloudinary URLs.
   const hasValidFoto =
+    !failed &&
     !!item.foto &&
     (item.foto.startsWith('/uploads/') ||
       item.foto.startsWith('https://res.cloudinary.com/'))
 
   if (hasValidFoto) {
     return (
-      <img
-        src={item.foto!}
+      <Image
+        src={cloudinarySized(item.foto!, width)}
         alt={item.judul}
+        fill
+        sizes={sizes}
         className={className}
         draggable={false}
         // P1-C3: lazy agar 6 foto bawah-fold tak berebut bandwidth LCP.
         loading="lazy"
-        decoding="async"
-        // F-310 / PERF-008 (from audit §23.6) — if the image URL is broken
-        // (404 / 403 / deleted from Cloudinary), the user would otherwise
-        // see the alt text in a tiny box. Replace with the gradient
-        // placeholder instead.
-        onError={(e) => {
-          const el = e.currentTarget as HTMLImageElement
-          // Guard: onError can fire multiple times (e.g., if src is reset); avoid appending duplicate captions
-          if ((el as unknown as { _handled?: boolean })._handled) return
-          ;(el as unknown as { _handled: boolean })._handled = true
-          el.style.display = 'none'
-          const parent = el.parentElement
-          if (parent && !parent.querySelector('p[data-error-caption]')) {
-            parent.style.background = placeholderGradients[index % placeholderGradients.length]
-            const caption = document.createElement('p')
-            caption.setAttribute('data-error-caption', 'true')
-            caption.className = 'line-clamp-2 text-center text-sm font-medium text-white/80'
-            caption.textContent = item.judul
-            parent.appendChild(caption)
-          }
-        }}
+        // F-310 / PERF-008 — URL rusak (404/403/dihapus): tampilkan
+        // placeholder gradien via state (bukan manipulasi DOM manual).
+        onError={() => setFailed(true)}
       />
     )
   }
@@ -367,6 +375,10 @@ export default function GaleriSection({ galeri }: Props) {
                   item={galeri[lightbox]}
                   index={lightbox}
                   className="size-full object-cover"
+                  // Lightbox dibuka eksplisit oleh pengguna: layak resolusi
+                  // lebih besar (tetap terkompresi via transform).
+                  sizes="(max-width: 768px) 92vw, 768px"
+                  width={1280}
                 />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6">
                   <p className="font-display text-lg font-medium text-white text-balance">

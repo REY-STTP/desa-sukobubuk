@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-guard'
 import { parseBody } from '@/lib/parse-body'
 import { pejabatUpdateSchema } from '@/lib/schemas/pejabat'
 import { deleteUnusedCloudinaryUrl } from '@/lib/cloudinary'
+import { CACHE_TAGS } from '@/lib/cache'
 import { logAdminAction, getClientIp } from '@/lib/audit'
 
 export async function PUT(req: NextRequest) {
@@ -54,6 +56,10 @@ export async function PUT(req: NextRequest) {
       payload: { count: pejabat.length },
       ip: getClientIp(req),
     })
+
+    // F2-FaseP2 / T-P20: halaman struktur-organisasi membaca pejabat via
+    // cache tag `profil` — tanpa ini daftar basi s/d TTL (300s).
+    revalidateTag(CACHE_TAGS.profil, 'max')
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -3,10 +3,11 @@ import Footer from '@/components/layout/Footer'
 import LoadingScreen from '@/components/animations/LoadingScreen'
 import ClientMain from '@/components/layout/ClientMain'
 import { LoadingProvider } from '@/lib/loading-context'
-import { getProfilDesa } from '@/lib/cache'
+import { getProfilPublik } from '@/lib/cache'
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
-  const profil = await getProfilDesa()
+  // F2-FaseP2 / T-P20: key cache yang sama dengan home/navbar/footer/CTA.
+  const profil = await getProfilPublik()
 
   return (
     <LoadingProvider>

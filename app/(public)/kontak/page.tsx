@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import KontakForm from './KontakForm'
 import { MapPin, Phone, Mail, Clock, MessageCircle, Send } from 'lucide-react'
-import { getProfilLengkap } from '@/lib/cache'
+import { getProfilPublik } from '@/lib/cache'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
 import { Section } from '@/components/ui/section'
@@ -21,8 +21,9 @@ export const metadata: Metadata = {
 }
 
 export default async function KontakPage() {
-  // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
-  const profil = await getProfilLengkap()
+  // F2-FaseP2 / T-P20: helper bersama — semua kolom info kantor ada di
+  // proyeksinya (tanpa Text). Satu key cache dengan layout/home.
+  const profil = await getProfilPublik()
 
   const infoItems = profil
     ? [

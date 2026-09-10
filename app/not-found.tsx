@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import { Home, Search, Compass, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import BackButton from '@/components/ui/back-button'
-import { getProfilLengkap } from '@/lib/cache'
+import { getProfilPublik } from '@/lib/cache'
 
 /**
  * Global 404 — dipanggil untuk SEMUA route yang tidak ditemukan
@@ -24,8 +24,10 @@ export default async function GlobalNotFound() {
   }
 
   // Untuk publik: tampilkan branded dengan motif desa.
-  // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
-  const profil = await getProfilLengkap()
+  // F2-FaseP2 / T-P20: helper bersama — boundary ini di-prerender Next
+  // di SETIAP render route dinamis, sehingga query berat di sini
+  // (= SELECT * + 4 kolom Text) terbayar tiap halaman. Cukup nama desa.
+  const profil = await getProfilPublik()
   const namaDesa = profil?.nama_desa ?? 'Desa Sukobubuk'
   return <PublicNotFound namaDesa={namaDesa} />
 }

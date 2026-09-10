@@ -2,17 +2,15 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState, useMemo } from 'react'
-import { Store, Search, Filter, MapPin, ArrowRight, Package, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Store, ArrowRight, Package, Sparkles, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Tag } from '@/components/ui/tag'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
 import { Section } from '@/components/ui/section'
 import { EmptyState } from '@/components/ui/empty-state'
+import SearchInput from '@/components/admin/SearchInput'
 import { PUBLIC_PAGE_SIZE } from '@/lib/cache'
 
 interface UMKM {
@@ -36,6 +34,8 @@ interface Props {
   page: number
   total: number
   totalPages: number
+  search: string
+  kategori: string
 }
 
 const kategoriToneMap: Record<string, 'ember' | 'stone' | 'sage' | 'muted'> = {
@@ -45,28 +45,33 @@ const kategoriToneMap: Record<string, 'ember' | 'stone' | 'sage' | 'muted'> = {
   Pertanian: 'sage',
 }
 
-export default function UMKMClientPage({ umkm, kategoriList, page, total, totalPages }: Props) {
-  const [search, setSearch] = useState('')
-  const [kategori, setKategori] = useState('Semua')
+// F2-FaseP2 / T-P22: data SUDAH difilter server (`where` di getUMKMPublik).
+// Filter in-memory dihapus (itu bug: item halaman 2 tak ketemu dari
+// halaman 1). Search via URL (debounce 300ms, pola admin); kategori via
+// Link server. Komponen ini presentasional + search box saja.
+export default function UMKMClientPage({ umkm, kategoriList, page, total, totalPages, search, kategori }: Props) {
+  const params = new URLSearchParams()
+  if (search) params.set('q', search)
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim()
-    return umkm.filter((item) => {
-      const matchSearch =
-        !q ||
-        item.nama_usaha.toLowerCase().includes(q) ||
-        item.pemilik.toLowerCase().includes(q) ||
-        item.deskripsi.toLowerCase().includes(q)
-      const matchKategori = kategori === 'Semua' || item.kategori === kategori
-      return matchSearch && matchKategori
-    })
-  }, [umkm, search, kategori])
+  const filterHref = (k: string) => {
+    const p = new URLSearchParams(params)
+    if (k && k !== 'Semua') p.set('kategori', k)
+    else p.delete('kategori')
+    const s = p.toString()
+    return s ? `/umkm?${s}` : '/umkm'
+  }
 
-  const buildHref = (p: number) => (p === 1 ? '/umkm' : `/umkm?page=${p}`)
+  const buildHref = (p: number) => {
+    const q = new URLSearchParams(params)
+    if (kategori && kategori !== 'Semua') q.set('kategori', kategori)
+    q.set('page', String(p))
+    const s = q.toString()
+    return s ? `/umkm?${s}` : '/umkm'
+  }
 
   // Featured = first item with is_featured, atau first item
-  const featured = filtered.find((u) => u.is_featured) ?? filtered[0]
-  const others = filtered.filter((u) => u.id !== featured?.id)
+  const featured = umkm.find((u) => u.is_featured) ?? umkm[0]
+  const others = umkm.filter((u) => u.id !== featured?.id)
 
   return (
     <PageWrapper>
@@ -81,27 +86,20 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
         {/* Search & Filter */}
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
-            <Input
-              type="search"
-              placeholder="Cari nama usaha, pemilik, atau produk..."
-              aria-label="Cari UMKM"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-11 pl-11"
-            />
+            <SearchInput placeholder="Cari nama usaha, pemilik, atau produk..." defaultValue={search} />
           </div>
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <Filter className="size-4 shrink-0 text-stone-400" />
             {['Semua', ...kategoriList].map((k) => (
               <Button
                 key={k}
+                asChild
                 size="sm"
                 variant={kategori === k ? 'default' : 'outline'}
-                onClick={() => setKategori(k)}
                 className="shrink-0"
               >
-                {k}
+                <Link href={filterHref(k)} aria-current={kategori === k ? 'true' : undefined}>
+                  {k}
+                </Link>
               </Button>
             ))}
           </div>
@@ -109,7 +107,7 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
 
         {/* Result count */}
         <p className="mb-8 text-sm text-stone-500">
-          Menampilkan <span className="font-semibold text-stone-800">{filtered.length}</span> UMKM
+          Menampilkan <span className="font-semibold text-stone-800">{total}</span> UMKM
           {kategori !== 'Semua' && (
             <span>
               {' '}
@@ -124,7 +122,7 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
           )}
         </p>
 
-        {filtered.length === 0 ? (
+        {umkm.length === 0 ? (
           <EmptyState
             icon={<Store className="size-6" />}
             title="UMKM tidak ditemukan"
@@ -196,7 +194,7 @@ export default function UMKMClientPage({ umkm, kategoriList, page, total, totalP
 
             {/* Grid */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-              {(search || kategori !== 'Semua' ? filtered : others).map((item) => (
+              {(search || kategori !== 'Semua' ? umkm : others).map((item) => (
                 <Link
                   key={item.id}
                   href={`/umkm/${item.slug}`}

@@ -2,15 +2,16 @@ import Link from 'next/link'
 import { ArrowRight, MessageCircle, Quote } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Section } from '@/components/ui/section'
-import { getProfilLengkap } from '@/lib/cache'
+import { getProfilPublik } from '@/lib/cache'
 
 export const revalidate = 600
 
 export default async function CTASection() {
   let profil: { nama_desa: string | null; visi: string | null } | null = null
   try {
-    // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
-    profil = await getProfilLengkap()
+    // F2-FaseP2 / T-P20: helper bersama (nama_desa + visi satu kalimat
+    // termasuk proyeksinya; tanpa kolom Text berat).
+    profil = await getProfilPublik()
   } catch {
     // DB down — pakai fallback
   }

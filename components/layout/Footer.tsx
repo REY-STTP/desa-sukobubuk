@@ -8,7 +8,8 @@ import {
   Clock,
   ArrowUpRight,
 } from 'lucide-react'
-import { getProfilLengkap } from '@/lib/cache'
+import { getProfilPublik } from '@/lib/cache'
+import MapsFacade from './MapsFacade'
 
 /**
  * P3-I1: ikon sosmed inline (ganti `react-icons/si` yang hanya dipakai
@@ -47,8 +48,9 @@ export default async function Footer() {
   } | null = null
 
   try {
-    // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
-    profil = await getProfilLengkap()
+    // F2-FaseP2 / T-P20: helper bersama (1 key cache dengan layout/home/
+    // navbar/CTA) — semua kolom footer ada di proyeksinya (tanpa Text).
+    profil = await getProfilPublik()
   } catch {
     // DB down — pakai fallback (profil tetap null, UI pakai default)
   }
@@ -242,20 +244,10 @@ export default async function Footer() {
               </a>
             )}
 
-            {/* Mini-map */}
+            {/* Mini-map — F2-FaseP1 / T-P10: facade, iframe hanya dibuat
+                setelah diklik (hemat ratusan KB per halaman). */}
             {profil?.maps_embed_url && (
-              <div className="mt-5 overflow-hidden rounded-xl border border-white/10 ring-1 ring-inset ring-white/5">
-                <iframe
-                  src={profil.maps_embed_url}
-                  width="100%"
-                  height="140"
-                  style={{ border: 0, display: 'block' }}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="Lokasi Desa"
-                />
-              </div>
+              <MapsFacade embedUrl={profil.maps_embed_url} namaDesa={namaDesa} />
             )}
             {profil?.maps_link && (
               <a

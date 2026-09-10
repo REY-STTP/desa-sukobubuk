@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Eye, Target, CheckCircle, Quote } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
-import { getProfilLengkap } from '@/lib/cache'
+import { getProfilLengkap, getMisiItems } from '@/lib/cache'
 import { notFound } from 'next/navigation'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
@@ -29,10 +28,9 @@ export default async function VisiMisiPage() {
   // F-303 / DB-006 (Phase 06) — canonical source is the misi_items
   // relation table. Fall back to parsing the legacy JSON column
   // when no items have been written to the table yet.
-  const misiRows = await prisma.misiItem.findMany({
-    where: { profil_id: profil.id },
-    orderBy: { urutan: 'asc' },
-  })
+  // F2-FaseP2 / T-P20: relasi via helper ter-cache (sebelumnya findMany
+  // langsung tiap render; butuh profil.id dulu sehingga tetap sekuensial).
+  const misiRows = await getMisiItems(profil.id)
   let misi: string[] = misiRows.map((r) => r.text)
   if (misi.length === 0) {
     try {

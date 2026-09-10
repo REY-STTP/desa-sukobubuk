@@ -1,8 +1,9 @@
 import { unstable_cache } from 'next/cache'
+import { cache } from 'react'
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
 import { withDbRetry } from '@/lib/db-retry'
-import { clampPage } from '@/lib/utils'
+import { clampPage, truncate, stripHtml } from '@/lib/utils'
 
 export const CACHE_TAGS = {
   produk: 'produk',
@@ -366,22 +367,48 @@ export const getDashboardStats = unstable_cache(
 // PUBLIC CACHING FUNCTIONS
 // ════════════════════════════════════════════════════════════
 
+// ─── Snippet teks kaya untuk list publik ────────────────────
+// F2-FaseP2 / T-P21: kartu list hanya render 110–200 char (berita) atau
+// line-clamp CSS (UMKM), sehingga `konten`/`deskripsi` penuh tak perlu
+// transit DB → server → RSC. Idempoten terhadap `truncate(stripHtml())`
+// yang sudah dilakukan UI (panjang cuplikan ≥ pemakaian UI).
+export const BERITA_SNIPPET_LEN = 250
+export const UMKM_DESKRIPSI_SNIPPET_LEN = 300
+
+export function toKontenSnippet(html: string, len = BERITA_SNIPPET_LEN): string {
+  return truncate(stripHtml(html), len)
+}
+
+export const PUBLIC_MAX_PAGE = 500
+
 // ─── Home Page ────────────────────────────────────────────
 export const getHomeData = unstable_cache(
   async () => {
     try {
-      const [umkmFeatured, beritaTerbaru, galeri, umkmCount, produkCount, profilSnippet] =
+      const [umkmFeaturedRows, beritaTerbaruRows, galeri, umkmCount, produkCount, profilSnippet] =
         await timed('getHomeData', withDbRetry(() =>
           Promise.all([
             prisma.uMKM.findMany({
               where: { is_featured: true },
               take: 5,
               orderBy: { created_at: 'desc' },
+              // F2-FaseP2 / T-P21: semua skalar kecil + `deskripsi` cuplikan
+              // (kartu Featured render line-clamp, bukan teks penuh).
+              select: {
+                id: true, nama_usaha: true, slug: true, pemilik: true,
+                kategori: true, deskripsi: true, alamat: true, kecamatan: true,
+                whatsapp: true, logo: true, is_featured: true, created_at: true,
+              },
             }),
             prisma.berita.findMany({
               take: 5,
               orderBy: { created_at: 'desc' },
-              include: { author: { select: { name: true } } },
+              // F2-FaseP2 / T-P21: `konten` cuplikan (kartu render ≤160 char).
+              select: {
+                id: true, judul: true, slug: true, konten: true,
+                thumbnail: true, author_id: true, created_at: true,
+                author: { select: { name: true } },
+              },
             }),
             prisma.galeri.findMany({ take: 6, orderBy: { created_at: 'desc' } }),
             // F-218 / audit §13.6: PERF-006 — fold the additional home-page
@@ -389,25 +416,22 @@ export const getHomeData = unstable_cache(
             // home-data fetch so the page can render in a single round-trip.
             prisma.uMKM.count(),
             prisma.produk.count(),
-            // P1-C2: diperluas untuk HeroSection agar tak query ulang
-            // (nama wilayah + kode pos dibaca dari baris yang sama).
-            prisma.profilDesa.findFirst({
-              select: {
-                nama_desa: true,
-                nama_kecamatan: true,
-                nama_kabupaten: true,
-                nama_provinsi: true,
-                kode_pos: true,
-                jumlah_penduduk: true,
-                tahun_berdiri: true,
-              },
-            }),
+            // F2-FaseP2 / T-P20: profil via helper bersama (SATU key cache
+            // `profil-publik` dengan layout/navbar/footer/CTA) — sebelumnya
+            // findFirst 7-kolom sendiri = cache-entry + DB-hit dobel.
+            getProfilPublik(),
           ])
         )
       )
       return {
-        umkmFeatured,
-        beritaTerbaru,
+        umkmFeatured: umkmFeaturedRows.map((u) => ({
+          ...u,
+          deskripsi: truncate(u.deskripsi, UMKM_DESKRIPSI_SNIPPET_LEN),
+        })),
+        beritaTerbaru: beritaTerbaruRows.map((b) => ({
+          ...b,
+          konten: toKontenSnippet(b.konten),
+        })),
         galeri,
         umkmCount,
         produkCount,
@@ -455,6 +479,88 @@ export const getProfilDesa = unstable_cache(
   { revalidate: 3600, tags: [CACHE_TAGS.profil] }
 )
 
+// ─── Profil Publik (dibagi layout + home + navbar/footer/CTA) ──
+// F2-FaseP2 / T-P20: SATU helper, SATU key cache, SATU proyeksi untuk semua
+// kebutuhan non-Text (nama wilayah, kontak, maps, statistik, periode,
+// visi satu kalimat). Sebelumnya 3 proyeksi beda (layout 3 kolom, home 7
+// kolom, komponen SELECT *) = 3 cache-entry + 3 DB-hit dingin untuk 1 baris
+// yang sama. Kolom Text BERAT (sejarah_konten, misi legacy,
+// struktur_organisasi) SENGAJA dikecualikan — pembutuhnya
+// (sejarah/visi-misi) tetap memakai `getProfilLengkap` di bawah.
+const PROFIL_PUBLIK_SELECT = {
+  id: true,
+  nama_desa: true,
+  nama_kecamatan: true,
+  nama_kabupaten: true,
+  nama_provinsi: true,
+  kode_pos: true,
+  alamat_kantor: true,
+  telepon: true,
+  email: true,
+  whatsapp: true,
+  jam_pelayanan: true,
+  maps_embed_url: true,
+  maps_link: true,
+  jumlah_penduduk: true,
+  tahun_berdiri: true,
+  periode_visi_misi: true,
+  visi: true,
+} as const
+
+export const getProfilPublikCached = unstable_cache(
+  async () => {
+    try {
+      return await prisma.profilDesa.findFirst({ select: PROFIL_PUBLIK_SELECT })
+    } catch {
+      // DB unreachable — caller punya fallback default
+      return null
+    }
+  },
+  ['profil-publik'],
+  { revalidate: 3600, tags: [CACHE_TAGS.profil] }
+)
+
+/**
+ * F2-FaseP2 / T-P20 — memo per-request di atas cache persisten: 5 pemanggil
+ * (layout, home, navbar, footer, CTA) dalam 1 request = 1 eksekusi
+ * (tanpanya, panggilan konkuren lolos semua sebagai MISS di dev).
+ */
+export const getProfilPublik = cache(() => getProfilPublikCached())
+
+// ─── Misi items + pejabat (publik, ter-cache) ───────────────
+// F2-FaseP2 / T-P20: sebelumnya `prisma.*` langsung di page profil
+// (tanpa cache = query pooler tiap render). Invalidasi via tag `profil`
+// (PUT profil revalidate; PUT pejabat ditambah revalidate — lihat route).
+export const getMisiItems = (profilId: number) =>
+  unstable_cache(
+    async () => {
+      try {
+        return await prisma.misiItem.findMany({
+          where: { profil_id: profilId },
+          orderBy: { urutan: 'asc' },
+        })
+      } catch {
+        return []
+      }
+    },
+    ['misi-items', String(profilId)],
+    { revalidate: 3600, tags: [CACHE_TAGS.profil] }
+  )()
+
+export const getPejabatList = unstable_cache(
+  async () => {
+    try {
+      return await prisma.pejabatDesa.findMany({
+        orderBy: [{ kategori: 'asc' }, { urutan: 'asc' }],
+      })
+    } catch {
+      return []
+    }
+  },
+  ['pejabat-list'],
+  { revalidate: 300, tags: [CACHE_TAGS.profil] }
+)
+
 // ─── Profil Lengkap (dibagi banyak komponen publik) ──────
 // P1-C2: satu baris profil dibaca di Navbar, Footer, CTA, kontak,
 // profil, not-found, login. Tanpa cache bersama, tiap render = 1 query
@@ -473,20 +579,29 @@ export const getProfilLengkap = unstable_cache(
 )
 
 // ─── Berita Public (dengan pagination) ───────────────────
-export const getBeritaPublik = (page: number) =>
-  unstable_cache(
+export const getBeritaPublik = (rawPage: number) => {
+  // F2-FaseP2 / T-P21: normalisasi DI LUAR cache agar key selalu kanonik —
+  // `?page=99999` dan `?page=500` berbagi 1 entri (bukan cache liar).
+  const page = Math.min(PUBLIC_MAX_PAGE, clampPage(rawPage))
+  return unstable_cache(
     async () => {
       try {
         const skip = (page - 1) * PUBLIC_PAGE_SIZE
-        const [data, total] = await prisma.$transaction([
+        const [rows, total] = await timed('getBeritaPublik', prisma.$transaction([
           prisma.berita.findMany({
             skip,
             take: PUBLIC_PAGE_SIZE,
             orderBy: { created_at: 'desc' },
-            include: { author: { select: { name: true } } },
+            // F2-FaseP2 / T-P21: `konten` cuplikan (list render ≤200 char).
+            select: {
+              id: true, judul: true, slug: true, konten: true,
+              thumbnail: true, author_id: true, created_at: true,
+              author: { select: { name: true } },
+            },
           }),
           prisma.berita.count(),
-        ])
+        ]))
+        const data = rows.map((b) => ({ ...b, konten: toKontenSnippet(b.konten) }))
         return { data, total, totalPages: Math.ceil(total / PUBLIC_PAGE_SIZE) }
       } catch {
         // DB unreachable — return empty page agar caller render empty state
@@ -496,13 +611,14 @@ export const getBeritaPublik = (page: number) =>
     ['berita-publik', String(page)],
     { revalidate: 300, tags: [CACHE_TAGS.berita] }
   )()
+}
 
 // ─── Berita Detail ────────────────────────────────────────
 export const getBeritaDetail = (slug: string) =>
   unstable_cache(
     async () => {
       try {
-        const [berita, lainnya] = await Promise.all([
+        const [berita, lainnyaRows] = await Promise.all([
           prisma.berita.findUnique({
             where: { slug },
             include: { author: { select: { name: true } } },
@@ -511,9 +627,16 @@ export const getBeritaDetail = (slug: string) =>
             where: { slug: { not: slug } },
             take: 3,
             orderBy: { created_at: 'desc' },
-            include: { author: { select: { name: true } } },
+            // F2-FaseP2 / T-P21: sidebar "lainnya" hanya pakai
+            // judul/thumbnail/created_at — `konten` cuplikan.
+            select: {
+              id: true, judul: true, slug: true, konten: true,
+              thumbnail: true, author_id: true, created_at: true,
+              author: { select: { name: true } },
+            },
           }),
         ])
+        const lainnya = lainnyaRows.map((b) => ({ ...b, konten: toKontenSnippet(b.konten) }))
         return { berita, lainnya }
       } catch {
         // DB unreachable (mis. Vercel → Supabase pooler timeout saat background revalidate).
@@ -546,21 +669,53 @@ export const getUMKMKategori = unstable_cache(
   { revalidate: 3600, tags: [CACHE_TAGS.umkm] }
 )
 
-export const getUMKMPublik = (page: number) =>
-  unstable_cache(
+export interface UMKMPublikFilter {
+  q?: string
+  kategori?: string
+}
+
+export const getUMKMPublik = (rawPage: number, filter: UMKMPublikFilter = {}) => {
+  // F2-FaseP2 / T-P21+T-P22: normalisasi DI LUAR cache (key kanonik) +
+  // filter server-side (search + kategori) agar item halaman 2 ketemu
+  // dari halaman 1 (sebelumnya filter in-memory per halaman = bug).
+  const page = Math.min(PUBLIC_MAX_PAGE, clampPage(rawPage))
+  const q = filter.q?.trim().slice(0, 100) ?? ''
+  const kategori = filter.kategori?.trim() || undefined
+  return unstable_cache(
     async () => {
       try {
         const skip = (page - 1) * PUBLIC_PAGE_SIZE
-        const [data, total, kategoriList] = await Promise.all([
+        const where: Prisma.UMKMWhereInput = {}
+        if (kategori) where.kategori = kategori
+        if (q) {
+          where.OR = [
+            { nama_usaha: { contains: q, mode: 'insensitive' } },
+            { pemilik: { contains: q, mode: 'insensitive' } },
+            { deskripsi: { contains: q, mode: 'insensitive' } },
+          ]
+        }
+        const [rows, total, kategoriList] = await timed('getUMKMPublik', Promise.all([
           prisma.uMKM.findMany({
+            where,
             skip,
             take: PUBLIC_PAGE_SIZE,
             orderBy: [{ is_featured: 'desc' }, { created_at: 'desc' }],
-            include: { _count: { select: { produk: true } } },
+            // F2-FaseP2 / T-P21: skalar kecil + `_count`; `deskripsi`
+            // cuplikan (kartu line-clamp, bukan teks penuh).
+            select: {
+              id: true, nama_usaha: true, slug: true, pemilik: true,
+              kategori: true, deskripsi: true, alamat: true, kecamatan: true,
+              whatsapp: true, logo: true, is_featured: true, created_at: true,
+              _count: { select: { produk: true } },
+            },
           }),
-          prisma.uMKM.count(),
+          prisma.uMKM.count({ where }),
           getUMKMKategori(),
-        ])
+        ]))
+        const data = rows.map((u) => ({
+          ...u,
+          deskripsi: truncate(u.deskripsi, UMKM_DESKRIPSI_SNIPPET_LEN),
+        }))
         return {
           data,
           total,
@@ -572,9 +727,10 @@ export const getUMKMPublik = (page: number) =>
         return { data: [], total: 0, totalPages: 0, kategoriList: [] }
       }
     },
-    ['umkm-publik', String(page)],
+    ['umkm-publik', String(page), q, kategori ?? ''],
     { revalidate: 300, tags: [CACHE_TAGS.umkm] }
   )()
+}
 
 // ─── UMKM Detail ─────────────────────────────────────────
 export const getUMKMDetail = (slug: string) =>
@@ -587,6 +743,14 @@ export const getUMKMDetail = (slug: string) =>
             produk: {
               where: { is_available: true },
               orderBy: { created_at: 'asc' },
+              // F2-FaseP2 / T-P21: kolom kartu katalog saja + batas
+              // pengaman (tak ada UMKM yang medit 50 produk; tanpa take
+              // satu UMKM raksasa bisa mengangkut ratusan baris).
+              take: 50,
+              select: {
+                id: true, nama_produk: true, slug: true,
+                deskripsi: true, harga: true, foto: true,
+              },
             },
           },
         })
@@ -606,7 +770,17 @@ export const getProdukDetail = (produkSlug: string) =>
       try {
         return prisma.produk.findUnique({
           where: { slug: produkSlug },
-          include: { umkm: true },
+          // F2-FaseP2 / T-P21: relasi UMKM hanya 6 kolom yang dipakai
+          // halaman (nama/slug/logo/kategori/pemilik/whatsapp) —
+          // bukan `umkm: true` dua tabel penuh.
+          include: {
+            umkm: {
+              select: {
+                nama_usaha: true, slug: true, logo: true, kategori: true,
+                pemilik: true, whatsapp: true,
+              },
+            },
+          },
         })
       } catch {
         // DB unreachable — caller akan notFound() di halaman detail
@@ -626,6 +800,10 @@ export const getProdukLain = (umkmId: number, excludeSlug: string) =>
         return prisma.produk.findMany({
           where: { umkm_id: umkmId, slug: { not: excludeSlug }, is_available: true },
           take: 3,
+          // F2-FaseP2 / T-P21: kolom grid relasi saja + order deterministik
+          // (sebelumnya tanpa select/order — payload berlebih + urutan acak).
+          orderBy: { created_at: 'desc' },
+          select: { id: true, nama_produk: true, slug: true, harga: true, foto: true },
         })
       } catch {
         // DB unreachable — return empty array agar caller tidak crash

@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import { Users, Mail, Building2 } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
-import { getProfilLengkap } from '@/lib/cache'
+import { getProfilPublik, getPejabatList } from '@/lib/cache'
 import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import { notFound } from 'next/navigation'
 import PageWrapper from '@/components/animations/PageWrapper'
@@ -125,13 +124,9 @@ function BranchTrack({ count }: { count: number }) {
 }
 
 export default async function StrukturOrganisasiPage() {
-  const [profil, pejabat] = await Promise.all([
-    // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
-    getProfilLengkap(),
-    prisma.pejabatDesa.findMany({
-      orderBy: [{ kategori: 'asc' }, { urutan: 'asc' }],
-    }),
-  ])
+  // F2-FaseP2 / T-P20: profil via helper bersama + pejabat via helper
+  // ter-cache (sebelumnya findMany langsung tiap render).
+  const [profil, pejabat] = await Promise.all([getProfilPublik(), getPejabatList()])
   if (!profil) notFound()
 
   const kepala = pejabat.find((p) => p.kategori === 'kepala')

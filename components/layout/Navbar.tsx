@@ -1,4 +1,4 @@
-import { getProfilLengkap } from '@/lib/cache'
+import { getProfilPublik } from '@/lib/cache'
 import NavbarClient from './NavbarClient'
 
 export default async function Navbar() {
@@ -12,8 +12,9 @@ export default async function Navbar() {
   } | null = null
 
   try {
-    // P1-C2: baca dari cache bersama (tag profil, revalidate 1 jam).
-    profil = await getProfilLengkap()
+    // F2-FaseP2 / T-P20: helper bersama (1 key cache dengan layout/home/
+    // footer/CTA) — kolom yang dipakai ada semua di proyeksinya.
+    profil = await getProfilPublik()
   } catch {
     // DB down — pakai fallback default
   }

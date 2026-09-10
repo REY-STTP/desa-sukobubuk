@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, MapPin, TreePine, Users, Store, Sparkles } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -8,6 +9,14 @@ import { Tag } from '@/components/ui/tag'
 import { StatTile, StatNumber, StatLabel } from '@/components/ui/stat-tile'
 import AnimatedCounter from '@/components/animations/AnimatedCounter'
 import { cn } from '@/lib/utils'
+
+// F2-FaseP1 / T-P13 — aset video hero. File master 67,8MB (1280×720);
+// delivery `f_auto,q_auto` ≈ 37,5MB — terlalu berat untuk autoplay detik-0,
+// sehingga src dipasang tunda (lihat efek di bawah), bukan di markup.
+const HERO_VIDEO_URL =
+  'https://res.cloudinary.com/dtsnhei95/video/upload/f_auto,q_auto/v1774572204/hero-bg_ccrlcv.mp4'
+const HERO_POSTER_URL =
+  'https://res.cloudinary.com/dtsnhei95/video/upload/so_1/v1774572204/hero-bg_ccrlcv.jpg'
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 24 },
@@ -80,9 +89,50 @@ export default function HeroClient({
   const { prefix, name } = splitName(namaDesa)
   // P1-A3: hentikan semua gerakan saat prefers-reduced-motion.
   const shouldReduceMotion = useReducedMotion()
+  const sectionRef = useRef<HTMLElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  // F2-FaseP1 / T-P13 — src video dipasang tunda: unduhan 37MB dimulai
+  // hanya saat hero terlihat DAN browser idle. Dilewati total saat
+  // Save-Data / reduced-data / reduced-motion (poster statis saja).
+  const [videoSrc, setVideoSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (shouldReduceMotion) return
+    const nav = navigator as Navigator & { connection?: { saveData?: boolean } }
+    if (nav.connection?.saveData) return
+    if (window.matchMedia('(prefers-reduced-data: reduce)').matches) return
+    let cancelled = false
+    let observer: IntersectionObserver | null = null
+    const start = () => {
+      if (cancelled) return
+      const schedule =
+        window.requestIdleCallback ??
+        ((cb: IdleRequestCallback) => window.setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 0 }), 1500))
+      schedule(() => {
+        if (!cancelled) setVideoSrc(HERO_VIDEO_URL)
+      })
+    }
+    const el = sectionRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      start()
+    } else {
+      observer = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          observer?.disconnect()
+          start()
+        }
+      })
+      observer.observe(el)
+    }
+    return () => {
+      cancelled = true
+      observer?.disconnect()
+    }
+  }, [shouldReduceMotion])
 
   return (
     <section
+      ref={sectionRef}
       className="relative flex min-h-[88svh] items-center overflow-hidden pt-20 md:min-h-[90svh] md:pt-24"
       aria-label="Sambutan Desa Sukobubuk"
     >
@@ -91,22 +141,24 @@ export default function HeroClient({
           prefers-reduced-motion (ganti poster statis). */}
       {shouldReduceMotion ? (
         <img
-          src="https://res.cloudinary.com/dtsnhei95/video/upload/so_1/v1774572204/hero-bg_ccrlcv.jpg"
+          src={HERO_POSTER_URL}
           alt=""
           aria-hidden
           className="absolute inset-0 z-0 size-full object-cover"
         />
       ) : (
         <video
-          src="https://res.cloudinary.com/dtsnhei95/video/upload/f_auto,q_auto/v1774572204/hero-bg_ccrlcv.mp4"
+          ref={videoRef}
+          src={videoSrc ?? undefined}
           autoPlay
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="none"
           disablePictureInPicture
           aria-hidden
-          poster="https://res.cloudinary.com/dtsnhei95/video/upload/so_1/v1774572204/hero-bg_ccrlcv.jpg"
+          poster={HERO_POSTER_URL}
+          onLoadedData={() => videoRef.current?.play().catch(() => {})}
           className="absolute inset-0 z-0 size-full object-cover"
         />
       )}

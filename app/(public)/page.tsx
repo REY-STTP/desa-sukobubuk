@@ -28,8 +28,31 @@ export default async function HomePage() {
   const totalUMKM = home.umkmCount ?? 0
   const totalProduk = home.produkCount ?? 0
 
+  // F2-FaseP1 / T-P11 — kompensasi SEO: seksi galeri client-only
+  // (`ssr:false`), sehingga foto tak ada di HTML awal. Daftar ImageObject
+  // server-render ini menjaga foto tetap terindeks mesin pencari.
+  const galeriJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Galeri Foto Desa Sukobubuk',
+    itemListElement: home.galeri
+      .filter((g) => !!g.foto)
+      .map((g, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        item: { '@type': 'ImageObject', contentUrl: g.foto, name: g.judul },
+      })),
+  }
+  const hasGaleriFoto = galeriJsonLd.itemListElement.length > 0
+
   return (
     <>
+      {hasGaleriFoto && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(galeriJsonLd) }}
+        />
+      )}
       <HeroSection
         namaDesa={profil?.nama_desa ?? 'Desa Sukobubuk'}
         namaKecamatan={profil?.nama_kecamatan ?? 'Kecamatan Margorejo'}
