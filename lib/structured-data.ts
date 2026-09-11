@@ -17,6 +17,27 @@ export const SITE = {
 export const ORG_ID = `${SITE.url}#organization`
 export const WEBSITE_ID = `${SITE.url}#website`
 
+const DEFAULT_IMAGE = `${SITE.url}/og-image.webp`
+const ORG_LOGO = `${SITE.url}/icons/icon-512.png`
+const ORG_NAME = 'Pemerintah Desa Sukobubuk'
+
+/** Jadikan URL absolut. Cloudinary sudah absolut; path `/...` di-prefix SITE.url. */
+function absUrl(u?: string | null): string | undefined {
+  if (!u) return undefined
+  if (/^https?:\/\//i.test(u)) return u
+  if (u.startsWith('/')) return `${SITE.url}${u}`
+  return `${SITE.url}/${u}`
+}
+
+/**
+ * Selalu kembalikan minimal 1 image absolut agar lolos Rich Results Test.
+ * Rantai fallback: foto utama → fallback (logo UMKM) → og-image default.
+ */
+function imageList(primary?: string | null, fallback?: string | null): string[] {
+  const img = absUrl(primary) ?? absUrl(fallback) ?? DEFAULT_IMAGE
+  return [img]
+}
+
 /** BreadcrumbList untuk navigasi */
 export function breadcrumbLd(items: { name: string; url: string }[]) {
   return {
@@ -41,20 +62,31 @@ export function articleLd(opts: {
   updated?: Date | string
   author: string
 }) {
+  const pageUrl = `${SITE.url}/berita/${opts.slug}`
   return {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: opts.judul,
     description: opts.deskripsi ?? opts.judul,
-    image: opts.thumbnail ? [opts.thumbnail] : undefined,
+    // FIX-SEO-1: image wajib ada + absolut (fallback og-image bila tanpa thumbnail),
+    // url top-level, author.url, publisher inline (validator tak resolve @id lintas blok).
+    image: imageList(opts.thumbnail),
+    url: pageUrl,
     datePublished: typeof opts.tanggal === 'string' ? opts.tanggal : opts.tanggal.toISOString(),
     dateModified: (typeof opts.updated === 'string' ? opts.updated : opts.updated?.toISOString?.()) ??
       (typeof opts.tanggal === 'string' ? opts.tanggal : opts.tanggal.toISOString()),
-    author: { '@type': 'Person', name: opts.author },
-    publisher: { '@id': ORG_ID },
+    // Tidak ada halaman profil penulis publik → tautkan ke situs desa (jujur, bukan URL karangan per-author).
+    author: { '@type': 'Person', name: opts.author, url: SITE.url },
+    publisher: {
+      '@id': ORG_ID,
+      '@type': 'Organization',
+      name: ORG_NAME,
+      url: SITE.url,
+      logo: { '@type': 'ImageObject', url: ORG_LOGO, width: 512, height: 512 },
+    },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `${SITE.url}/berita/${opts.slug}`,
+      '@id': pageUrl,
     },
     inLanguage: 'id-ID',
   }
@@ -69,6 +101,7 @@ export function productLd(opts: {
   foto?: string | null
   umkm_nama: string
   umkm_slug: string
+  umkm_logo?: string | null
   tersedia: boolean
 }) {
   return {
@@ -76,7 +109,8 @@ export function productLd(opts: {
     '@type': 'Product',
     name: opts.nama,
     description: opts.deskripsi,
-    image: opts.foto ? [opts.foto] : undefined,
+    // FIX-SEO-3b: image wajib di merchant-listing → fallback foto → logo UMKM → og-image.
+    image: imageList(opts.foto, opts.umkm_logo),
     sku: opts.slug,
     brand: { '@type': 'Brand', name: opts.umkm_nama },
     offers: {
@@ -84,10 +118,36 @@ export function productLd(opts: {
       url: `${SITE.url}/umkm/${opts.umkm_slug}/produk/${opts.slug}`,
       priceCurrency: 'IDR',
       price: opts.harga,
+      itemCondition: 'https://schema.org/NewCondition',
       availability: opts.tersedia
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
       seller: { '@id': ORG_ID },
+      // Model jualan: via WhatsApp / ambil langsung / COD. Ongkir di luar
+      // desa dikonfirmasi via chat — shippingRate 0 = ambil di tempat,
+      // bukan klaim "gratis ongkir ke seluruh Indonesia". Sesuaikan angka
+      // ini bila UMKM menetapkan tarif ekspedisi tetap.
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: { '@type': 'MonetaryAmount', value: 0, currency: 'IDR' },
+        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'ID' },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+          transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 3, unitCode: 'DAY' },
+        },
+      },
+      // Kebijakan default konservatif: 7 hari, kembalikan ke toko/hubungi
+      // penjual via WA, ongkos return ditanggung pembeli. Sesuaikan bila
+      // tiap UMKM punya kebijakan tertulis berbeda.
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'ID',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: 7,
+        returnMethod: 'https://schema.org/ReturnInStore',
+        returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
+      },
     },
   }
 }
@@ -124,7 +184,8 @@ export function localBusinessLd(opts: {
     '@id': `${SITE.url}/umkm/${opts.slug}#business`,
     name: opts.nama,
     description: opts.deskripsi,
-    image: opts.foto ? [opts.foto] : undefined,
+    // FIX-SEO-2: image jangan pernah hilang → fallback og-image bila tanpa logo.
+    image: imageList(opts.foto),
     url: `${SITE.url}/umkm/${opts.slug}`,
     telephone: opts.whatsapp ? `+${opts.whatsapp}` : undefined,
     priceRange: opts.priceRange ?? undefined,

@@ -75,6 +75,7 @@ export default async function ProdukDetailPage({ params }: Props) {
             foto: produk.foto,
             umkm_nama: produk.umkm.nama_usaha,
             umkm_slug: produk.umkm.slug,
+            umkm_logo: produk.umkm.logo,
             tersedia: produk.is_available,
           })
         )}
