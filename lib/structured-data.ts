@@ -19,7 +19,6 @@ export const WEBSITE_ID = `${SITE.url}#website`
 
 const DEFAULT_IMAGE = `${SITE.url}/og-image.webp`
 const ORG_LOGO = `${SITE.url}/icons/icon-512.png`
-const ORG_NAME = 'Pemerintah Desa Sukobubuk'
 
 /** Jadikan URL absolut. Cloudinary sudah absolut; path `/...` di-prefix SITE.url. */
 function absUrl(u?: string | null): string | undefined {
@@ -77,10 +76,13 @@ export function articleLd(opts: {
       (typeof opts.tanggal === 'string' ? opts.tanggal : opts.tanggal.toISOString()),
     // Tidak ada halaman profil penulis publik → tautkan ke situs desa (jujur, bukan URL karangan per-author).
     author: { '@type': 'Person', name: opts.author, url: SITE.url },
+    // Publisher standalone TANPA @id: layout sudah mendefinisikan
+    // ORG_ID (#organization) dengan name 'Desa Sukobubuk'. Memakai @id yang
+    // sama di sini dengan name berbeda ('Pemerintah Desa...') membuat Google
+    // me-merge node dan melaporkan "Kolom 'name' memiliki duplikat".
     publisher: {
-      '@id': ORG_ID,
       '@type': 'Organization',
-      name: ORG_NAME,
+      name: SITE.name,
       url: SITE.url,
       logo: { '@type': 'ImageObject', url: ORG_LOGO, width: 512, height: 512 },
     },
