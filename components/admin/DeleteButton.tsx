@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 
 interface Props {
   id: number
-  type: 'umkm' | 'produk' | 'berita' | 'galeri' | 'pesan'
+  type: 'umkm' | 'produk' | 'berita' | 'galeri' | 'pesan' | 'ulasan'
   nama: string
   /**
    * Tampilan trigger button:

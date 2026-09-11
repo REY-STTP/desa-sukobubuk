@@ -94,6 +94,15 @@ export function articleLd(opts: {
   }
 }
 
+/** Tipe ulasan untuk JSON-LD Product (TASK-REV-01). Hanya diisi dari
+ * ulasan disetujui yang juga dirender di HTML — syarat review snippet Google. */
+export interface ProductReviewLd {
+  author: string
+  rating: number
+  body: string
+  date: string
+}
+
 /** Product schema untuk halaman produk UMKM */
 export function productLd(opts: {
   slug: string
@@ -105,7 +114,10 @@ export function productLd(opts: {
   umkm_slug: string
   umkm_logo?: string | null
   tersedia: boolean
+  rating?: { value: number; count: number } | null
+  reviews?: ProductReviewLd[]
 }) {
+  const hasRating = !!opts.rating && opts.rating.count > 0
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -115,6 +127,24 @@ export function productLd(opts: {
     image: imageList(opts.foto, opts.umkm_logo),
     sku: opts.slug,
     brand: { '@type': 'Brand', name: opts.umkm_nama },
+    // TASK-REV-01: aggregateRating + review hanya bila ada ulasan disetujui
+    // (count >= 1). Produk tanpa ulasan kembali ke merchant-listing murni.
+    ...(hasRating
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: opts.rating!.value,
+            reviewCount: opts.rating!.count,
+          },
+          review: (opts.reviews ?? []).slice(0, 5).map((r) => ({
+            '@type': 'Review',
+            author: { '@type': 'Person', name: r.author },
+            reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5 },
+            reviewBody: r.body,
+            datePublished: r.date,
+          })),
+        }
+      : {}),
     offers: {
       '@type': 'Offer',
       url: `${SITE.url}/umkm/${opts.umkm_slug}/produk/${opts.slug}`,

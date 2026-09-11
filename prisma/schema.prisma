@@ -109,6 +109,24 @@ model Produk {
   // (detail UMKM + produk-lain) tanpa index.
   @@index([umkm_id, is_available], map: "produk_umkm_id_is_available_idx")
   @@map("produk")
+  ulasan      Ulasan[]
+}
+
+// TASK-REV-01 — ulasan produk sungguhan (rating + komentar termoderasi).
+// Default is_approved=false (pending); hanya yang disetujui tampil publik
+// dan dihitung di aggregateRating JSON-LD. Cascade: hapus produk → ulasan ikut.
+model Ulasan {
+  id          Int      @id @default(autoincrement())
+  produk_id   Int
+  nama        String
+  rating      Int
+  komentar    String
+  is_approved Boolean  @default(false)
+  created_at  DateTime @default(now())
+  produk      Produk   @relation(fields: [produk_id], references: [id], onDelete: Cascade)
+
+  @@index([produk_id, is_approved, created_at])
+  @@map("ulasan")
 }
 
 model Berita {

@@ -35,3 +35,25 @@ export async function parseBody<T>(
   }
   return { data: result.data }
 }
+
+/**
+ * Validasi objek yang sudah di-parse (mis. saat caller perlu membaca
+ * raw body dulu untuk cek honeypot). Shape error identik dengan
+ * `parseBody` agar kontrak `{ error, issues }` konsisten.
+ */
+export function parseData<T>(raw: unknown, schema: ZodSchema<T>): { data: T } | NextResponse {
+  const result = schema.safeParse(raw)
+  if (!result.success) {
+    return NextResponse.json(
+      {
+        error: 'Validasi gagal',
+        issues: result.error.issues.map((i) => ({
+          path: i.path.join('.'),
+          message: i.message,
+        })),
+      },
+      { status: 400 }
+    )
+  }
+  return { data: result.data }
+}

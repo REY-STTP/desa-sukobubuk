@@ -58,6 +58,7 @@ Portal informasi digital untuk Desa Sukobubuk yang menyediakan akses publik ke p
 | **Manajemen UMKM** | CRUD data UMKM dan produk, crop & upload logo/foto produk |
 | **Manajemen Galeri** | CRUD foto galeri dengan upload ke Cloudinary |
 | **Inbox Pesan** | Manajemen pesan masuk dari formulir kontak dengan status baca/belum dibaca |
+| **Ulasan Produk** | Moderasi rating & ulasan produk UMKM (setujui/tahan/hapus, tampil + aggregateRating JSON-LD) |
 | **Pengaturan Profil Desa** | Edit identitas, kontak, jam pelayanan, sejarah, visi-misi, dan data pejabat desa |
 | **Live Dashboard** | Statistik + refresh otomatis saat ada perubahan (event-driven, tanpa polling) |
 
@@ -120,7 +121,8 @@ desa-sukobubuk/
 │   │   ├── umkm/              # List UMKM publik (GET)
 │   │   ├── produk/            # List produk publik (GET)
 │   │   ├── galeri/            # List galeri publik (GET)
-│   │   └── pesan/             # Pesan (kontak form)
+│   │   ├── pesan/             # Pesan (kontak form)
+│   │   └── ulasan/            # Ulasan produk publik (POST, pending moderasi)
 │   ├── globals.css            # Tailwind v4 theme + global styles
 │   ├── icon.png               # Favicon 64px (via sharp)
 │   ├── apple-icon.png         # 180×180 iOS (SEO-002, via sharp)
@@ -149,13 +151,13 @@ desa-sukobubuk/
 │   ├── structured-data.ts     # JSON-LD schema generators (SEO-GEO)
 │   ├── logger.ts              # Structured logger + request-id (OBS-002)
 │   ├── db-retry.ts            # Prisma retry P1001/P1017
-│   ├── parse-body.ts          # parseBody + zod error mapping
+│   ├── parse-body.ts          # parseBody/parseData + zod error mapping
 │   ├── schemas/               # zod schemas per entity (SEC-005)
 │   └── utils.ts               # cn, formatDate, slugify (NFD), truncate, clampPage/Limit, detectImageType
 ├── prisma/
-│   ├── schema.prisma          # Database schema (12 model: User, FailedLogin, PasswordReset, UMKM, Produk, Berita, Galeri, Pesan, ProfilDesa, MisiItem, PejabatDesa, AuditLog + Role enum)
+│   ├── schema.prisma          # Database schema (13 model: User, FailedLogin, PasswordReset, UMKM, Produk, Ulasan, Berita, Galeri, Pesan, ProfilDesa, MisiItem, PejabatDesa, AuditLog + Role enum)
 │   ├── seed.ts                # Seeder idempotent (POL-001/002)
-│   └── migrations/            # 12 migrations (trigram, session_version, kecamatan, singletons, role enum, misi_items, audit_logs, index performa, dll.)
+│   └── migrations/            # 13 migrations (trigram, session_version, kecamatan, singletons, role enum, misi_items, audit_logs, index performa, ulasan, dll.)
 ├── public/
 │   ├── images/                # logo-desa.webp (galeri placeholder gradient, POL-001)
 │   ├── og-image.webp           # 1200×630 <300KB (SEO-003)
@@ -267,7 +269,7 @@ Salin `.env.example` → `.env`, lalu isi setiap variabel:
 
 ## 🗄 Database
 
-### Schema (12 Model + 1 Enum)
+### Schema (13 Model + 1 Enum)
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
@@ -279,13 +281,14 @@ Salin `.env.example` → `.env`, lalu isi setiap variabel:
 └──────────────┘    └──────────────┘    │  (kontak)    │
                                         └──────────────┘
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│     UMKM     │───→│    Produk     │    │ PejabatDesa  │
-│  kecamatan?  │    │  (has umkm)  │    │              │
+│     UMKM     │───→│    Produk     │───→│    Ulasan     │
+│  kecamatan?  │    │  (has umkm)  │    │ (has produk, │
+│              │    │              │    │  moderated)  │
 └──────────────┘    └──────────────┘    └──────────────┘
-┌──────────────┐    ┌──────────────┐
-│  ProfilDesa  │───→│  MisiItem    │
-│  (singleton) │    │  (has profil)│
-└──────────────┘    └──────────────┘
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  ProfilDesa  │───→│  MisiItem    │    │ PejabatDesa  │
+│  (singleton) │    │  (has profil)│    │              │
+└──────────────┘    └──────────────┘    └──────────────┘
 ```
 
 ### NPM Scripts Database
@@ -341,7 +344,7 @@ npx eslint .             # ESLint langsung (`next lint` dihapus di Next.js 16)
 | `/berita/[slug]` | Detail Berita | Halaman detail berita |
 | `/umkm` | UMKM | Direktori UMKM dengan filter kategori |
 | `/umkm/[slug]` | Detail UMKM | Detail usaha & daftar produk |
-| `/umkm/[slug]/produk/[produkSlug]` | Detail Produk | Detail produk per UMKM |
+| `/umkm/[slug]/produk/[produkSlug]` | Detail Produk | Detail produk per UMKM + rating & ulasan termoderasi |
 | `/kontak` | Kontak | Form kontak & peta lokasi |
 | `/kebijakan-privasi` | Kebijakan Privasi | Kebijakan privasi situs |
 | `/syarat-ketentuan` | Syarat & Ketentuan | Syarat penggunaan situs |
@@ -359,6 +362,7 @@ npx eslint .             # ESLint langsung (`next lint` dihapus di Next.js 16)
 | `/admin/produk` | Kelola Produk | CRUD produk per UMKM |
 | `/admin/galeri` | Kelola Galeri | CRUD foto galeri |
 | `/admin/pesan` | Inbox Pesan | Lihat & kelola pesan masuk |
+| `/admin/ulasan` | Ulasan Produk | Moderasi ulasan produk (setujui/tahan/hapus) |
 | `/admin/profil` | Profil Desa | Edit identitas, kontak, sejarah, visi-misi, pejabat |
 | `/admin/pengaturan` | Pengaturan Akun | Ganti nama/email/password |
 | `/admin/audit-log` | Audit Log | Forensik aktivitas admin (ARCH-001) |
@@ -371,6 +375,7 @@ Semua endpoint menggunakan Next.js Route Handlers (App Router).
 |---|---|---|---|
 | `*` | `/api/auth/[...nextauth]` | Public | Auth.js v5 (JWT) |
 | `POST` | `/api/pesan` | Public | Kirim pesan kontak (rate-limited) |
+| `POST` | `/api/ulasan` | Public | Kirim ulasan produk, pending moderasi (rate-limited + honeypot) |
 | `GET` | `/api/berita` | Public | List berita (pagination) |
 | `GET` | `/api/umkm` | Public | List UMKM (pagination + filter `?search=&kategori=&featured=`) |
 | `GET` | `/api/produk` | Public | List produk (pagination) |
@@ -387,6 +392,8 @@ Semua endpoint menggunakan Next.js Route Handlers (App Router).
 | `DELETE` | `/api/admin/galeri/[id]` | Admin | Delete galeri |
 | `GET` | `/api/admin/pesan` | Admin | List pesan (paginasi `?page=&limit=`, PII-protected) |
 | `PATCH/DELETE` | `/api/admin/pesan/[id]` | Admin | Tandai dibaca / hapus pesan |
+| `GET` | `/api/admin/ulasan` | Admin | List ulasan (paginasi `?page=&q=`) |
+| `PATCH/DELETE` | `/api/admin/ulasan/[id]` | Admin | Setujui/tahan / hapus ulasan |
 | `GET/PUT` | `/api/admin/profil` | Admin | Get/update ProfilDesa |
 | `PUT` | `/api/admin/profil/pejabat` | Admin | Replace pejabat (transactional) |
 | `POST` | `/api/admin/profil/pejabat/foto` | Admin | Upload foto pejabat |
@@ -424,7 +431,7 @@ Berbasis [shadcn/ui](https://ui.shadcn.com/) (New York variant):
 Optimisasi SEO dan performa sudah terimplementasi:
 
 - ✅ **Dynamic Metadata** — Title, description, OG tags per halaman
-- ✅ **JSON-LD Structured Data** — Organization, WebSite, GovernmentOffice, Article, Product
+- ✅ **JSON-LD Structured Data** — Organization, WebSite, GovernmentOffice, Article, Product (+ AggregateRating/Review saat produk berulas)
 - ✅ **Dynamic `sitemap.xml`** — Auto-generate dari database (berita, UMKM & produk slugs)
 - ✅ **Dynamic `robots.txt`** — Konfigurasi crawler
 - ✅ **Open Graph & Twitter Cards** — Preview saat di-share ke social media

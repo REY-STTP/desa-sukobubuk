@@ -813,3 +813,81 @@ export const getProdukLain = (umkmId: number, excludeSlug: string) =>
     ['produk-lain', String(umkmId), excludeSlug],
     { revalidate: 300, tags: [CACHE_TAGS.produk] }
   )()
+
+// ─── Ulasan Produk (TASK-REV-01) ────────────────────────────
+// Publik: hanya yang disetujui (is_approved) yang dibaca halaman produk.
+// Admin: getUlasanPage untuk moderasi (tiru getPesanPage).
+export const ULASAN_PUBLIK_TAKE = 5
+
+export const getUlasanApproved = (produkId: number, take = ULASAN_PUBLIK_TAKE) =>
+  unstable_cache(
+    async () => {
+      try {
+        return prisma.ulasan.findMany({
+          where: { produk_id: produkId, is_approved: true },
+          take,
+          orderBy: { created_at: 'desc' },
+          select: { id: true, nama: true, rating: true, komentar: true, created_at: true },
+        })
+      } catch {
+        return [] as Awaited<ReturnType<typeof prisma.ulasan.findMany>>
+      }
+    },
+    ['ulasan-produk', String(produkId), String(take)],
+    { revalidate: 300, tags: [CACHE_TAGS.produk] }
+  )()
+
+export const getProdukRating = (produkId: number) =>
+  unstable_cache(
+    async (): Promise<{ value: number; count: number } | null> => {
+      try {
+        const agg = await prisma.ulasan.aggregate({
+          _avg: { rating: true },
+          _count: true,
+          where: { produk_id: produkId, is_approved: true },
+        })
+        if (!agg._count || agg._avg.rating == null) return null
+        return { value: Math.round(agg._avg.rating * 10) / 10, count: agg._count }
+      } catch {
+        return null
+      }
+    },
+    ['produk-rating', String(produkId)],
+    { revalidate: 300, tags: [CACHE_TAGS.produk] }
+  )()
+
+export const getUlasanPage = (rawPage: number, search = '') => {
+  const page = clampPage(rawPage)
+  const q = search.trim().slice(0, 100)
+  return unstable_cache(
+    async () => {
+      const where: Prisma.UlasanWhereInput = q
+        ? {
+            OR: [
+              { nama: { contains: q, mode: 'insensitive' as const } },
+              { komentar: { contains: q, mode: 'insensitive' as const } },
+              { produk: { nama_produk: { contains: q, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}
+      const [data, total, pending] = await timed('getUlasanPage', prisma.$transaction([
+        prisma.ulasan.findMany({
+          where,
+          take: PAGE_SIZE,
+          skip: (page - 1) * PAGE_SIZE,
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true, nama: true, rating: true, komentar: true,
+            is_approved: true, created_at: true,
+            produk: { select: { id: true, nama_produk: true, slug: true } },
+          },
+        }),
+        prisma.ulasan.count({ where }),
+        prisma.ulasan.count({ where: { is_approved: false } }),
+      ]))
+      return { data, total, pending, totalPages: Math.ceil(total / PAGE_SIZE) }
+    },
+    ['ulasan-page', String(page), q],
+    { revalidate: 10, tags: [CACHE_TAGS.produk] }
+  )()
+}

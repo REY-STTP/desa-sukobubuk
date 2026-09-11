@@ -7,13 +7,13 @@ import {
   ArrowLeft,
   Store,
   ExternalLink,
-  Tag as TagIcon,
   CheckCircle,
   XCircle,
   MessageCircle,
   ShoppingBag,
+  Star,
 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { shouldSkipImageOptimization } from '@/lib/image-optim'
 import { Button } from '@/components/ui/button'
 import { Tag } from '@/components/ui/tag'
@@ -21,8 +21,10 @@ import { Section, SectionHeader } from '@/components/ui/section'
 import { EmptyState } from '@/components/ui/empty-state'
 import PageWrapper from '@/components/animations/PageWrapper'
 import PageHeader from '@/components/layout/PageHeader'
-import { getProdukDetail, getProdukLain } from '@/lib/cache'
+import { getProdukDetail, getProdukLain, getUlasanApproved, getProdukRating } from '@/lib/cache'
 import { productLd, breadcrumbLd, ldScript, SITE } from '@/lib/structured-data'
+import RatingStars from './RatingStars'
+import UlasanForm from './UlasanForm'
 
 interface Props {
   params: Promise<{ slug: string; produkSlug: string }>
@@ -57,7 +59,15 @@ export default async function ProdukDetailPage({ params }: Props) {
 
   if (!produk || produk.umkm.slug !== slug) notFound()
 
-  const produkLain = await getProdukLain(produk.umkm_id, produkSlug)
+  // TASK-REV-01 — ulasan disetujui + agregat (cache 300s, tag `produk`).
+  const [produkLain, ulasan, rating] = await Promise.all([
+    getProdukLain(produk.umkm_id, produkSlug),
+    getUlasanApproved(produk.id),
+    getProdukRating(produk.id),
+  ])
+
+  const toIso = (v: Date | string): string =>
+    typeof v === 'string' ? v : v.toISOString()
 
   const waMessage = `Halo ${produk.umkm.nama_usaha}, saya tertarik dengan produk *${produk.nama_produk}* seharga ${formatCurrency(produk.harga.toString())}. Apakah masih tersedia?`
   const waLink = `https://wa.me/${produk.umkm.whatsapp}?text=${encodeURIComponent(waMessage)}`
@@ -77,6 +87,13 @@ export default async function ProdukDetailPage({ params }: Props) {
             umkm_slug: produk.umkm.slug,
             umkm_logo: produk.umkm.logo,
             tersedia: produk.is_available,
+            rating,
+            reviews: ulasan.map((u) => ({
+              author: u.nama,
+              rating: u.rating,
+              body: u.komentar,
+              date: toIso(u.created_at),
+            })),
           })
         )}
       />
@@ -146,7 +163,7 @@ export default async function ProdukDetailPage({ params }: Props) {
 
           {/* Info — 2/5 */}
           <div className="flex flex-col gap-5 lg:col-span-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {produk.is_available ? (
                 <Tag tone="sage">
                   <CheckCircle className="size-3" />
@@ -157,6 +174,22 @@ export default async function ProdukDetailPage({ params }: Props) {
                   <XCircle className="size-3" />
                   Tidak tersedia
                 </Tag>
+              )}
+              {/* TASK-REV-01 — agregat ringkas, anchor ke #ulasan */}
+              {rating ? (
+                <a
+                  href="#ulasan"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-stone-700 ring-1 ring-amber-200/70 transition-colors hover:bg-amber-100"
+                  aria-label={`Rating ${rating.value} dari 5, ${rating.count} ulasan. Lihat ulasan.`}
+                >
+                  <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden />
+                  <span className="font-mono font-semibold tabular-nums">
+                    {rating.value.toFixed(1)}
+                  </span>
+                  <span className="text-stone-500">({rating.count} ulasan)</span>
+                </a>
+              ) : (
+                <span className="text-xs text-stone-400">Belum ada ulasan</span>
               )}
             </div>
 
@@ -231,6 +264,63 @@ export default async function ProdukDetailPage({ params }: Props) {
                 Lihat produk lainnya
               </Link>
             </Button>
+          </div>
+        </div>
+
+        {/* TASK-REV-01 — Ulasan pembeli (full-width, antara konten dan related) */}
+        <div id="ulasan" className="mx-auto mt-16 max-w-6xl scroll-mt-28">
+          <SectionHeader
+            eyebrow={<><Star className="size-3.5" /> Ulasan</>}
+            heading={
+              <>
+                Ulasan{' '}
+                <span className="text-sage-700 italic">
+                  {produk.nama_produk}
+                </span>
+              </>
+            }
+            subtitle={
+              rating
+                ? `Rating ${rating.value.toFixed(1)} dari 5 berdasarkan ${rating.count} ulasan terverifikasi.`
+                : 'Jadilah yang pertama memberi ulasan untuk produk ini.'
+            }
+            align="left"
+          />
+
+          {ulasan.length === 0 ? (
+            <EmptyState
+              icon={<Star className="size-6" />}
+              title="Belum ada ulasan"
+              description="Bagikan pengalaman Anda memakai produk ini lewat form di bawah."
+              size="sm"
+            />
+          ) : (
+            <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-5">
+              {ulasan.map((u) => (
+                <li
+                  key={u.id}
+                  className="surface-elevated flex flex-col gap-3 rounded-2xl p-5"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <RatingStars value={u.rating} />
+                    <time
+                      dateTime={toIso(u.created_at)}
+                      className="shrink-0 text-xs text-stone-400"
+                    >
+                      {formatDate(u.created_at)}
+                    </time>
+                  </div>
+                  <p className="text-sm leading-relaxed text-stone-700">{u.komentar}</p>
+                  <p className="mt-auto text-xs font-medium text-stone-500">
+                    — {u.nama}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="mx-auto mt-8 max-w-2xl">
+            <UlasanForm produkId={produk.id} />
           </div>
         </div>
 

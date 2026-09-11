@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Store, Package, Newspaper, Building2,
   Images, MessageSquare, Settings, LogOut, ChevronRight, X, ExternalLink, ArrowLeftRight,
-  Pin, PinOff, ShieldCheck,
+  Pin, PinOff, ShieldCheck, Star,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -21,6 +21,7 @@ const navItems = [
   { href: '/admin/galeri', label: 'Kelola Galeri', icon: Images },
   { href: '/admin/profil', label: 'Profil Desa', icon: Building2 },
   { href: '/admin/pesan', label: 'Pesan Masuk', icon: MessageSquare },
+  { href: '/admin/ulasan', label: 'Ulasan Produk', icon: Star },
   { href: '/admin/audit-log', label: 'Audit Log', icon: ShieldCheck },
 ]
 
